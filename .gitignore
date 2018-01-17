@@ -9,6 +9,9 @@ results/
 plots/
 logs/
 
+# Random:
+.DS_Store
+
 # C extensions
 *.so
 
