@@ -14,7 +14,7 @@ class ReinforcementLearning():
 
     def __init__(self, classes):
         self.classes = classes
-        self.request_reward = -0.05
+        self.request_reward = -0.1
         self.prediction_reward = 1.0
         self.prediction_penalty = -1.0
 
@@ -69,6 +69,20 @@ class ReinforcementLearning():
             else:
                 return self.prediction_penalty
 
+    def collect_reward_batch(self, actions, labels, batch_size):
+        actions = actions
+        # Last bit determines if the agent predicts or request the label:
+        rewards = []
+        for i in range(batch_size):
+            if (int(actions[i]) == self.classes):
+                rewards.append(self.request_reward)
+            else:
+                if (np.argmax(labels[i]) == int(actions[i])):
+                    rewards.append(self.prediction_reward)
+                else:
+                    rewards.append(self.prediction_penalty)
+        return rewards
+
     def next_state(self, action, one_hot_label):
         action = action.squeeze()
         # Requesting the label:
@@ -77,6 +91,18 @@ class ReinforcementLearning():
         # Predicting (Thus returning a 0-vector to the input):
         else:
             return [0 for i in range(self.classes)]
+
+    def next_state_batch(self, actions, one_hot_labels, batch_size):
+        actions = actions
+        states = []
+        for i in range(batch_size):
+            # Requesting the label:
+            if (int(actions[i]) == self.classes):
+                states.append(one_hot_labels[i])
+            # Predicting (Thus returning a 0-vector to the input):
+            else:
+                states.append([0 for i in range(self.classes)])
+        return states
 
 
 # Stored observed transitions used for optimizing the model:

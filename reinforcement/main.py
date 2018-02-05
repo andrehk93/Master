@@ -12,14 +12,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, scatterplot, transforms, loader, logger
+from utils import loss_plot, batch_scatterplot as scatterplot, transforms, loader, logger
 from reinforcement import ReinforcementLearning as rl
-from reinforcement import ReplayMemory as memory
 from omniglot import OMNIGLOT
 
 import model
 import validate
-import train as train
+import train_batch_sum as train
 
 
 ### IMPORTANT NOTICE ###
@@ -40,7 +39,7 @@ parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=1, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Episode size:
@@ -52,7 +51,7 @@ parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='input class vector size for training (default: 3)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=112, metavar='N',
+parser.add_argument('--epochs', type=int, default=10000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -64,11 +63,11 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/active_one_shot_learninsg_online/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/truncated_singlesum/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='active_one_shot_learning_online', type=str,
+parser.add_argument('--name', default='truncated_singlesum', type=str,
                     help='name of file')
 
 # Seed:
@@ -198,9 +197,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    torch.manual_seed(args.seed)
-    if args.cuda:
-        torch.cuda.manual_seed(args.seed)
+    #torch.manual_seed(args.seed)
+    #if args.cuda:
+        #torch.cuda.manual_seed(args.seed)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
@@ -213,6 +212,7 @@ if __name__ == '__main__':
     HIDDEN_NODES = 200
     OUTPUT_CLASSES = args.class_vector_size
     ##################
+
     train_transform = transforms.Compose([
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
@@ -239,7 +239,6 @@ if __name__ == '__main__':
                                   args.batch_size, args.cuda)
 
     # Modules:
-    memory = memory(50000, args.episode_size)
     rl = rl(OUTPUT_CLASSES)
 
     if args.cuda:
@@ -284,9 +283,10 @@ if __name__ == '__main__':
             print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
 
     ### WEIGHT OPTIMIZER ###
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.MSELoss(reduce=True)
     epoch = 0
-    episode = 0
+    episode = (args.start_epoch-1)*args.batch_size
     done = False
     start_time = time.time()
     while not done:
@@ -295,7 +295,7 @@ if __name__ == '__main__':
 
             ### TRAINING ###
             print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
-            prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = train.train(model, epoch, optimizer, train_loader, args, logger, rl, memory, req_dict, acc_dict, episode)
+            prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = train.train(model, epoch, optimizer, train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion)
             episode += args.batch_size
 
             # STATS:
@@ -305,10 +305,8 @@ if __name__ == '__main__':
             total_loss.append(loss)
             total_reward.append(reward)
 
-            if (epoch % 10 == 0):
-                validate.validate(model, epoch, optimizer, test_loader, args, logger, rl, test_req_dict, test_acc_dict, episode, True)
-
-            #memory.flush()
+            if (epoch % 10000 == 0):
+                validate.validate(model, epoch, optimizer, test_loader, args, logger, rl, test_req_dict, test_acc_dict, episode)
 
             ### SAVING CHECKPOINT ###
             save_checkpoint({
@@ -358,14 +356,9 @@ if __name__ == '__main__':
         first = True
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
-            if (first):
-                print_stats = True
-                first = False
-            else:
-                print_stats = False
             # Validate the model:
-            requests, accuracy, reward, req_dict, acc_dict = validate.validate(model, epoch, optimizer, test_loader, args, logger, rl, req_dict, acc_dict, episode, print_stats)
-            train_requests, train_accuracy, _, _, _ = validate.validate(model, epoch, optimizer, train_loader, args, logger, rl, req_dict, acc_dict, episode, print_stats)
+            prediction, requests, accuracy, reward, req_dict, acc_dict = validate.validate(model, epoch, optimizer, test_loader, args, logger, rl, req_dict, acc_dict, episode)
+            prediction, train_requests, train_accuracy, _, _, _ = validate.validate(model, epoch, optimizer, train_loader, args, logger, rl, req_dict, acc_dict, episode)
 
             # Increment episode count:
             episode += args.batch_size

@@ -42,6 +42,6 @@ class ReinforcedLSTM(nn.Module):
     def forward(self, x, hidden, seq=1):
         batch_size = hidden[1].size()[1]
         x = x.view(seq, batch_size, -1)
-        lstm_out, hidden = self.lstm(x, hidden)
+        lstm_out, next_hidden = self.lstm(x, hidden)
         x = self.hidden2probs(lstm_out[-1])
-        return x, hidden
+        return x, next_hidden

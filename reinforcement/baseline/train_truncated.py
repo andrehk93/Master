@@ -7,7 +7,6 @@ def train(model, epoch, optimizer, train_loader, args, writer, accuracy_dict, ep
     # Initialize training:
     model.train()
 
-
     # Collect all episode images w/labels:
     image_batch, label_batch = train_loader.__iter__().__next__()
 
@@ -18,6 +17,7 @@ def train(model, epoch, optimizer, train_loader, args, writer, accuracy_dict, ep
     episode_predict = 0.0
     episode_optimized = 0.0
     episode_iter = 0.0
+    total_loss = 0.0
 
     # Create initial state:
     state = []
@@ -31,8 +31,10 @@ def train(model, epoch, optimizer, train_loader, args, writer, accuracy_dict, ep
 
     # Accuracy statistics:
     for v in accuracy_dict.values():
-        for i in range(args.batch_size):
-            v.append([])
+        v.append([])
+
+    # Zeroing gradients:
+    optimizer.zero_grad()
 
     # Initiate empty loss Variable:
     if (args.cuda):
@@ -43,95 +45,97 @@ def train(model, epoch, optimizer, train_loader, args, writer, accuracy_dict, ep
 
         # Collect timestep images/labels:
         episode_images = image_batch[i_e]
-        episode_labels = label_batch
+        episode_labels = label_batch[i_e]
 
         # Tensoring the state:
         state = torch.FloatTensor(state)
         
         # Need to add image to the state vector:
         flat_images = episode_images.squeeze().view(args.batch_size, -1)
+
+        # Concatenating possible labels/zero vector with image, thus creating the state:
+        state = torch.cat((state, flat_images), 1)
+
         
+        # Generating actions to choose from the model:
+        if (args.cuda):
+            actions, hidden = model(Variable(state).type(torch.FloatTensor).cuda(), hidden)
+        else:
+            actions, hidden = model(Variable(state).type(torch.FloatTensor), hidden)
+
+        if (args.cuda):
+            current_loss = criterion(actions, Variable(episode_labels).cuda())
+        else:
+            current_loss = criterion(actions, Variable(episode_labels))
+
+        #current_loss.backward()
+
+        loss += current_loss
+
+        total_loss += current_loss.data[0]
+
+        actions = actions.data.max(1)[1].squeeze()
+
         one_hot_labels = []
         for i in range(args.batch_size):
-            true_label = episode_labels[i].squeeze()
+            true_label = episode_labels[i]
 
             # Creating one hot labels:
             one_hot_labels.append([1 if j == true_label else 0 for j in range(args.class_vector_size)])
 
-            # Logging statistics:
+            # Logging label occurences:
             if (true_label not in label_dict[i]):
                 label_dict[i][true_label] = 1
             else:
                 label_dict[i][true_label] += 1
 
-        # Concatenating possible labels/zero vector with image, thus creating the state:
-        state = torch.cat((state, flat_image), 1)
+            # Logging accuracy:
+            if (actions[i] == true_label):
+                episode_correct += 1.0
+                episode_predict += 1.0
+                if (label_dict[i][true_label] in accuracy_dict):
+                    accuracy_dict[label_dict[i][true_label]][-1].append(1)
+            else:
+                episode_predict += 1.0
+                if (label_dict[i][true_label] in accuracy_dict):
+                    accuracy_dict[label_dict[i][true_label]][-1].append(0)
 
-        
-
-        # Selecting an action to perform (Epsilon Greedy),
-        # Could maybe also be implemented using memory techniques:
-        if (args.cuda):
-            action, hidden = model(Variable(state).type(torch.FloatTensor).cuda(), hidden)
-        else:
-            action, hidden = model(Variable(state).type(torch.FloatTensor), hidden)
-
-        if (args.cuda):
-            current_loss = criterion(action, Variable(episode_labels[i_e]).cuda())
-        else:
-            current_loss = criterion(action, Variable(episode_labels[i_e]))
-        
-        loss = loss.add(current_loss)
-
-        action = action.data.max(1)[1].squeeze()
-
-        # Just some statistics logging:
-        if (action[0] == true_label):
-            episode_correct += 1.0
-            episode_predict += 1.0
-            if (label_dict[true_label] in accuracy_dict):
-                accuracy_dict[label_dict[true_label]][-1].append(1)
-        else:
-            episode_predict += 1.0
-            if (label_dict[true_label] in accuracy_dict):
-                accuracy_dict[label_dict[true_label]][-1].append(0)
 
         # Update next state:
-        state = one_hot_label
+        state = one_hot_labels
+        #hidden = (hidden[0].detach(), hidden[1].detach())
             
         ### END TRAIN LOOP ###
 
-    optimizer.zero_grad()
+    # Averaging the loss over the batch (SGD):
+    mean_loss = torch.mean(loss)
 
-    loss = torch.div(loss.sum(), args.episode_size)
+    # Backpropagating:
+    mean_loss.backward()
 
-    loss.backward()
-
+    # Take one step in the SGD:
     optimizer.step()
 
     # More status update:
-    total_loss = loss.data[0]
+    total_loss = mean_loss.data[0]
+
 
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy")       
     for key in accuracy_dict.keys():
-        prob_list = accuracy_dict[key]
-        
-        latest = prob_list[len(prob_list)-int(max(args.episode_size, args.batch_size)):]
-        probs = 0.0
-        prob = 0.0
-        for l in latest:
-            prob += sum(l)
-            probs += len(l)
-        prob /= probs
-        print("Instance " + str(key) + ":\t" + str(100.0*prob)[0:4] + " %")
+        predictions = accuracy_dict[key][-1]
+
+        amount_correct = sum(predictions)
+        amount_predicted = len(predictions)
+        probability = float(amount_correct / amount_predicted)
+        print("Instance " + str(key) + ":\t" + str(100.0*probability)[0:4] + " %")
     
 
     # Even more status update:
     print("\n+------------------STATISTICS----------------------+")
-    total_accuracy = float((100.0 * total_correct) / total_predict)
+    total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    total_loss = float((total_loss / total_episodes))
+    total_loss = float(total_loss)
     print("Batch Average Loss = " + str(total_loss)[:5])
     print("+--------------------------------------------------+\n")
 

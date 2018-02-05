@@ -62,9 +62,6 @@ class OMNIGLOT(data.Dataset):
 
             # Trains on 3 classes:
             #img_classes = np.random.choice(3, self.classes, replace=False)
-            #print("IMG CLASSES = ", img_classes)
-            
-            #img_classes = [0, 1, 2]
             ind = 0
             for i in img_classes:
                 for j in self.train_data[i]:
@@ -79,9 +76,6 @@ class OMNIGLOT(data.Dataset):
                 ind += 1
 
         images_indexes = np.random.choice(len(images), self.batch_size, replace=False)
-        #print("INDEXES = ", images_indexes)
-        #print("Images = ", len(images))
-        #input("OK")
         img_list = []
         target_list = []
         rotations = [0, 90, 180, 270]
@@ -89,7 +83,6 @@ class OMNIGLOT(data.Dataset):
         image_rotations = [rotations[random.randint(0, len(rotations)-1)] for i in range(len(img_classes))]
         for i in images_indexes:
             img, label = images[i]
-            #print("Collecting Image ", i, "\tWith label ", label)
             img = Image.fromarray(img.numpy())
 
             if self.transform is not None:
@@ -99,9 +92,8 @@ class OMNIGLOT(data.Dataset):
                     img = transforms.vflip(img)
                 elif (image_rotations[label] == 180):
                     img = transforms.hflip(img)
-                elif (image_rotations[label] == 270):
+                elif (image_rotations[label] == 180):
                     img = transforms.hflip(transforms.vflip(img))
-
                 img = self.transform(img)
             if self.target_transform is not None:
                 target = self.target_transform(target)

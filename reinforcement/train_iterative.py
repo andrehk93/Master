@@ -1,12 +1,43 @@
 import torch
 from torch.autograd import Variable
 import random
-from transition import Transition
+import matplotlib.pyplot as plt
+import numpy
+
+def print_graph(grad_fn):
+    seen = set()
+    params = None
+
+    def size_to_str(size):
+        return '('+(', ').join(['%d' % v for v in size])+')'
+
+    def add_nodes(var):
+
+        
+        if torch.is_tensor(var):
+            print("Node Orange = IS TENSOR: ", str(id(var)))
+        elif hasattr(var, 'variable'):
+            u = var.variable
+            name = param_map[id(u)] if params is not None else ''
+            node_name = '%s\n %s' % (name, size_to_str(u.size()))
+            print("Node BLUE = ", str(id(var)), node_name)
+        else:
+            print("Node = ", str(type(var).__name__), str(id(var)))
+        if var not in seen:
+            seen.add(var)
+            if hasattr(var, 'next_functions'):
+                for u in var.next_functions:
+                    if u[0] is not None:
+                        add_nodes(u[0])
+            if hasattr(var, 'saved_tensors'):
+                for t in var.saved_tensors:
+                    add_nodes(t)
+    add_nodes(grad_fn)
+
 
 # Discount factor for future rewards, and Greedy Epsilon Constant:
 GAMMA = 0.5
 EPS = 0.05
-
 
 def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode):
 
@@ -17,20 +48,19 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
     batch_predict = 0.0
     batch_request = 0.0
     batch_reward = 0.0
+    batch_loss = 0.0
 
     for b in range(args.batch_size):
-        
+
         # Collect a random batch:
         image_batch, label_batch = train_loader.__iter__().__next__()
-
-        # Keep a memory of the episode:
-        transitions = []
 
         # Episode Statistics:
         episode_correct = 0.0
         episode_predict = 0.0
         episode_request = 0.0
         episode_reward = 0.0
+        episode_loss = 0.0
 
         # Create initial state:
         state = []
@@ -56,12 +86,22 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
 
         # EPISODE LOOP:
         for i_e in range(len(label_batch)):
-
-            # Zeroing accumulated gradients:
-            optimizer.zero_grad()
-
             episode_labels = label_batch[i_e]
             episode_images = image_batch[i_e]
+
+            b_img = 0
+            show = False
+            if (show):
+                for x in range(3):
+                    img = episode_images[b_img + x]
+                    lbl = episode_labels[b_img + x]
+                    print("Image size = ", img.size())
+                    img_plot = img.squeeze().numpy()
+                    print(img_plot)
+                    plt.imshow(img_plot, cmap="gray")
+                    plt.show()
+                    print("X = ", x, "Label = ", lbl)
+                    input("OK")
 
             # Tensoring the state:
             state = torch.FloatTensor(state)
@@ -129,6 +169,7 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
 
             # Just some statistics logging:
             for i in range(args.mini_batch_size):
+
                 true_label = episode_labels[i]
 
                 # Statistics:
@@ -154,17 +195,16 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
                     if (label_dict[i][true_label] in accuracy_dict):
                         accuracy_dict[label_dict[i][true_label]][-1].append(0)
 
-            # Tensoring the reward:
-            #rewards = Variable(torch.Tensor([rewards]))
-            rewards = torch.Tensor([rewards])
-
+            
             # Observe next state and images:
             next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.mini_batch_size)
 
+            # Tensoring the reward:
+            rewards = Variable(torch.Tensor([rewards]))
+
             # Need to collect the representative Q-values:
-            agent_actions = torch.LongTensor(agent_actions).unsqueeze(1)
-            #agent_actions = Variable(torch.LongTensor(agent_actions).unsqueeze(1))
-            #current_q_values = q_values.gather(1, agent_actions)
+            agent_actions = Variable(torch.LongTensor(agent_actions)).unsqueeze(1)
+            current_q_values = q_values.gather(1, agent_actions)
 
             # Non-final state:
             if (i_e < args.episode_size - 1):
@@ -174,64 +214,68 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
                 # Create next state:
                 next_state = torch.cat((torch.FloatTensor(next_state_start), next_flat_images), 1)
 
-                transitions.append(Transition(state, agent_actions, next_state, rewards))
-                """
                 # Get target value for next state:
                 target_value = model(Variable(next_state, volatile=True), hidden)[0].max(1)[0]
 
-                # Making it un-volatile again:
+                # Make it un-volatile again:
                 target_value.volatile = False
 
                 # Discounting the next state + reward collected in this state:
                 discounted_target_value = (GAMMA*target_value) + rewards
 
-                # Calculating Bellman error:
-                difference = discounted_target_value.squeeze().sub(current_q_values)
-                loss = loss.add(difference.pow(2).squeeze())
-                """
-
             # Final state:
             else:
-                transitions.append(Transition(state, agent_actions, None, rewards))
-                """
                 # As there is no next state, we only have the rewards:
                 discounted_target_value = rewards
 
+            discounted_target_value = discounted_target_value.view(args.mini_batch_size, -1)
 
-                # Calculating Bellman error:
-                difference = discounted_target_value.squeeze().sub(current_q_values)
-                loss = loss.add(difference.pow(2).squeeze())
-                """
+            # Calculating Bellman error:
+            bellman_loss = discounted_target_value.sub(current_q_values).pow(2)
+            
+            # Zeroing gradients:
+            optimizer.zero_grad()
+
+            # Backprop:
+            bellman_mean_loss = torch.mean(bellman_loss)
+
+            # For checking that the comp graph is correct:
+            #print_graph(bellman_mean_loss.grad_fn)
+            #input("ok")
+            """
+            for i_t in range(args.mini_batch_size):
+                print("Discount size = ", discounted_target_value.size())
+                print("Discounted Q = ", discounted_target_value.data[i_t])
+                print("Currentifi size = ", current_q_values.size())
+                print("Currentifi Q = ", current_q_values.data[i_t])
+                input("ok")
+            """
+            #print("Bellman = ", bellman_mean_loss)
+            bellman_mean_loss.backward()
+
+            # Step in SGD:
+            optimizer.step()
+
+            episode_loss += bellman_mean_loss.data[0]
+
+            # Keeping the data from the hidden (The "state", but not the computationa graph):
+            #print("Hidden = ", hidden)
+            next_hidden = (hidden[0].detach(), hidden[1].detach())
+            #print("\n----------------\n")
+            #print("Next = ", next_hidden)
             
             # Update current state:
             state = next_state_start
+            hidden = next_hidden
 
             ### END TRAIN LOOP ###
-
-        optimize(transitions, model, args)
-
-        """
-        # Zeroing accumulated gradients:
-        optimizer.zero_grad()
-
-        # Averaging Loss over batch (SGD):
-        avg_loss = torch.mean(loss)
-
-        # Backpropagating error:
-        avg_loss.backward()
-
-        # Taking one step in the SGD optimizer:
-        optimizer.step()
-        """
-
-
+    
         # Collect stats:
         batch_correct += episode_correct
         batch_predict += episode_predict
         batch_request += episode_request
         batch_reward += episode_reward
-
-    
+        batch_loss += episode_loss
 
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + b + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
@@ -262,7 +306,7 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
         request_percentage = float(requests/nof_requests)
         
         print("Instance " + str(key) + ":\t" + str(100.0*accuracy)[0:4] + " %" + "\t\t" + str(100.0*request_percentage)[0:4] + " %")
-    
+
 
     # Even more status update:
     print("\n+------------------STATISTICS----------------------+")
@@ -270,7 +314,7 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
     print("Batch Average Prediction Accuracy = " + str(total_prediction_accuracy)[:5] +  " %")
     total_accuracy = float((100.0 * batch_correct) / batch_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    total_loss = float(avg_loss.data[0])
+    total_loss = float(batch_loss/args.batch_size)
     print("Batch Average Loss = " + str(total_loss)[:5])
     total_requests = float((100.0 * batch_request) / (args.batch_size*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
@@ -293,80 +337,9 @@ def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_lea
     return total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward, request_dict, accuracy_dict
 
 
-def optimize(transitions, model, args):
-
-    batch = Transition(*zip(*transitions))
-
-    hidden = model.reset_hidden(args.mini_batch_size)
-
-    non_final_mask = torch.ByteTensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)))
-    non_final_next_states = Variable(torch.cat([s for s in batch.next_state
-                                                if s is not None]),
-                                     volatile=True)
-
-    state_batch = Variable(torch.cat(batch.state))
-    action_batch = Variable(torch.cat(batch.action))
-    reward_batch = Variable(torch.cat(batch.reward))
-
-    q_values, hidden = model(state_batch, hidden, seq=args.episode_size)
-
-    print(q_values)
-    print(action_batch)
-    state_action_values = q_values.gather(1, action_batch)
-
-    # Compute V(s_{t+1}) for all next states.
-    next_state_values, _ = Variable(torch.zeros(args.episode_size).type(Tensor), hidden)
-    next_state_values[non_final_mask] = model(non_final_next_states, hidden, seq=args.episode_size).max(1)[0]
-    # Now, we don't want to mess up the loss with a volatile flag, so let's
-    # clear it. After this, we'll just end up with a Variable that has
-    # requires_grad=False
-    next_state_values.volatile = False
-    # Compute the expected Q values
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-
-    # Compute Huber loss
-    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
-
-    # Optimize the model
-    optimizer.zero_grad()
-    loss.backward()
-
-    for param in model.parameters():
-        param.grad.data.clamp_(-1, 1)
-    optimizer.step()
 
 
 
 
 
-def print_graph(grad_fn):
-    seen = set()
-    params = None
-
-    def size_to_str(size):
-        return '('+(', ').join(['%d' % v for v in size])+')'
-
-    def add_nodes(var):
-
-        
-        if torch.is_tensor(var):
-            print("Node Orange = IS TENSOR: ", str(id(var)))
-        elif hasattr(var, 'variable'):
-            u = var.variable
-            name = param_map[id(u)] if params is not None else ''
-            node_name = '%s\n %s' % (name, size_to_str(u.size()))
-            print("Node BLUE = ", str(id(var)), node_name)
-        else:
-            print("Node = ", str(type(var).__name__), str(id(var)))
-        if var not in seen:
-            seen.add(var)
-            if hasattr(var, 'next_functions'):
-                for u in var.next_functions:
-                    if u[0] is not None:
-                        add_nodes(u[0])
-            if hasattr(var, 'saved_tensors'):
-                for t in var.saved_tensors:
-                    add_nodes(t)
-    add_nodes(grad_fn)
 

@@ -1,15 +1,48 @@
 import torch
 from torch.autograd import Variable
-import torch.nn.functional as F
 import random
 import matplotlib.pyplot as plt
 import numpy
-import math
 
-def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode):
+def print_graph(grad_fn):
+    seen = set()
+    params = None
+
+    def size_to_str(size):
+        return '('+(', ').join(['%d' % v for v in size])+')'
+
+    def add_nodes(var):
+
+        
+        if torch.is_tensor(var):
+            print("Node Orange = IS TENSOR: ", str(id(var)))
+        elif hasattr(var, 'variable'):
+            u = var.variable
+            name = param_map[id(u)] if params is not None else ''
+            node_name = '%s\n %s' % (name, size_to_str(u.size()))
+            print("Node BLUE = ", str(id(var)), node_name)
+        else:
+            print("Node = ", str(type(var).__name__), str(id(var)))
+        if var not in seen:
+            seen.add(var)
+            if hasattr(var, 'next_functions'):
+                for u in var.next_functions:
+                    if u[0] is not None:
+                        add_nodes(u[0])
+            if hasattr(var, 'saved_tensors'):
+                for t in var.saved_tensors:
+                    add_nodes(t)
+    add_nodes(grad_fn)
+
+
+# Discount factor for future rewards, and Greedy Epsilon Constant:
+GAMMA = 0.5
+EPS = 0.05
+
+def train(model, epoch, optimizer, train_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode):
 
     # Initialize training:
-    model.eval()
+    model.train()
 
     # Collect a random batch:
     image_batch, label_batch = train_loader.__iter__().__next__()
@@ -39,9 +72,9 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
 
     # Placeholder for loss Variable:
     if (args.cuda):
-        loss = Variable(torch.zeros(1).type(torch.Tensor)).cuda()
+        loss = Variable(torch.zeros(args.batch_size).type(torch.Tensor)).cuda()
     else:
-        loss = Variable(torch.zeros(1).type(torch.Tensor))
+        loss = Variable(torch.zeros(args.batch_size).type(torch.Tensor))
 
     # EPISODE LOOP:
     for i_e in range(len(label_batch)):
@@ -86,17 +119,15 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
 
         # Selecting an action to perform (Epsilon Greedy):
         if (args.cuda):
-            q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor).cuda(), hidden)
+            q_values, hidden = model(Variable(state).type(torch.FloatTensor).cuda(), hidden)
         else:
-            q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor), hidden)
+            q_values, hidden = model(Variable(state).type(torch.FloatTensor), hidden)
 
         # Choosing the largest Q-values:
         model_actions = q_values.data.max(1)[1].view(args.batch_size)
 
         # Performing Epsilon Greedy Exploration:
         agent_actions = []
-
-        EPS = END_EXP + (START_EXP - END_EXP) * math.exp((-1.0 * epoch) / STEP)
         for i in range(args.batch_size):
 
             # Model choice:
@@ -184,30 +215,79 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
             # Discounting the next state + reward collected in this state:
             discounted_target_value = (GAMMA*target_value) + rewards
 
+            #loss = loss.add(difference.pow(2).squeeze())
+
         # Final state:
         else:
             # As there is no next state, we only have the rewards:
             discounted_target_value = rewards
 
+            # Calculating Bellman error:
+            #difference = discounted_target_value.squeeze().sub(current_q_values)
+            #loss = loss.add(difference.pow(2).squeeze())
+
         discounted_target_value = discounted_target_value.view(args.batch_size, -1)
 
         # Calculating Bellman error:
-        bellman_loss = F.smooth_l1_loss(current_q_values, discounted_target_value)
+        bellman_error = discounted_target_value - current_q_values
+        #bellman_loss = discounted_target_value.sub(current_q_values).pow(2)
+        
+        
+
+        # Gradient:
+        bellman_error_gradient = -1.0*bellman_error
+
+        # Zeroing gradients:
+        optimizer.zero_grad()
 
         # Backprop:
-        loss = loss.add(bellman_loss)
+        current_q_values.backward(bellman_error_gradient.data)
+        #bellman_mean_loss = torch.mean(bellman_loss)
+        # For checking that the comp graph is correct:
+        #print_graph(bellman_mean_loss.grad_fn)
+        #input("ok")
+        """
+        for i_t in range(args.batch_size):
+            print("Discount size = ", discounted_target_value.size())
+            print("Discounted Q = ", discounted_target_value.data[i_t])
+            print("Currentifi size = ", current_q_values.size())
+            print("Currentifi Q = ", current_q_values.data[i_t])
+            input("ok")
+        """
+        #print("Bellman = ", bellman_mean_loss)
+        #bellman_mean_loss.backward()
 
-        # Keeping the data from the hidden (The "state", but not the computational graph):
-        #next_hidden = (hidden[0].detach(), hidden[1].detach())
+        # Step in SGD:
+        optimizer.step()
+
+        episode_loss += torch.mean(bellman_error).data[0]
+        #episode_loss += bellman_mean_loss.data[0]
+
+        # Keeping the data from the hidden (The "state", but not the computationa graph):
+        #print("Hidden = ", hidden)
+        next_hidden = (hidden[0].detach(), hidden[1].detach())
+        #print("\n----------------\n")
+        #print("Next = ", next_hidden)
         
         # Update current state:
         state = next_state_start
-        
-        #hidden = next_hidden
+        hidden = next_hidden
 
         ### END TRAIN LOOP ###
 
-    print("\n---Validation Statistics---\n")
+    # Zeroing accumulated gradients:
+    #optimizer.zero_grad()
+
+    # Averaging Loss over batch (SGD):
+    #avg_loss = torch.mean(loss)
+
+    # Backpropagating error:
+    #avg_loss.backward()
+
+    # Taking one step in the SGD optimizer:
+    #optimizer.step()
+
+    
 
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
@@ -227,7 +307,8 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
     print("Batch Average Prediction Accuracy = " + str(total_prediction_accuracy)[:5] +  " %")
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    total_loss = loss.data[0]
+    #total_loss = float(avg_loss.data[0])
+    total_loss = episode_loss
     print("Batch Average Loss = " + str(total_loss)[:5])
     total_requests = float((100.0 * episode_request) / (args.batch_size*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
@@ -237,10 +318,10 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
 
     ### LOGGING TO TENSORBOARD ###
     data = {
-        'validation_total_requests': total_requests,
-        'validation_total_accuracy': total_accuracy,
-        'validation_total_loss': total_loss,
-        'validation_average_reward': total_reward
+        'training_total_requests': total_requests,
+        'training_total_accuracy': total_accuracy,
+        'training_total_loss': total_loss,
+        'training_average_reward': total_reward
     }
 
     for tag, value in data.items():
@@ -248,5 +329,11 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
     ### DONE LOGGING ###
 
     return total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward, request_dict, accuracy_dict
+
+
+
+
+
+
 
 

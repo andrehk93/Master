@@ -12,9 +12,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, scatterplot, transforms, loader, logger
+from utils import loss_plot, batch_scatterplot as scatterplot, transforms, loader, logger, matrix_plot
 from omniglot import OMNIGLOT
-from baseline import model, validate, train2 as train
+from baseline import model, validate, train_truncated as train
 from reinforcement import ReplayMemory as memory
 
 
@@ -22,7 +22,7 @@ from reinforcement import ReplayMemory as memory
 parser = argparse.ArgumentParser(description='PyTorch Supervised LSTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=16, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
@@ -38,7 +38,7 @@ parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='input class vector size for training (default: 3)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=2000, metavar='N',
+parser.add_argument('--epochs', type=int, default=1296, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -50,11 +50,11 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/active_one_shot_learning_supersvised_report_batch/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/baseline_truncated_backwards/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='active_one_shot_learning_supervised_report_batch', type=str,
+parser.add_argument('--name', default='baseline_truncated_backwards', type=str,
                     help='name of file')
 
 # Seed:
@@ -202,6 +202,7 @@ if __name__ == '__main__':
     HIDDEN_NODES = 200
     OUTPUT_CLASSES = args.class_vector_size
     ##################
+
     train_transform = transforms.Compose([
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
@@ -214,12 +215,12 @@ if __name__ == '__main__':
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader('data/omniglot', classify=False, partition=0.8, classes=True)
     train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT('data/omniglot', train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, batch_size=args.episode_size),
+        OMNIGLOT('data/omniglot', train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, batch_size=args.episode_size, classes=args.class_vector_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(
-        OMNIGLOT('data/omniglot', train=False, transform=test_transform, omniglot_loader=omniglot_loader, batch_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+        OMNIGLOT('data/omniglot', train=False, transform=test_transform, omniglot_loader=omniglot_loader, batch_size=args.episode_size, classes=args.class_vector_size),
+        batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
 
@@ -262,10 +263,10 @@ if __name__ == '__main__':
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(model.parameters())
     epoch = 0
-    episode = 0
+    episode = (args.start_epoch - 1) * args.batch_size
     done = False
     start_time = time.time()
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(reduce=False)
     while not done:
         ### TRAINING AND TESTING LOOP ###
         for epoch in range(args.start_epoch, args.epochs + 1):
@@ -274,19 +275,16 @@ if __name__ == '__main__':
             #print("Time before: ", datetime.datetime.now())
             print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
 
-            # Sampling a training batch:
-            training_batch = train_loader.__iter__().__next__()
             # training:
-            accuracy, loss, acc_dict = train.train(model, epoch, optimizer, training_batch, args, logger, acc_dict, episode, criterion)
-
+            accuracy, loss, acc_dict = train.train(model, epoch, optimizer, train_loader, args, logger, acc_dict, episode, criterion)
             episode += args.batch_size
             #print("Time after: ", datetime.datetime.now())
             total_accuracy.append(accuracy)
             total_loss.append(loss)
-
-            if (epoch % 10 == 0):
+            
+            if (epoch % 20 == 0):
                 print("\n\n--- Test epoch " + str(epoch) + " ---\n\n")
-                validate.validate(model, epoch, optimizer, test_loader, args, logger, test_acc_dict, episode, True, criterion)
+                validate.validate(model, epoch, optimizer, test_loader, args, logger, test_acc_dict, episode, criterion)
 
             #memory.flush()
 
@@ -316,13 +314,14 @@ if __name__ == '__main__':
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy], ["Training Accuracy Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy after Training")
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
 
     if (val.lower() == "y"):
         test_accuracy = 0.0
-        test_epochs = 20
+        test_epochs = 100
         test_stats = [[], []]
         training_stats = [[], []]
 
@@ -337,8 +336,8 @@ if __name__ == '__main__':
             else:
                 print_stats = False
             # Validate the model:
-            accuracy, _, acc_dict = validate.validate(model, epoch, optimizer, test_loader, args, logger, acc_dict, episode, print_stats, criterion)
-            train_accuracy, _, _ = validate.validate(model, epoch, optimizer, train_loader, args, logger, acc_dict, episode, print_stats, criterion)
+            accuracy, _, acc_dict, test_predictions, test_labels = validate.validate(model, epoch, optimizer, test_loader, args, logger, acc_dict, episode, criterion)
+            train_accuracy, _, _, train_predictions, train_labels = validate.validate(model, epoch, optimizer, train_loader, args, logger, acc_dict, episode, criterion)
 
             # Increment episode count:
             episode += args.batch_size
@@ -361,10 +360,12 @@ if __name__ == '__main__':
         # Printing:
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
         loss_plot.plot([total_accuracy[args.epochs + 1:]], ["Accuracy Percentage"], "testing_stats", args.name + "/", "Percentage")
+        write_stats(training_stats[1], training_stats[0], 0, args.name + "/")
+        write_stats(test_stats[1], test_stats[0], 0, args.name + "/", test=True)
 
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy after Testing")
+    matrix_plot.plot_matrix(test_predictions, test_labels, args.name + "/", title="matrix_plot_test")
+    matrix_plot.plot_matrix(train_predictions, train_labels, args.name + "/", title="matrix_plot_train")
 
-    scatterplot.plot(acc_dict, args.name + "/", title="Prediction Accuracy")
-
-    write_stats(training_stats[1], training_stats[0], 0, args.name + "/")
-    write_stats(test_stats[1], test_stats[0], 0, args.name + "/", test=True)
+        
 

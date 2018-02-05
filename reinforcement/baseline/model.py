@@ -43,5 +43,8 @@ class ReinforcedLSTM(nn.Module):
         batch_size = hidden[1].size()[1]
         x = x.view(seq, batch_size, -1)
         lstm_out, hidden = self.lstm(x, hidden)
-        x = self.hidden2probs(lstm_out[-1])
+        if (seq == 1):
+            x = self.hidden2probs(lstm_out[-1])
+        else:
+            x = self.hidden2probs(lstm_out)
         return x, hidden
