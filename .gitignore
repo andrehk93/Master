@@ -8,6 +8,7 @@ data/
 results/
 plots/
 logs/
+pretrained/
 
 # Random:
 .DS_Store
