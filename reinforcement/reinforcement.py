@@ -14,47 +14,47 @@ class ReinforcementLearning():
 
     def __init__(self, classes):
         self.classes = classes
-        self.request_reward = -0.1
+        self.request_reward = -0.05
         self.prediction_reward = 1.0
         self.prediction_penalty = -1.0
 
-    def select_action(self, model, state, label, hidden, gpu, episode):
-        sample = random.random()
+    def select_actions(self, epoch, model_actions, batch_size, class_vector_size, episode_labels):
 
-        # Epsilon Greedy Exploration:
+        # Discount factor for future rewards, and Greedy Epsilon Constant:
+        START_EXP = 0.05
+        END_EXP = 0.05
+        STEP = 200
 
-        if sample > self.EPS:
-            # Argmax_a Q(s)
-            # Action is the index of the most significant Q-value:
-            if (gpu):
-                q_value, hidden = model(Variable(state, volatile=False).type(torch.FloatTensor).cuda(), hidden)
+        # Performing Epsilon Greedy Exploration:
+        agent_actions = []
+
+        EPS = END_EXP + (START_EXP - END_EXP) * math.exp((-1.0 * epoch) / STEP)
+        for i in range(batch_size):
+
+            # Model choice:
+            if (random.random() > EPS):
+                agent_actions.append(model_actions[i])
+
+            # Epsilong Greedy:
             else:
-                q_value, hidden = model(Variable(state, volatile=False).type(torch.FloatTensor), hidden)
-            action = q_value.data.max(1)[1].view(1)[0]
-            #print("GATHERED = ", q_value.squeeze()[action])
-            return torch.LongTensor([action]).view(1, 1), hidden, q_value.squeeze()[action]
+                epsilon_action = random.randint(0, 2)
 
-        # Doing a random action:
-        else:
+                # Request:
+                if (epsilon_action == 0):
+                    agent_actions.append(class_vector_size)
 
-            if (gpu):
-                q_value, hidden = model(Variable(state, volatile=False).type(torch.FloatTensor).cuda(), hidden)
-            else:
-                q_value, hidden = model(Variable(state, volatile=False).type(torch.FloatTensor), hidden)
-            # Either the correct label, incorrect label, or request label:
-            action = random.randint(0, 2)
-            # Requesting label:
-            if (action == 0):
-                return torch.LongTensor([self.classes]).view(1, 1), hidden, q_value.squeeze()[self.classes]
-            # Wrong Prediction:
-            elif (action == 1):
-                wrong_label = random.randint(0, self.classes - 1)
-                while (wrong_label == np.argmax(label)):
-                    wrong_label = random.randint(0, self.classes - 1)
-                return torch.LongTensor([wrong_label]).view(1, 1), hidden, q_value.squeeze()[wrong_label]
-            # Correct Prediction:
-            else:
-                return torch.LongTensor([int(np.argmax(label))]).view(1, 1), hidden, q_value.squeeze()[int(np.argmax(label))]
+                # Incorrect Prediction:
+                elif (epsilon_action == 1):
+                    wrong_label = random.randint(0, class_vector_size - 1)
+                    while (wrong_label == episode_labels[i]):
+                        wrong_label = random.randint(0, class_vector_size - 1)
+                    agent_actions.append(wrong_label)
+
+                # Correct Prediction:
+                else:
+                    agent_actions.append(episode_labels[i])
+
+        return agent_actions
 
 
 

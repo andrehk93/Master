@@ -8,7 +8,7 @@ import math
 
 
 GAMMA = 0.5
-def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode):
+def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode):
 
     # Initialize training:
     model.eval()
@@ -31,13 +31,11 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         label_dict.append({})
 
     # Initialize model between each episode:
-    hidden = model.reset_hidden(args.batch_size)
+    hidden = model.reset_hidden()
 
     # Statistics again:    
-    for v in request_dict.values():
-        v.append([])
-    for v in accuracy_dict.values():
-        v.append([])
+    request_dict = {1: [], 2: [], 5: [], 10: []}
+    accuracy_dict = {1: [], 2: [], 5: [], 10: []}
 
     # Placeholder for loss Variable:
     if (args.cuda):
@@ -90,34 +88,11 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         # Collecting average reward at time t:
         episode_reward += float(sum(rewards)/args.batch_size)
 
-        # Just some statistics logging:
-        for i in range(args.batch_size):
-
-            true_label = episode_labels[i]
-
-            # Statistics:
-            reward = rewards[i]
-            if (reward == reinforcement_learner.request_reward):
-                episode_request += 1
-                episode_predict += 1
-                if (label_dict[i][true_label] in request_dict):
-                    request_dict[label_dict[i][true_label]][-1].append(1)
-                if (label_dict[i][true_label] in accuracy_dict):
-                    accuracy_dict[label_dict[i][true_label]][-1].append(0)
-            elif (reward == reinforcement_learner.prediction_reward):
-                episode_correct += 1.0
-                episode_predict += 1.0
-                if (label_dict[i][true_label] in request_dict):
-                    request_dict[label_dict[i][true_label]][-1].append(0)
-                if (label_dict[i][true_label] in accuracy_dict):
-                    accuracy_dict[label_dict[i][true_label]][-1].append(1)
-            else:
-                episode_predict += 1.0
-                if (label_dict[i][true_label] in request_dict):
-                    request_dict[label_dict[i][true_label]][-1].append(0)
-                if (label_dict[i][true_label] in accuracy_dict):
-                    accuracy_dict[label_dict[i][true_label]][-1].append(0)
-
+        # Update dicts and stats:
+        stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
+        episode_predict += stats[0]
+        episode_correct += stats[1]
+        episode_request += stats[2]
         
         # Observe next state and images:
         next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.batch_size)
@@ -166,14 +141,18 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
 
     print("\n---Validation Statistics---\n")
 
+    # Turning stats into percentages:
+    for key in accuracy_dict.keys():
+        accuracy_dict[key] = float(sum(accuracy_dict[key])/max(1.0, len(accuracy_dict[key])))
+        request_dict[key] = float(sum(request_dict[key])/max(1.0, len(request_dict[key])))
+
+
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
     for key in accuracy_dict.keys():
-        predictions = accuracy_dict[key][-1]
-        requests = request_dict[key][-1]
-        
-        accuracy = float(sum(predictions)/len(predictions))
-        request_percentage = float(sum(requests)/len(requests))
+        accuracy = accuracy_dict[key]
+        request_percentage = request_dict[key]
+
         
         print("Instance " + str(key) + ":\t" + str(100.0*accuracy)[0:4] + " %" + "\t\t" + str(100.0*request_percentage)[0:4] + " %")
     
@@ -192,18 +171,38 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
     print("Batch Average Reward = " + str(total_reward)[:5])
     print("+--------------------------------------------------+\n")
 
-    ### LOGGING TO TENSORBOARD ###
-    data = {
-        'validation_total_requests': total_requests,
-        'validation_total_accuracy': total_accuracy,
-        'validation_total_loss': total_loss,
-        'validation_average_reward': total_reward
-    }
-
-    for tag, value in data.items():
-        writer.scalar_summary(tag, value, epoch)
-    ### DONE LOGGING ###
-
     return total_prediction_accuracy, total_requests, total_accuracy, total_reward, request_dict, accuracy_dict
 
 
+
+def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict):
+    predict = 0.0
+    request = 0.0
+    correct = 0.0
+    for i in range(batch_size):
+        true_label = episode_labels[i]
+
+        # Statistics:
+        reward = rewards[i]
+        if (reward == reinforcement_learner.request_reward):
+            request += 1.0
+            predict += 1.0
+            if (label_dict[i][true_label] in request_dict):
+                request_dict[label_dict[i][true_label]].append(1)
+            if (label_dict[i][true_label] in accuracy_dict):
+                accuracy_dict[label_dict[i][true_label]].append(0)
+        elif (reward == reinforcement_learner.prediction_reward):
+            correct += 1.0
+            predict += 1.0
+            if (label_dict[i][true_label] in request_dict):
+                request_dict[label_dict[i][true_label]].append(0)
+            if (label_dict[i][true_label] in accuracy_dict):
+                accuracy_dict[label_dict[i][true_label]].append(1)
+        else:
+            predict += 1.0
+            if (label_dict[i][true_label] in request_dict):
+                request_dict[label_dict[i][true_label]].append(0)
+            if (label_dict[i][true_label] in accuracy_dict):
+                accuracy_dict[label_dict[i][true_label]].append(0)
+
+    return predict, correct, request

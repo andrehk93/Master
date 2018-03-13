@@ -11,7 +11,7 @@ import copy
 #Discount:
 GAMMA = 0.5
 
-def train(q_network, target_network, epoch, optimizer, train_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode, criterion, update, ntm):
+def train(q_network, target_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, update, ntm):
 
     # Initialize training:
     q_network.train()
@@ -40,10 +40,8 @@ def train(q_network, target_network, epoch, optimizer, train_loader, args, write
         fake_hidden = target_network.reset_hidden()
 
     # Statistics again:    
-    for v in request_dict.values():
-        v.append([])
-    for v in accuracy_dict.values():
-        v.append([])
+    request_dict = {1: [], 2: [], 5: [], 10: []}
+    accuracy_dict = {1: [], 2: [], 5: [], 10: []}
 
     # Placeholder for loss Variable:
     if (args.cuda):
@@ -163,14 +161,18 @@ def train(q_network, target_network, epoch, optimizer, train_loader, args, write
 
     ### TRAINING BATCH DONE ###
 
+    # Turning stats into percentages:
+    for key in accuracy_dict.keys():
+        accuracy_dict[key] = float(sum(accuracy_dict[key])/max(1.0, len(accuracy_dict[key])))
+        request_dict[key] = float(sum(request_dict[key])/max(1.0, len(request_dict[key])))
+
+
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
     for key in accuracy_dict.keys():
-        predictions = accuracy_dict[key][-1]
-        requests = request_dict[key][-1]
-        
-        accuracy = float(sum(predictions)/len(predictions))
-        request_percentage = float(sum(requests)/len(requests))
+        accuracy = accuracy_dict[key]
+        request_percentage = request_dict[key]
+
         
         print("Instance " + str(key) + ":\t" + str(100.0*accuracy)[0:4] + " %" + "\t\t" + str(100.0*request_percentage)[0:4] + " %")
     
@@ -196,18 +198,6 @@ def train(q_network, target_network, epoch, optimizer, train_loader, args, write
         else:
             target_network.q_network = copy.deepcopy(q_network.q_network)
 
-    ### LOGGING TO TENSORBOARD ###
-    data = {
-        'training_total_requests': total_requests,
-        'training_total_accuracy': total_accuracy,
-        'training_total_loss': total_loss,
-        'training_average_reward': total_reward
-    }
-
-    for tag, value in data.items():
-        writer.scalar_summary(tag, value, epoch)
-    ### DONE LOGGING ###
-
     return total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward, request_dict, accuracy_dict
 
 
@@ -224,22 +214,22 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
             request += 1.0
             predict += 1.0
             if (label_dict[i][true_label] in request_dict):
-                request_dict[label_dict[i][true_label]][-1].append(1)
+                request_dict[label_dict[i][true_label]].append(1)
             if (label_dict[i][true_label] in accuracy_dict):
-                accuracy_dict[label_dict[i][true_label]][-1].append(0)
+                accuracy_dict[label_dict[i][true_label]].append(0)
         elif (reward == reinforcement_learner.prediction_reward):
             correct += 1.0
             predict += 1.0
             if (label_dict[i][true_label] in request_dict):
-                request_dict[label_dict[i][true_label]][-1].append(0)
+                request_dict[label_dict[i][true_label]].append(0)
             if (label_dict[i][true_label] in accuracy_dict):
-                accuracy_dict[label_dict[i][true_label]][-1].append(1)
+                accuracy_dict[label_dict[i][true_label]].append(1)
         else:
             predict += 1.0
             if (label_dict[i][true_label] in request_dict):
-                request_dict[label_dict[i][true_label]][-1].append(0)
+                request_dict[label_dict[i][true_label]].append(0)
             if (label_dict[i][true_label] in accuracy_dict):
-                accuracy_dict[label_dict[i][true_label]][-1].append(0)
+                accuracy_dict[label_dict[i][true_label]].append(0)
 
     return predict, correct, request
 

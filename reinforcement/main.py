@@ -51,7 +51,7 @@ parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='input class vector size for training (default: 3)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=10000, metavar='N',
+parser.add_argument('--epochs', type=int, default=0, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -305,7 +305,7 @@ if __name__ == '__main__':
             total_loss.append(loss)
             total_reward.append(reward)
 
-            if (epoch % 10000 == 0):
+            if (epoch % 30000 == 0):
                 validate.validate(model, epoch, optimizer, test_loader, args, logger, rl, test_req_dict, test_acc_dict, episode)
 
             ### SAVING CHECKPOINT ###
@@ -334,6 +334,8 @@ if __name__ == '__main__':
         except:
             done = True
 
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
+    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
     
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")

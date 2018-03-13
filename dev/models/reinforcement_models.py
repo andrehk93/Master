@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from .lstm.model import ReinforcedLSTM
-from .ntm.aio import EncapsulatedNTM
+from .ntm.aio import EncapsulatedNTM as NTM
+from .lrua.aio import EncapsulatedNTM as LRUA
 
 class ReinforcedNTM(nn.Module):
 
@@ -16,11 +17,38 @@ class ReinforcedNTM(nn.Module):
 	image_size = 784
 
 
-	def __init__(self, batch_size, cuda, classes):
+	def __init__(self, batch_size, cuda, classes, image_size):
 
 		super(ReinforcedNTM, self).__init__()
 
-		self.q_network = EncapsulatedNTM(self.image_size + classes, classes + 1,
+		self.q_network = NTM(image_size + classes, classes + 1,
+                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M)
+
+		self.batch_size = batch_size
+		self.gpu = cuda
+
+	def reset_hidden(self):
+		return self.q_network.init_sequence(self.batch_size)
+
+	def forward(self, inp, hidden):
+		return self.q_network(inp, hidden)
+
+class ReinforcedLRUA(nn.Module):
+
+	# PARAMETERS:
+	M = 40
+	N = 128
+	num_read_heads = 4
+	num_write_heads = num_read_heads
+	controller_size = 200
+	controller_layers = 1
+
+
+	def __init__(self, batch_size, cuda, classes, image_size):
+
+		super(ReinforcedLRUA, self).__init__()
+
+		self.q_network = LRUA(image_size + classes, classes + 1,
                 self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M)
 
 		self.batch_size = batch_size
@@ -36,16 +64,14 @@ class ReinforcedNTM(nn.Module):
 class ReinforcedRNN(nn.Module):
 
 	# PARAMETERS:
-	classes = 3
 	hidden_layers = 1
 	hidden_nodes = 200
-	image_size = 784
 
-	def __init__(self, batch_size, cuda, classes):
+	def __init__(self, batch_size, cuda, classes, image_size):
 
 		super(ReinforcedRNN, self).__init__()
 		
-		self.q_network = ReinforcedLSTM(self.image_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda)
+		self.q_network = ReinforcedLSTM(image_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda)
 		self.batch_size = batch_size
 		self.gpu = cuda
 	

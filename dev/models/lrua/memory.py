@@ -1,9 +1,11 @@
 """An NTM's memory implementation."""
 import torch
+import time
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch import nn
 import numpy as np
+import numpy
 
 
 def _convolve(w, s):
@@ -59,43 +61,56 @@ class NTMMemory(nn.Module):
             self.memory[b] = self.prev_mem[b] * (1 - erase) + add
 
     def lrua_write(self, w, k):
+        #print("\tLRUA")
         """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
         self.prev_mem = self.memory
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
-        for b in range(self.batch_size):
-            erase = torch.ger(w[b], e[b])
-            add = torch.ger(w[b], a[b])
-            self.memory[b] = self.prev_mem[b] + (w * k)
+        for i in range(self.batch_size):
+            lrua = torch.ger(w[i], k[i])
+            self.memory[i] = self.prev_mem[i] + lrua
 
-    def address(self, k, β, g, s, γ, w_prev):
+    def address(self, k, β, g, n, gamma, w_prev):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
         :param β: The key strength (focus).
         :param g: Scalar interpolation gate (with previous weighting).
-        :param s: Shift weighting.
-        :param γ: Sharpen weighting scalar.
-        :param w_prev: The weighting produced in the previous time step.
-        """
-        # Content focus
-        w_r = self._similarity(k)
-
-        """
-        # Location focus
-        wg = self._interpolate(w_prev, wc, g)
-        ŵ = self._shift(wg, s)
-        w = self._sharpen(ŵ, γ)
+        :param n: Amount of reads to memory
         """
 
-        return w_r
+        # Unpack previous state:
+        w_u_prev = w_prev[:, 0]
+        w_r_prev = w_prev[:, 1]
+        w_lu_prev = w_prev[:, 2]
 
-    def _similarity(self, k):
+        # Get the cosine similarity probability:
+        w_r = self._similarity(k, β)
+
+        # Get the write weights:
+        w_w = self._interpolate(w_r_prev, w_lu_prev, g)
+
+        # Get the usage weights:
+        w_u = gamma*w_u_prev + w_r + w_w
+
+        """
+        w_lu = Variable(torch.zeros(w_u.size()))
+            for b in range(w_lu.size()[0]):
+                n_smallest = np.partition(np.array(w_u[b].data), n-1)[n-1]
+                w_lu[b] = torch.LongTensor([0 if w_u[b].data[i] > n_smallest else 1 for i in range(w_u.size()[1])])
+        """
+
+        n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
+        w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
+            
+        return w_u, w_r, w_w, w_lu
+
+    def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)
-        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=-1)
+        w = F.softmax(β * F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=-1)
         return w
 
-    def _interpolate(self, w_prev, wc, g):
-        return g * wc + (1 - g) * w_prev
+    def _interpolate(self, w_r_prev, w_lu_prev, g):
+        return g * w_r_prev + (1 - g) * w_lu_prev
 
     def _shift(self, wg, s):
         result = Variable(torch.zeros(wg.size()))

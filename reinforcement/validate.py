@@ -6,13 +6,15 @@ import matplotlib.pyplot as plt
 import numpy
 import math
 
+
+GAMMA = 0.5
 def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_learner, request_dict, accuracy_dict, episode):
 
     # Initialize training:
     model.eval()
 
     # Collect a random batch:
-    image_batch, label_batch = train_loader.__iter__().__next__()
+    image_batch, label_batch = test_loader.__iter__().__next__()
 
     # Episode Statistics:
     episode_correct = 0.0
@@ -48,20 +50,6 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         episode_labels = label_batch[i_e]
         episode_images = image_batch[i_e]
 
-        b_img = 0
-        show = False
-        if (show):
-            for x in range(3):
-                img = episode_images[b_img + x]
-                lbl = episode_labels[b_img + x]
-                print("Image size = ", img.size())
-                img_plot = img.squeeze().numpy()
-                print(img_plot)
-                plt.imshow(img_plot, cmap="gray")
-                plt.show()
-                print("X = ", x, "Label = ", lbl)
-                input("OK")
-
         # Tensoring the state:
         state = torch.FloatTensor(state)
         
@@ -94,33 +82,7 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         model_actions = q_values.data.max(1)[1].view(args.batch_size)
 
         # Performing Epsilon Greedy Exploration:
-        agent_actions = []
-
-        EPS = END_EXP + (START_EXP - END_EXP) * math.exp((-1.0 * epoch) / STEP)
-        for i in range(args.batch_size):
-
-            # Model choice:
-            if (random.random() > EPS):
-                agent_actions.append(model_actions[i])
-
-            # Epsilong Greedy:
-            else:
-                epsilon_action = random.randint(0, 2)
-
-                # Request:
-                if (epsilon_action == 0):
-                    agent_actions.append(args.class_vector_size)
-
-                # Incorrect Prediction:
-                elif (epsilon_action == 1):
-                    wrong_label = random.randint(0, args.class_vector_size - 1)
-                    while (wrong_label == episode_labels[i]):
-                        wrong_label = random.randint(0, args.class_vector_size - 1)
-                    agent_actions.append(wrong_label)
-
-                # Correct Prediction:
-                else:
-                    agent_actions.append(episode_labels[i])
+        agent_actions = model_actions
         
         # Collect rewards:
         rewards = reinforcement_learner.collect_reward_batch(agent_actions, one_hot_labels, args.batch_size)
@@ -192,18 +154,13 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         discounted_target_value = discounted_target_value.view(args.batch_size, -1)
 
         # Calculating Bellman error:
-        bellman_loss = F.smooth_l1_loss(current_q_values, discounted_target_value)
+        bellman_loss = F.mse_loss(current_q_values, discounted_target_value)
 
         # Backprop:
         loss = loss.add(bellman_loss)
-
-        # Keeping the data from the hidden (The "state", but not the computational graph):
-        #next_hidden = (hidden[0].detach(), hidden[1].detach())
         
         # Update current state:
         state = next_state_start
-        
-        #hidden = next_hidden
 
         ### END TRAIN LOOP ###
 
@@ -247,6 +204,6 @@ def validate(model, epoch, optimizer, test_loader, args, writer, reinforcement_l
         writer.scalar_summary(tag, value, epoch)
     ### DONE LOGGING ###
 
-    return total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward, request_dict, accuracy_dict
+    return total_prediction_accuracy, total_requests, total_accuracy, total_reward, request_dict, accuracy_dict
 
 

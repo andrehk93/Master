@@ -14,12 +14,12 @@ from torch.utils.data import DataLoader
 
 ### CLASSES ###
 from utils import loss_plot, batch_scatterplot as scatterplot, transforms, loader, logger
-from reinforcement import ReinforcementLearning as rl
-from omniglot import OMNIGLOT
+from reinforcement_utils.reinforcement import ReinforcementLearning as rl
+from data.omniglot import OMNIGLOT
 
-import model
-import validate
-import train_target as train
+from models import reinforcement_models
+from reinforcement_utils import validate
+
 
 
 ### IMPORTANT NOTICE ###
@@ -33,7 +33,7 @@ If train on whole dataset:
 
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning LSTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
 parser.add_argument('--batch-size', type=int, default=50, metavar='N',
@@ -47,28 +47,28 @@ parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
 parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
-# Nof. classes in an episode:
-parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
-                    help='input class vector size for training (default: 3)')
-
 # Epochs:
-parser.add_argument('--epochs', type=int, default=0, metavar='N',
+parser.add_argument('--epochs', type=int, default=10000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
-parser.add_argument('--start_epoch', type=int, default=1, metavar='N',
+parser.add_argument('--start-epoch', type=int, default=1, metavar='N',
                     help='starting epoch (default: 1)')
+
+# Nof Classes:
+parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
+                    help='Number of classes per episode (default: 3)')
 
 # CUDA:
 parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/truncated_singlesum/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_target/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='truncated_singlesum', type=str,
+parser.add_argument('--name', default='reinforced_ntm_target', type=str,
                     help='name of file')
 
 # Seed:
@@ -209,9 +209,6 @@ if __name__ == '__main__':
     # LSTM & Q Learning
     IMAGE_SCALE = 28
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
-    HIDDEN_LAYERS = 1
-    HIDDEN_NODES = 200
-    OUTPUT_CLASSES = args.class_vector_size
     ##################
 
     train_transform = transforms.Compose([
@@ -235,14 +232,26 @@ if __name__ == '__main__':
     print("Done loading datasets!")
 
 
-    # LSTM Model and Target network:
-    q_network = model.ReinforcedLSTM(IMAGE_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, OUTPUT_CLASSES,
-                                  args.batch_size, args.cuda)
+    # Different Models:
+    classes = args.class_vector_size
+    target = True
+    LSTM = False
+    NTM = True
 
-    target_network = copy.deepcopy(q_network)
+    if (LSTM):
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes)
+    elif (NTM):
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes)
+        #target = False
+
+    if target:
+        from reinforcement_utils import train_target as train
+        target_network = copy.deepcopy(q_network)
+    else:
+        from reinforcement_utils import train as train
 
     # Modules:
-    rl = rl(OUTPUT_CLASSES)
+    rl = rl(classes)
 
     if args.cuda:
         print("\n---Activating GPU Training---\n")
@@ -281,7 +290,8 @@ if __name__ == '__main__':
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
             q_network.load_state_dict(checkpoint['state_dict'])
-            target_network.load_state_dict(checkpoint['state_dict'])
+            if (target):
+                target_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.load_checkpoint, checkpoint['epoch']))
         else:
@@ -309,9 +319,14 @@ if __name__ == '__main__':
             if (epoch > 0 and epoch % UPDATE_TARGET_NETWORK == 0):
                 update = True
 
-            prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
-            train.train(q_network, target_network, epoch, optimizer, \
-            train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion, update)
+            if (target):
+                prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
+                train.train(q_network, target_network, epoch, optimizer, \
+                train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion, update, NTM)
+            else:
+                prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
+                train.train(q_network, epoch, optimizer, \
+                train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion)
 
             episode += args.batch_size
 
@@ -322,7 +337,7 @@ if __name__ == '__main__':
             total_loss.append(loss)
             total_reward.append(reward)
 
-            if (epoch % 1000 == 0):
+            if (epoch % 10000 == 0):
                 validate.validate(q_network, epoch, optimizer, test_loader, args, logger, rl, test_req_dict, test_acc_dict, episode)
 
             ### SAVING CHECKPOINT ###
