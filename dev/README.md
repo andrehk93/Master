@@ -1,7 +1,7 @@
 # Development for Masters Project 2018
 
 ## Important
-Go to LINK TO OMNIGLOT and download the OMNIGLOT dataset. Put the whole dataset in a folder you call "raw" @ data/omniglot/, and the scripts will do the rest.
+Go to https://github.com/brendenlake/omniglot/tree/master/python and download the OMNIGLOT dataset (images_background.zip & images_evaluation.zip). Unzip both files and put ALL folders (50 folders total) from the unzipped folder (these folders have names of different alphabets i.e "Angelic", "Atlantean" etc.) in a folder you call "raw" which you put in data/omniglot/, and the scripts will do the rest.
 
 ## Models
 Here we have three different models:
