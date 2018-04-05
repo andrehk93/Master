@@ -8,7 +8,8 @@ import math
 
 
 GAMMA = 0.5
-def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode):
+
+def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode, criterion):
 
     # Initialize training:
     model.eval()
@@ -129,10 +130,10 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         discounted_target_value = discounted_target_value.view(args.batch_size, -1)
 
         # Calculating Bellman error:
-        bellman_loss = F.mse_loss(current_q_values, discounted_target_value)
+        bellman_loss = criterion(current_q_values, discounted_target_value).squeeze()
 
         # Backprop:
-        loss = loss.add(bellman_loss)
+        loss += bellman_loss
         
         # Update current state:
         state = next_state_start

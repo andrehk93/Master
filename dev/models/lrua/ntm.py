@@ -63,7 +63,7 @@ class NTM(nn.Module):
         nn.init.xavier_uniform(self.fc.weight, gain=1)
         nn.init.normal(self.fc.bias, std=0.01)
 
-    def forward(self, x, prev_state):
+    def forward(self, x, prev_state, read_only=False):
         """NTM forward function.
         :param x: input vector (batch_size x num_inputs)
         :param prev_state: The previous state of the NTM
@@ -75,7 +75,9 @@ class NTM(nn.Module):
         # Use the controller to get an embedding
         # Concat: [(785x1)] + (1x50)
         inp = torch.cat([x] + prev_reads, dim=1)
+        #print("BEFORE: controller state volatile = ", prev_controller_state[0].volatile)
         controller_outp, controller_state = self.controller(inp, prev_controller_state)
+        
         
 
         # Read/Write from the list of heads
@@ -87,7 +89,9 @@ class NTM(nn.Module):
                 reads += [r]
 
             else:
-                head_state = head(controller_outp, prev_head_state, self.num_read_heads)
+                # When getting optimal Q-values, we need only read:
+                if (not read_only):
+                    head_state = head(controller_outp, prev_head_state, self.num_read_heads)
             heads_states += [head_state]
 
         # Generate Output and collect predictions:

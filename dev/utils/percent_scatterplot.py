@@ -7,7 +7,7 @@ def plot(dictionary, folder, batch_size, title="Plot"):
 	percentages = {1: [], 2: [], 5: [], 10: []}
 
 	# Hyper parameter for plotting (How many episodes to average over per scatter):
-	interval = 5
+	interval = 400
 
 	for k in dictionary.keys():
 		for episode_batch in range(0, len(dictionary[k]), interval):
@@ -31,7 +31,7 @@ def plot(dictionary, folder, batch_size, title="Plot"):
 		plt.ylabel('Percent Label Requests')
 	i = 0
 	for k in percentages.keys():
-		plt.scatter(x, percentages[k], color=colors[i], alpha=0.6, label=lables[i])
+		plt.plot(x, percentages[k], '-o', color=colors[i], alpha=0.6, label=lables[i])
 		i += 1
 	plt.legend(bbox_to_anchor=(0., 1.05, 1., .102), loc=3,
            ncol=4, mode="expand", borderaxespad=0.01)
