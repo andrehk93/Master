@@ -13,7 +13,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, logger
+from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from data.omniglot import OMNIGLOT
 
@@ -74,10 +74,6 @@ parser.add_argument('--name', default='reinforced_lrua', type=str,
 # Seed:
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-
-# Logging interval:
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
-                    help='how many batches to wait before logging training status')
 
 
 # Saves checkpoint to disk
@@ -189,15 +185,10 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
 
 if __name__ == '__main__':
 
-    ### SETTING UP TENSORBOARD LOGGER ###
+    ### SETTING UP RESULTS DIR ###
     result_directory = 'results/'
-    log_directory = 'results/logs/'
     if not os.path.exists(result_directory):
         os.makedirs(result_directory)
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-
-    logger = logger.Logger('results/logs/')
 
     ### PARSING ARGUMENTS ###
     args = parser.parse_args()
@@ -332,25 +323,19 @@ if __name__ == '__main__':
             if (epoch > 0 and epoch % UPDATE_TARGET_NETWORK == 0):
                 update = True
 
-            if (target):
-                prediction_accuracy, requests, accuracy, loss, reward, request_train_dict, accuracy_train_dict = \
-                train.train(q_network, target_network, epoch, optimizer, \
-                train_loader, args, rl, episode, criterion, update, (NTM or LRUA))
-            else:
-                prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
-                train.train(q_network, epoch, optimizer, \
-                train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion)
+            stats, request_train_dict, accuracy_train_dict = train.train(q_network, target_network, epoch, optimizer, \
+            train_loader, args, rl, episode, criterion, update, (NTM or LRUA))
 
             episode += args.batch_size
 
             update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict)
 
             # STATS:
-            total_prediction_accuracy.append(prediction_accuracy)
-            total_accuracy.append(accuracy)
-            total_requests.append(requests)
-            total_loss.append(loss)
-            total_reward.append(reward)
+            total_prediction_accuracy.append(stats[0])
+            total_requests.append(stats[1])
+            total_accuracy.append(stats[2])
+            total_loss.append(stats[3])
+            total_reward.append(stats[4])
 
             if (epoch % 1000 == 0):
                 validate.validate(q_network, epoch, optimizer, test_loader, args, rl, episode)

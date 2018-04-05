@@ -13,7 +13,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, logger, tablewriter
+from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, tablewriter
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from data.omniglot import OMNIGLOT
 
@@ -102,15 +102,10 @@ def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
 
 if __name__ == '__main__':
 
-    ### SETTING UP TENSORBOARD LOGGER ###
+    ### SETTING UP RESULTS DIRECTORY ###
     result_directory = 'results/'
-    log_directory = 'results/logs/'
     if not os.path.exists(result_directory):
         os.makedirs(result_directory)
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-
-    logger = logger.Logger('results/logs/')
 
     ### PARSING ARGUMENTS ###
     args = parser.parse_args()
