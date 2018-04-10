@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from torch.utils.data.dataset import Dataset
 import numpy as np
 import random
-import pattern_repl as pr
+from utils import pattern_repl as pr
 
 import nltk
 nltk.download("stopwords")
@@ -54,20 +54,20 @@ class Corpus(object):
         print("Creating Dictionary from File...")
         tokens = 0
         for f in range(len(files)):
-            print("Reading [" + str(f + 1) + "/" + str(len(files)) + "] directories...")
-            file_list = files[f]
-            for file in file_list:
-                tokens = 0
-                for line in file.split("."):
-                    if (len(line) <= 1):
-                        continue
-                    words = parse(line)
-                    tokens += len(words)
-                    for word in words:
-                        if (word not in word_counts):
-                            word_counts[word] = 1
-                        else:
-                            word_counts[word] += 1
+            if (f % 1000 == 0):
+                print("Reading [" + str(f) + "/" + str(len(files)) + "] files...")
+            file = files[f]
+            tokens = 0
+            for line in file.split("\n"):
+                if (len(line) <= 1):
+                    continue
+                words = parse(line)
+                tokens += len(words)
+                for word in words:
+                    if (word not in word_counts):
+                        word_counts[word] = 1
+                    else:
+                        word_counts[word] += 1
 
 
         # Keeping the MAX_LENGTH most words:
@@ -92,14 +92,14 @@ def parse(sentence):
 
 
 ### FOR MAKING DICTIONARY ###
-def return_all_data_from_file(paths):
+def return_all_data_from_file(path):
     all_words = []
     print("Loading from path: ", path)
-    for subdir, dirs, files in os.walk(path):
+    for root, dirs, files in os.walk(path):
         for file in files:
             if (".DS_Store" not in file):
                 new_file = []
-                file = open(path + file, "r")
+                file = open(os.path.join(root, file), "r")
                 file = file.read()
                 all_words.append(file)
     return all_words
@@ -107,15 +107,18 @@ def return_all_data_from_file(paths):
 
 
 def create_word_vectors(words, sen_len, corpus):
-    txt = torch.LongTensor(np.zeros(sen_len, dtype=np.int64))
+    text = []
+    sentence = torch.FloatTensor(np.zeros(sen_len))
     count = 0
     for word in words:
         if word in corpus.dictionary.word2idx:
             if count > sen_len - 1:
-                break
-            txt[count] = corpus.dictionary.word2idx[word]
+                text.append(sentence)
+                sentence = torch.FloatTensor(np.zeros(sen_len))
+                count = 0
+            sentence[count] = corpus.dictionary.word2idx[word]
             count += 1
-    return txt
+    return text
 
 
 

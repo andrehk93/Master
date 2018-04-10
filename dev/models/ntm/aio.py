@@ -57,7 +57,7 @@ class EncapsulatedNTM(nn.Module):
         self.previous_state = self.ntm.create_new_state(batch_size)
         return self.previous_state
 
-    def forward(self, x=None, previous_state=None, read_only=False):
+    def forward(self, x=None, previous_state=None, read_only=False, text=False):
         # For testing copy-task:
         if x is None:
             x = Variable(torch.zeros(self.batch_size, self.num_inputs))

@@ -25,13 +25,13 @@ class OMNIGLOT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, batch_size=50):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.classes = classes
-        self.batch_size = batch_size
+        self.episode_size = episode_size
         self.classify = omniglot_loader.classify
         if (self.classify):
             self.training_file = "classify_" + self.training_file
@@ -60,11 +60,6 @@ class OMNIGLOT(data.Dataset):
             # Trains on whole dataset
             img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
 
-            # Trains on 3 classes:
-            #img_classes = np.random.choice(3, self.classes, replace=False)
-            #print("IMG CLASSES = ", img_classes)
-            
-            #img_classes = [0, 1, 2]
             ind = 0
             for i in img_classes:
                 for j in self.train_data[i]:
@@ -78,7 +73,7 @@ class OMNIGLOT(data.Dataset):
                     images.append((j, ind))
                 ind += 1
 
-        images_indexes = np.random.choice(len(images), self.batch_size, replace=False)
+        images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
         img_list = []
         target_list = []
         rotations = [0, 90, 180, 270]

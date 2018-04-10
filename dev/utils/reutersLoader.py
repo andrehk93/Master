@@ -1,13 +1,10 @@
 import numpy as np
-from PIL import text
-from matplotlib import pyplot as plt
 import os
 import os.path
 import random
-from scipy.ndtext import imread
-from PIL import text
 import errno
 import torch
+from utils import texthandler
 
 class ReutersLoader():
 
@@ -16,7 +13,7 @@ class ReutersLoader():
 	training_file = 'training.pt'
 	test_file = 'test.pt'
 
-	def __init__(self, root, classify=True, partition=0.8, classes=False):
+	def __init__(self, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
 		if (self.classify):
@@ -24,6 +21,8 @@ class ReutersLoader():
 			self.test_file = "classify_" + self.test_file
 		self.partition = partition
 		self.classes = classes
+		self.dictionary_max_size = dictionary_max_size
+		self.sentence_length = sentence_length
 		self.load()
 
 
@@ -38,7 +37,6 @@ class ReutersLoader():
 
 		# Make dirs
 		try:
-			os.makedirs(os.path.join(self.root, self.raw_folder))
 			os.makedirs(os.path.join(self.root, self.processed_folder))
 		except OSError as e:
 			if e.errno == errno.EEXIST:
@@ -47,20 +45,24 @@ class ReutersLoader():
 				raise
 
 		# process and save as torch files
-		print('Processing training set...')
-		training_set, test_set, label_stop = read_text_file(os.path.join(self.root, self.raw_folder, 'text_training'), label_start=0, partition=self.partition, classes=self.classes)
-		print('Processing evaluation set...')
-		training_set, test_set, label_stop = read_text_file(os.path.join(self.root, self.raw_folder, 'text_test'), training_set=training_set, test_set=test_set,
-		label_start=label_stop, partition=self.partition, classes=self.classes)
-
+		print('Processing raw dataset...')
+		(training_set, test_set, label_stop), word_dictionary = read_text_file(os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
+																			classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length)
+		print("training_set[0] = ", len(training_set[0]))
+		print("training_set[0][0] = ", len(training_set[0][0]))
+		print("training_set[0][0][0] = ", len(training_set[0][0][0]))
+		print("training_set[0][0][0][0] = ", training_set[0][0][0][0].size())
+		print("Training_set[1] = ", training_set[1])
+		input("WHAT IS WRONG")
 		self.training_set = (
-			torch.ByteTensor(training_set[0]),
+			training_set[0],
 			torch.LongTensor(training_set[1])
 		)
 		self.test_set = (
-			torch.ByteTensor(test_set[0]),
+			test_set[0],
 			torch.LongTensor(test_set[1])
 		)
+		self.dictionary = word_dictionary
 
 		print('Done!')
 
@@ -70,20 +72,30 @@ class ReutersLoader():
 	def get_test_set(self):
 		return self.test_set
 
+	def get_dictionary(self):
+		return self.dictionary
+
 # Need to ensure a uniformly distributed training/test-set:
-def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False):
+def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16):
+	# Create a dictionary first:
+	word_dictionary = texthandler.Corpus(dict_max_size)
+
+	# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
 	label_dict = {}
-	labels = []
 	label = label_start
-	curr_dir = ""
+	progress = 0
 	for (root, dirs, files) in os.walk(path):
-
 		for f in files:
+			if (progress % 1000 == 0):
+				print("Reading file nr. " + str(progress))
 			if (f != ".DS_Store"):
-			# Reading text file:
-				#text = imread(os.path.join(root, f), flatten=True)
-				text = open(os.path.join(root, f), "rb").read()
+				# Reading text file:
+				text = open(os.path.join(root, f), "r").read()
+
+				# Parsing text-file, and update Corpus:
+				text = texthandler.create_word_vectors(text, sentence_length, word_dictionary)
+
 				if (root not in label_dict):
 					label_dict[root] = label
 					label += 1
@@ -92,7 +104,9 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 					uniform_distr[label_dict[root]] = [text]
 				else:
 					uniform_distr[label_dict[root]].append(text)
-	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes)
+			progress += 1
+
+	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes), word_dictionary
 
 def create_datasets(text_dictionary, training_set=None, test_set=None, partition=0.8, shuffle=True, classes=False):
 	# Splitting the dataset into two parts with completely different EXAMPLES, but same CLASSES:
@@ -123,7 +137,7 @@ def create_datasets(text_dictionary, training_set=None, test_set=None, partition
 			for i in range(len(txt)-split):
 				test_labels.append(int(label))
 
-	# Splitting the dataset into two parts with completely different CLASSES:
+	# Splitting the dataset into two disjoint parts with completely different CLASSES:
 	else:
 		all_text = []
 		all_labels = []

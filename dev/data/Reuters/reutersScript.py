@@ -7,11 +7,14 @@ import os.path
 import errno
 import numpy as np
 
-save_dir = os.path.join("Reuters", "raw")
-path_train = os.path.join("Retuers", "training")
-path_test = os.path.join("Reuters", "test")
+save_dir = "raw/"
+if not os.path.exists(save_dir):
+	os.makedirs(save_dir)
+path_train = "training/"
+path_test = "test/"
 paths = [path_train, path_test]
 for path in paths:
+	print("Reading new path...")
 	for (root, dirs, files) in os.walk(path):
 		for working_dir in dirs:
 			if not os.path.exists(os.path.join(save_dir, working_dir)):
@@ -22,6 +25,5 @@ for path in paths:
 						continue
 					to_save = open(os.path.join(save_dir, working_dir, file), "wb")
 					file_to_read = open(os.path.join(root2, file), "rb")
-					print(os.path.join(root2, file))
 					to_save.write(file_to_read.read())
 					to_save.close()

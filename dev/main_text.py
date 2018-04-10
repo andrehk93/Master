@@ -13,12 +13,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, tablewriter
+from utils import loss_plot, percent_scatterplot as scatterplot, transforms, reutersLoader as loader, tablewriter
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
-from data.omniglot.omniglot import OMNIGLOT
+from data.reuters.reuters import REUTERS
 
 from models import reinforcement_models
-from reinforcement_utils import train, test
+from reinforcement_utils import train_text as train, test_text as test
 
 
 
@@ -36,12 +36,8 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=16, metavar='N',
                     help='input batch size for training (default: 50)')
-
-# Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
-                    help='How many episodes to train on at a time (default: 1)')
 
 # Episode size:
 parser.add_argument('--episode-size', type=int, default=30, metavar='N',
@@ -64,15 +60,15 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_notarget/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/text_reinforced_lstm/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm_notarget/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/text_reinforced_lstm/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_ntm_notarget', type=str,
+parser.add_argument('--name', default='text_reinforced_lstm', type=str,
                     help='name of file')
 
 # Seed:
@@ -120,45 +116,38 @@ if __name__ == '__main__':
     ### PARAMETERS ###
 
     # LSTM & Q Learning
-    IMAGE_SCALE = 20
-    IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
+    SENTENCE_LENGTH = 50
+    NUMBER_OF_SENTENCES = 18
+    DICTIONARY_MAX_SIZE = 10000
     ##################
 
-    train_transform = transforms.Compose([
-        transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
-        transforms.ToTensor()
-    ])
-    test_transform = transforms.Compose([
-        transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
-        transforms.ToTensor()
-    ])
-
     print("Loading trainingsets...")
-    omniglot_loader = loader.OmniglotLoader('data/omniglot', classify=False, partition=0.8, classes=True)
+    reuters_loader = loader.ReutersLoader('data/reuters', classify=False, partition=0.8, classes=True,\
+                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH)
     train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT('data/omniglot', train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+        REUTERS('data/reuters', train=True, download=True, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
+                batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(
-        OMNIGLOT('data/omniglot', train=False, transform=test_transform, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+        REUTERS('data/reuters', train=False, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
+                batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
 
     # Different Models:
     classes = args.class_vector_size
 
-    LSTM = False
-    NTM = True
+    LSTM = True
+    NTM = False
     LRUA = False
 
 
     if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, IMAGE_SIZE)
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
     elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, IMAGE_SIZE)
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
     elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, IMAGE_SIZE)
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
 
     # Modules:
     rl = rl(classes)
@@ -227,7 +216,7 @@ if __name__ == '__main__':
             ### TRAINING ###
             print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
 
-            stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion)
+            stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
             
             episode += args.batch_size
 
@@ -241,7 +230,7 @@ if __name__ == '__main__':
             total_reward.append(stats[4])
 
             if (epoch % 1000 == 0):
-                test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion)
+                test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
 
             ### SAVING THE BEST ALWAYS ###
@@ -346,8 +335,8 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            prediction, accuracy, requests, reward, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion)
-            train_prediction, train_accuracy, train_requests, _, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion)
+            prediction, accuracy, requests, reward, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            train_prediction, train_accuracy, train_requests, _, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
 
