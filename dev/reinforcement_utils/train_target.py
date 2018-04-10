@@ -198,7 +198,7 @@ def train(q_network, target_network, epoch, optimizer, train_loader, args, reinf
         else:
             target_network.q_network = copy.deepcopy(q_network.q_network)
 
-    return total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward, request_dict, accuracy_dict
+    return [total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward], request_dict, accuracy_dict
 
 
 def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict):

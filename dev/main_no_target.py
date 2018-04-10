@@ -13,12 +13,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, batch_scatterplot as scatterplot, transforms, loader, logger
+from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, tablewriter
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from data.omniglot import OMNIGLOT
 
 from models import reinforcement_models
-from reinforcement_utils import validate
+from reinforcement_utils import train, test
 
 
 
@@ -48,7 +48,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=10000, metavar='N',
+parser.add_argument('--epochs', type=int, default=50000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -64,11 +64,15 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_target/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_notarget/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
+# Checkpoint Loader:
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm_notarget/best.pth.tar', type=str,
+                    help='path to best checkpoint (default: none)')
+
 # Network Name:
-parser.add_argument('--name', default='reinforced_ntm_target', type=str,
+parser.add_argument('--name', default='reinforced_ntm_notarget', type=str,
                     help='name of file')
 
 # Seed:
@@ -89,110 +93,19 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     print("Checkpoint successfully saved!")
 
-
-# Writes a table to file:
-def write_stats(requests, accuracy, penalty, folder, test=False):
-    filename = "results/plots/" + str(folder) + "table_file.txt"
-    stat_filename = "results/plots/" + str(folder) + "stat_file.txt"
-    dimensions = [50, 20, 20]
-    headers = ["Method", "Accuracy (%)", "Requests (%)"]
-    method = "RL Prediction"
-    if penalty == 0:
-        method = "Supervised"
-    else:
-        if test:
-            method += "(Rinc = " + str(penalty) + ") - Test"
-        else:
-            method += "(Rinc = " + str(penalty) + ") - Training"
-    specs = [accuracy, requests]
-    if (os.path.isfile(stat_filename)):
-        stat_file = open(stat_filename, "a")
-    else:
-        stat_file = open(stat_filename, "w")
-    stat_file.write(method + "\n")
-
-    # Averaging over 20 episodes:
-    for s in specs:
-        length = min(20, len(s))
-        average = float(sum(s[len(s) - length:])/length)
-        stat_file.write(str(average)[0:4] + "\n")
-    stat_file.close()
-
-    # Reading from stat_file:
-    stats = {}
-    length = 3
-    with open(stat_filename, "r") as statistics:
-        i = 0
-        current_key = ""
-        for line in statistics:
-            if (i == 0):
-                if (line.rstrip() not in stats):
-                    stats[line.rstrip()] = [[], []]
-                current_key = line.rstrip()
-            elif (i < length):
-                stats[current_key][i-1].append(float(line.rstrip()))
-            i += 1
-            if (i == length):
-                i = 0
-
-    stat_list = []
-    for k in stats.keys():
-        stat_list.append([])
-        stat_list[-1].append(k)
-        for v in stats[k]:
-            stat_list[-1].append(sum(v)/len(v))
-
-    print(stats)
-    print(stat_list)
-
-    # Creating Line:
-    table = ""
-    line = "\n+"
-    for d in dimensions:
-        line += "-"*d + "+"
-    line += "\n"
-
-    if (os.path.isfile(filename)):
-        file = open(filename, "a")
-
-    else:
-        file = open(filename, "w")
-
-        # HEADER
-        table += line
-        header = "|"
-        for i, d in enumerate(dimensions):
-            header += int((d/2) - int(len(headers[i])/2))*" " + headers[i] + int((d/2) - int(len(headers[i])/2))*" " + "|"
-        table += header
-        table += line
-
-    # BODY
-    for stat in stat_list:
-        table += "|"
-        for i, d in enumerate(dimensions):
-            table +=  int((d/2) - int(len(str(stat[i]))/2))*" " + str(stat[i]) + int((d/2) - int(len(str(stat[i]))/2))*" " + "|"
-        # END
-        table += line
-
-    
-    print(table)
-    file.write(table)
-    print("Table successfully written!")
-    file.close()
+def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
+    for key in acc_dict.keys():
+        acc_dict[key].append(accuracy_train_dict[key])
+        req_dict[key].append(request_train_dict[key])
 
 
 
 if __name__ == '__main__':
 
-    ### SETTING UP TENSORBOARD LOGGER ###
+    ### SETTING UP RESULTS DIRECTORY ###
     result_directory = 'results/'
-    log_directory = 'results/logs/'
     if not os.path.exists(result_directory):
         os.makedirs(result_directory)
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-
-    logger = logger.Logger('results/logs/')
 
     ### PARSING ARGUMENTS ###
     args = parser.parse_args()
@@ -207,7 +120,7 @@ if __name__ == '__main__':
     ### PARAMETERS ###
 
     # LSTM & Q Learning
-    IMAGE_SCALE = 28
+    IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
     ##################
 
@@ -234,21 +147,18 @@ if __name__ == '__main__':
 
     # Different Models:
     classes = args.class_vector_size
-    target = True
+
     LSTM = False
     NTM = True
+    LRUA = False
 
-    if (LSTM):
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes)
-    elif (NTM):
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes)
-        #target = False
 
-    if target:
-        from reinforcement_utils import train_target as train
-        target_network = copy.deepcopy(q_network)
-    else:
-        from reinforcement_utils import train as train
+    if LSTM:
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, IMAGE_SIZE)
+    elif NTM:
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, IMAGE_SIZE)
+    elif LRUA:
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, IMAGE_SIZE)
 
     # Modules:
     rl = rl(classes)
@@ -256,7 +166,6 @@ if __name__ == '__main__':
     if args.cuda:
         print("\n---Activating GPU Training---\n")
         q_network.cuda()
-        target_network.cuda()
 
     ### PRINTING AMOUNT OF PARAMETERS ###
     print('Number of model parameters: {}'.format(
@@ -266,13 +175,12 @@ if __name__ == '__main__':
 
     req_dict = {1: [], 2: [], 5: [], 10: []}
     acc_dict = {1: [], 2: [], 5: [], 10: []}
-    test_req_dict = {1: [], 2: [], 5: [], 10: []}
-    test_acc_dict = {1: [], 2: [], 5: [], 10: []}
     total_requests = []
     total_accuracy = []
     total_prediction_accuracy= []
     total_loss = []
     total_reward = []
+    best = -30
 
 
     ### LOADING PREVIOUS NETWORK ###
@@ -289,24 +197,28 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
+            best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
-            if (target):
-                target_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.load_checkpoint, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
 
+    print("Current best: ", best)
+
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(q_network.parameters())
-    criterion = nn.MSELoss(reduce=True)
+    criterion = nn.MSELoss()
+
+    # Init train stuff:
     epoch = 0
     episode = (args.start_epoch-1)*args.batch_size
     done = False
     start_time = time.time()
-    update = False
-    UPDATE_TARGET_NETWORK = 5
 
+    # Constants:
+    SAVE = 10
+    BACKUP = 50
 
     while not done:
         ### TRAINING AND TESTING LOOP ###
@@ -315,47 +227,27 @@ if __name__ == '__main__':
             ### TRAINING ###
             print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
 
-            update = False
-            if (epoch > 0 and epoch % UPDATE_TARGET_NETWORK == 0):
-                update = True
-
-            if (target):
-                prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
-                train.train(q_network, target_network, epoch, optimizer, \
-                train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion, update, NTM)
-            else:
-                prediction_accuracy, requests, accuracy, loss, reward, req_dict, acc_dict = \
-                train.train(q_network, epoch, optimizer, \
-                train_loader, args, logger, rl, req_dict, acc_dict, episode, criterion)
-
+            stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion)
+            
             episode += args.batch_size
 
+            update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict)
+
             # STATS:
-            total_prediction_accuracy.append(prediction_accuracy)
-            total_accuracy.append(accuracy)
-            total_requests.append(requests)
-            total_loss.append(loss)
-            total_reward.append(reward)
+            total_prediction_accuracy.append(stats[0])
+            total_requests.append(stats[1])
+            total_accuracy.append(stats[2])
+            total_loss.append(stats[3])
+            total_reward.append(stats[4])
 
-            if (epoch % 10000 == 0):
-                validate.validate(q_network, epoch, optimizer, test_loader, args, logger, rl, test_req_dict, test_acc_dict, episode)
+            if (epoch % 1000 == 0):
+                test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion)
 
-            ### SAVING CHECKPOINT ###
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'episode': episode,
-                'state_dict': q_network.state_dict(),
-                'requests': req_dict,
-                'accuracy': acc_dict,
-                'tot_accuracy': total_accuracy,
-                'tot_requests': total_requests,
-                'tot_pred_acc': total_prediction_accuracy,
-                'tot_loss': total_loss,
-                'tot_reward': total_reward
-            })
 
-            ### ALSO SAVING BACKUP-CHECKPOINT ###
-            if (epoch % 50 == 0):
+            ### SAVING THE BEST ALWAYS ###
+            if (stats[4] >= best):
+                best = stats[4]
+                print("\n--- NEW BEST: ", best, "---\n")
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'episode': episode,
@@ -366,7 +258,40 @@ if __name__ == '__main__':
                     'tot_requests': total_requests,
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
-                    'tot_reward': total_reward
+                    'tot_reward': total_reward,
+                    'best': best
+                }, filename="best.pth.tar")
+
+            ### SAVING CHECKPOINT ###
+            if (epoch % SAVE == 0):
+                save_checkpoint({
+                    'epoch': epoch + 1,
+                    'episode': episode,
+                    'state_dict': q_network.state_dict(),
+                    'requests': req_dict,
+                    'accuracy': acc_dict,
+                    'tot_accuracy': total_accuracy,
+                    'tot_requests': total_requests,
+                    'tot_pred_acc': total_prediction_accuracy,
+                    'tot_loss': total_loss,
+                    'tot_reward': total_reward,
+                    'best': best
+                })
+
+            ### ALSO SAVING BACKUP-CHECKPOINT ###
+            if (epoch % BACKUP == 0):
+                save_checkpoint({
+                    'epoch': epoch + 1,
+                    'episode': episode,
+                    'state_dict': q_network.state_dict(),
+                    'requests': req_dict,
+                    'accuracy': acc_dict,
+                    'tot_accuracy': total_accuracy,
+                    'tot_requests': total_requests,
+                    'tot_pred_acc': total_prediction_accuracy,
+                    'tot_loss': total_loss,
+                    'tot_reward': total_reward,
+                    'best': best
                 }, filename="backup.pth.tar")
 
         elapsed_time = time.time() - start_time
@@ -390,39 +315,58 @@ if __name__ == '__main__':
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
 
+    test_network = False
     if (val.lower() == "y"):
+        print("=> loading checkpoint '{}'".format(args.load_best_checkpoint))
+        checkpoint = torch.load(args.load_best_checkpoint)
+        q_network.load_state_dict(checkpoint['state_dict'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format(args.load_checkpoint, checkpoint['epoch']))
         test_accuracy = 0.0
         test_request = 0.0
         test_reward = 0.0
-        test_epochs = 20
+        test_network = True
+
+        parsed = False
+        while not parsed:
+            test_epochs = input("\nHow many epochs to test? \n[0, N]: ")
+            try:
+                test_epochs = int(test_epochs)
+                parsed = True
+            except:
+                parsed = False
+
+        # Stats for tables:
         test_stats = [[], []]
         training_stats = [[], []]
 
+        print("\n--- Testing for", int(test_epochs), "epochs ---\n")
+
         # Validating on the test set for 100 epochs (5000 episodes):
-        print_stats = False
-        first = True
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            prediction, requests, accuracy, reward, req_dict, acc_dict = validate.validate(q_network, epoch, optimizer, test_loader, args, logger, rl, req_dict, acc_dict, episode)
-            prediction, train_requests, train_accuracy, _, _, _ = validate.validate(q_network, epoch, optimizer, train_loader, args, logger, rl, req_dict, acc_dict, episode)
+            prediction, accuracy, requests, reward, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion)
+            train_prediction, train_accuracy, train_requests, _, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion)
+
+            update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
 
             # Increment episode count:
             episode += args.batch_size
 
             # Statistics:
-            test_accuracy += accuracy
+            test_accuracy += prediction
             test_request += requests
             test_reward += reward
 
             # For stat file:
-            test_stats[0].append(accuracy)
+            test_stats[0].append(prediction)
             test_stats[1].append(requests)
-            training_stats[0].append(train_accuracy)
+            training_stats[0].append(train_prediction)
             training_stats[1].append(train_requests)
 
             # Statistics:
-            total_accuracy.append(accuracy)
+            total_accuracy.append(prediction)
             total_requests.append(requests)
             total_reward.append(reward)
 
@@ -433,14 +377,15 @@ if __name__ == '__main__':
         # Printing:
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
         print("Testing Average Requests = ", str(test_request) + " %")
-        print("Testing Average Reward = ", str(test_reward) + " %")
+        print("Testing Average Reward = ", str(test_reward))
         loss_plot.plot([total_accuracy[args.epochs + 1:], total_requests[args.epochs + 1:]], ["Accuracy Percentage", "Requests Percentage"], "testing_stats", args.name + "/", "Percentage")
         loss_plot.plot([total_reward[args.epochs + 1:]], ["Average Reward"], "test_reward", args.name + "/", "Average Reward")
 
 
-    scatterplot.plot(acc_dict, args.name + "/", title="Prediction Accuracy")
-    scatterplot.plot(req_dict, args.name + "/", title="Total Requests")
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
+    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
 
-    write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
-    write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
+    if (test_network):
+        tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
+        tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
 

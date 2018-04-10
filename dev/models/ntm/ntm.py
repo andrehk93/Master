@@ -63,7 +63,7 @@ class NTM(nn.Module):
         nn.init.xavier_uniform(self.fc.weight, gain=1)
         nn.init.normal(self.fc.bias, std=0.01)
 
-    def forward(self, x, prev_state):
+    def forward(self, x, prev_state, read_only=False):
         """NTM forward function.
         :param x: input vector (batch_size x num_inputs)
         :param prev_state: The previous state of the NTM
@@ -87,7 +87,9 @@ class NTM(nn.Module):
                 reads += [r]
 
             else:
-                head_state = head(controller_outp, prev_head_state)
+                # When getting future Q-values, we need only read, NOT WRITE:
+                if (not read_only):
+                    head_state = head(controller_outp, prev_head_state)
             heads_states += [head_state]
 
         # Generate Output and collect predictions:

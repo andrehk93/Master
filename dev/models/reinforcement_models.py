@@ -30,8 +30,8 @@ class ReinforcedNTM(nn.Module):
 	def reset_hidden(self):
 		return self.q_network.init_sequence(self.batch_size)
 
-	def forward(self, inp, hidden):
-		return self.q_network(inp, hidden)
+	def forward(self, inp, hidden, read_only=False):
+		return self.q_network(inp, hidden, read_only)
 
 class ReinforcedLRUA(nn.Module):
 
@@ -57,8 +57,8 @@ class ReinforcedLRUA(nn.Module):
 	def reset_hidden(self):
 		return self.q_network.init_sequence(self.batch_size)
 
-	def forward(self, inp, hidden):
-		return self.q_network(inp, hidden)
+	def forward(self, inp, hidden, read_only=False):
+		return self.q_network(inp, hidden, read_only)
 
 
 class ReinforcedRNN(nn.Module):
@@ -78,7 +78,7 @@ class ReinforcedRNN(nn.Module):
 	def reset_hidden(self):
 		return self.q_network.reset_hidden(self.batch_size)
 
-	def forward(self, inp, hidden):
+	def forward(self, inp, hidden, read_only=False):
 		return self.q_network(inp, hidden)
 
 	

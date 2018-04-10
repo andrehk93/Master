@@ -4,6 +4,7 @@ import time
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch import nn
+from torch.nn import init
 import numpy as np
 import numpy
 
@@ -61,7 +62,6 @@ class NTMMemory(nn.Module):
             self.memory[b] = self.prev_mem[b] * (1 - erase) + add
 
     def lrua_write(self, w, k):
-        #print("\tLRUA")
         """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
         self.prev_mem = self.memory
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))

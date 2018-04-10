@@ -8,7 +8,7 @@ import math
 
 
 GAMMA = 0.5
-def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode):
+def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode, criterion):
 
     # Initialize training:
     model.eval()
@@ -79,7 +79,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         # Choosing the largest Q-values:
         model_actions = q_values.data.max(1)[1].view(args.batch_size)
 
-        # Performing Epsilon Greedy Exploration:
+        # NOT Performing Epsilon Greedy Exploration:
         agent_actions = model_actions
         
         # Collect rewards:
@@ -88,12 +88,12 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         # Collecting average reward at time t:
         episode_reward += float(sum(rewards)/args.batch_size)
 
-        # Update dicts and stats:
+        # Just some statistics logging:
         stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
         episode_predict += stats[0]
         episode_correct += stats[1]
         episode_request += stats[2]
-        
+
         # Observe next state and images:
         next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.batch_size)
 
@@ -129,30 +129,27 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         discounted_target_value = discounted_target_value.view(args.batch_size, -1)
 
         # Calculating Bellman error:
-        bellman_loss = F.mse_loss(current_q_values, discounted_target_value)
+        bellman_loss = criterion(current_q_values, discounted_target_value).squeeze()
 
         # Backprop:
-        loss = loss.add(bellman_loss)
+        loss += bellman_loss
         
         # Update current state:
         state = next_state_start
 
         ### END TRAIN LOOP ###
 
+    for key in request_dict.keys():
+        request_dict[key] = sum(request_dict[key])/len(request_dict[key]) 
+        accuracy_dict[key] = sum(accuracy_dict[key])/len(accuracy_dict[key])
+
     print("\n---Validation Statistics---\n")
-
-    # Turning stats into percentages:
-    for key in accuracy_dict.keys():
-        accuracy_dict[key] = float(sum(accuracy_dict[key])/max(1.0, len(accuracy_dict[key])))
-        request_dict[key] = float(sum(request_dict[key])/max(1.0, len(request_dict[key])))
-
 
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
     for key in accuracy_dict.keys():
         accuracy = accuracy_dict[key]
-        request_percentage = request_dict[key]
-
+        request_percentage = request_dict[key]    
         
         print("Instance " + str(key) + ":\t" + str(100.0*accuracy)[0:4] + " %" + "\t\t" + str(100.0*request_percentage)[0:4] + " %")
     
@@ -171,8 +168,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
     print("Batch Average Reward = " + str(total_reward)[:5])
     print("+--------------------------------------------------+\n")
 
-    return total_prediction_accuracy, total_requests, total_accuracy, total_reward, request_dict, accuracy_dict
-
+    return total_prediction_accuracy, total_accuracy, total_requests, total_reward, request_dict, accuracy_dict
 
 
 def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict):
@@ -206,3 +202,4 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
                 accuracy_dict[label_dict[i][true_label]].append(0)
 
     return predict, correct, request
+

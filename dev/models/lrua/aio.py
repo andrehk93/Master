@@ -57,14 +57,17 @@ class EncapsulatedNTM(nn.Module):
         self.previous_state = self.ntm.create_new_state(batch_size)
         return self.previous_state
 
-    def forward(self, x=None, previous_state=None):
+    def forward(self, x=None, previous_state=None, read_only=False):
+        # For copy-test:
         if x is None:
             x = Variable(torch.zeros(self.batch_size, self.num_inputs))
+
+        # For RL:
         if (previous_state == None):
-            o, self.previous_state = self.ntm(x, self.previous_state)
+            o, self.previous_state = self.ntm(x, self.previous_state, read_only)
             return o, self.previous_state
         else:
-            return self.ntm(x, previous_state)
+            return self.ntm(x, previous_state, read_only)
 
     def calculate_num_params(self):
         """Returns the total number of parameters."""
