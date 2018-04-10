@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 ### CLASSES ###
 from utils import loss_plot, percent_scatterplot as scatterplot, transforms, loader, tablewriter
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
-from data.omniglot import OMNIGLOT
+from data.omniglot.omniglot import OMNIGLOT
 
 from models import reinforcement_models
 from reinforcement_utils import train, test
@@ -48,7 +48,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=50000, metavar='N',
+parser.add_argument('--epochs', type=int, default=60000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
