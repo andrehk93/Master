@@ -54,15 +54,20 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Collecting timestep image/label batch:
         episode_labels, episode_texts = label_batch[:, i_e], text_batch[:, i_e]
 
+        episode_texts = episode_texts.squeeze()
+        
+
         # Tensoring the state:
-        state = torch.FloatTensor(state)
+        state = Variable(torch.FloatTensor(state))
+
+        """
         state_batch = []
 
         # Concatenating possible labels/zero vector with image, to create the environment state:
         for i in range(episode_texts.size()[1]):
             state_batch.append(torch.cat((state, episode_texts[:, i]), 1))
         state_batch = torch.FloatTensor(torch.cat([state_batch[i] for i in range(len(state_batch))])).view(episode_texts.size()[1], episode_texts.size()[0], -1)
-        
+        """
         # Create possible next states and update stats:
         one_hot_labels = []
         for i in range(args.batch_size):
@@ -80,9 +85,9 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Selecting an action to perform (Epsilon Greedy):
         
         if (args.cuda):
-            q_values, hidden = q_network(Variable(state_batch).type(torch.FloatTensor).cuda(), hidden, seq=state_batch.size()[0])
+            q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor).cuda(), hidden, class_vector=state, seq=episode_texts.size()[1])
         else:
-            q_values, hidden = q_network(Variable(state_batch).type(torch.FloatTensor), hidden, seq=state_batch.size()[0])
+            q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor), hidden, class_vector=state, seq=episode_texts.size()[1])
 
         # Choosing the largest Q-values:
         q_network_actions = q_values.data.max(1)[1].view(args.batch_size)
@@ -115,17 +120,18 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Non-final state, collected by TARGET NETWORK:
         if (i_e < args.episode_size - 1):
             # Collect next image:
-            next_episode_texts = text_batch[:, i_e + 1]
-
+            next_episode_texts = text_batch[:, i_e + 1].squeeze()
+            next_state = Variable(torch.FloatTensor(next_state_start), volatile=True)
+            """
             # Create next state:
             next_state_batch = []
             for i in range(next_episode_texts.size()[1]):
                 next_state_batch.append(torch.cat((torch.FloatTensor(next_state_start), next_episode_texts[:, i]), 1))
             next_state_batch = torch.FloatTensor(torch.cat([next_state_batch[i] for i in range(len(next_state_batch))])).view(next_episode_texts.size()[1], next_episode_texts.size()[0], -1)
-        
+            """
 
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
-            target_value = q_network(Variable(next_state_batch, volatile=True), hidden, read_only=True, seq=next_state_batch.size()[0])[0].max(1)[0]
+            target_value = q_network(Variable(next_episode_texts, volatile=True), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
 
             # Make it un-volatile again (So we actually can backpropagate):
             target_value.volatile = False

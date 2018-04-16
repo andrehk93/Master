@@ -48,12 +48,6 @@ class ReutersLoader():
 		print('Processing raw dataset...')
 		(training_set, test_set, label_stop), word_dictionary = read_text_file(os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
 																			classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length)
-		print("training_set[0] = ", len(training_set[0]))
-		print("training_set[0][0] = ", len(training_set[0][0]))
-		print("training_set[0][0][0] = ", len(training_set[0][0][0]))
-		print("training_set[0][0][0][0] = ", training_set[0][0][0][0].size())
-		print("Training_set[1] = ", training_set[1])
-		input("WHAT IS WRONG")
 		self.training_set = (
 			training_set[0],
 			torch.LongTensor(training_set[1])

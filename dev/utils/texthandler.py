@@ -108,13 +108,13 @@ def return_all_data_from_file(path):
 
 def create_word_vectors(words, sen_len, corpus):
     text = []
-    sentence = torch.FloatTensor(np.zeros(sen_len))
+    sentence = torch.LongTensor(np.zeros(sen_len))
     count = 0
     for word in words:
         if word in corpus.dictionary.word2idx:
             if count > sen_len - 1:
                 text.append(sentence)
-                sentence = torch.FloatTensor(np.zeros(sen_len))
+                sentence = torch.LongTensor(np.zeros(sen_len))
                 count = 0
             sentence[count] = corpus.dictionary.word2idx[word]
             count += 1

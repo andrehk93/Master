@@ -36,7 +36,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+                    help='input batch size for training (default: 50)')
+
+# Batch size:
+parser.add_argument('--test-batch-size', type=int, default=8, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Episode size:
@@ -44,7 +48,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=60000, metavar='N',
+parser.add_argument('--epochs', type=int, default=38080, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -60,15 +64,15 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/text_reinforced_lstm/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/embedding_reinforced_lstm_50_32/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/text_reinforced_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/embedding_reinforced_lstm_50_32/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='text_reinforced_lstm', type=str,
+parser.add_argument('--name', default='embedding_reinforced_lstm_50_32', type=str,
                     help='name of file')
 
 # Seed:
@@ -116,21 +120,22 @@ if __name__ == '__main__':
     ### PARAMETERS ###
 
     # LSTM & Q Learning
-    SENTENCE_LENGTH = 50
-    NUMBER_OF_SENTENCES = 18
-    DICTIONARY_MAX_SIZE = 10000
+    EMBEDDING_SIZE = 128
+    SENTENCE_LENGTH = 32
+    NUMBER_OF_SENTENCES = 1
+    DICTIONARY_MAX_SIZE = 2000
     ##################
 
     print("Loading trainingsets...")
     reuters_loader = loader.ReutersLoader('data/reuters', classify=False, partition=0.8, classes=True,\
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH)
     train_loader = torch.utils.data.DataLoader(
-        REUTERS('data/reuters', train=True, download=True, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
+        REUTERS('data/reuters', train=True, download=True, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(
-        REUTERS('data/reuters', train=False, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
-                batch_size=args.batch_size, shuffle=True, **kwargs)
+        REUTERS('data/reuters', train=False, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+                batch_size=args.test_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
 
@@ -143,11 +148,11 @@ if __name__ == '__main__':
 
 
     if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
     elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
     elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
 
     # Modules:
     rl = rl(classes)
@@ -229,7 +234,7 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 1000 == 0):
+            if (epoch % 100000 == 0):
                 test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
 
@@ -335,8 +340,8 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            prediction, accuracy, requests, reward, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
-            train_prediction, train_accuracy, train_requests, _, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            stats, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            train_stats, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
 
@@ -344,20 +349,20 @@ if __name__ == '__main__':
             episode += args.batch_size
 
             # Statistics:
-            test_accuracy += prediction
-            test_request += requests
-            test_reward += reward
+            test_accuracy += stats[0]
+            test_request += stats[1]
+            test_reward += stats[4]
 
             # For stat file:
-            test_stats[0].append(prediction)
-            test_stats[1].append(requests)
-            training_stats[0].append(train_prediction)
-            training_stats[1].append(train_requests)
+            test_stats[0].append(stats[0])
+            test_stats[1].append(stats[1])
+            training_stats[0].append(train_stats[0])
+            training_stats[1].append(train_stats[1])
 
             # Statistics:
-            total_accuracy.append(prediction)
-            total_requests.append(requests)
-            total_reward.append(reward)
+            total_accuracy.append(stats[0])
+            total_requests.append(stats[1])
+            total_reward.append(stats[4])
 
         test_accuracy = float(test_accuracy/test_epochs)
         test_request = float(test_request/test_epochs)

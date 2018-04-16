@@ -12,19 +12,22 @@ class ReinforcedRNN(nn.Module):
 	hidden_layers = 1
 	hidden_nodes = 200
 
-	def __init__(self, batch_size, cuda, classes, image_size):
+	def __init__(self, batch_size, cuda, classes, input_size, embedding=False, dict_size=5000):
 
 		super(ReinforcedRNN, self).__init__()
 		
-		self.q_network = ReinforcedLSTM(image_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda)
+		self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, EMBEDDING=embedding, DICT_SIZE=dict_size)
 		self.batch_size = batch_size
 		self.gpu = cuda
 	
-	def reset_hidden(self):
-		return self.q_network.reset_hidden(self.batch_size)
+	def reset_hidden(self, batch_size=0):
+		if (batch_size == 0):
+			return self.q_network.reset_hidden(self.batch_size)
+		else:
+			return self.q_network.reset_hidden(batch_size)
 
-	def forward(self, inp, hidden, read_only=False, seq=1):
-		return self.q_network(inp, hidden, seq=seq)
+	def forward(self, inp, hidden, class_vector=None, read_only=False, seq=1):
+		return self.q_network(inp, hidden, class_vector=class_vector, seq=seq)
 
 
 # NTM:
@@ -37,15 +40,15 @@ class ReinforcedNTM(nn.Module):
 	num_write_heads = 1
 	controller_size = 200
 	controller_layers = 1
-	image_size = 784
+	input_size = 784
 
 
-	def __init__(self, batch_size, cuda, classes, image_size):
+	def __init__(self, batch_size, cuda, classes, input_size, embedding=False, dict_size=5000):
 
 		super(ReinforcedNTM, self).__init__()
 
-		self.q_network = NTM(image_size + classes, classes + 1,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M)
+		self.q_network = NTM(input_size + classes, classes + 1,
+                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size)
 
 		self.batch_size = batch_size
 		self.gpu = cuda
@@ -70,12 +73,12 @@ class ReinforcedLRUA(nn.Module):
 	controller_layers = 1
 
 
-	def __init__(self, batch_size, cuda, classes, image_size):
+	def __init__(self, batch_size, cuda, classes, input_size, embedding=False, dict_size=5000):
 
 		super(ReinforcedLRUA, self).__init__()
 
-		self.q_network = LRUA(image_size + classes, classes + 1,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M)
+		self.q_network = LRUA(input_size + classes, classes + 1,
+                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size)
 
 		self.batch_size = batch_size
 		self.gpu = cuda

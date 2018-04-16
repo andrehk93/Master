@@ -26,9 +26,10 @@ class REUTERS(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, reuters_loader=None, classes=3, episode_size=30, tensor_length=18):
+    def __init__(self, root, train=True, download=False, partition=0.8, reuters_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
+        self.sentence_length = sentence_length
         self.train = train  # training set or test set
         self.classes = classes
         self.episode_size = episode_size
@@ -106,8 +107,8 @@ class REUTERS(data.Dataset):
             episode_texts.append(text_list[index])
             episode_labels.append(label_list[index])
 
-        zero_tensor = torch.Tensor(torch.cat([torch.Tensor(torch.cat([torch.zeros(50) for i in range(tensor_length)])) for j in range(self.episode_size)]))
-        episode_tensor = zero_tensor.view(self.episode_size, tensor_length, 50)
+        zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+        episode_tensor = zero_tensor.view(self.episode_size, tensor_length, self.sentence_length)
 
         episode_list = list(zip(episode_texts, episode_labels))
 
