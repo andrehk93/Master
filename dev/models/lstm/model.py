@@ -56,6 +56,7 @@ class ReinforcedLSTM(nn.Module):
             except RuntimeError as e:
                 print(e)
                 print(x)
+
             lstm_input = []
             for i in range(x.size()[1]):
                 lstm_input.append(torch.cat((class_vector, x[:, i]), 1))

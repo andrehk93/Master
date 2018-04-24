@@ -43,7 +43,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             label_dict.append({})
 
     # Initialize q_network between each episode:
-    hidden = q_network.reset_hidden()
+    hidden = q_network.reset_hidden(text_batch.size()[0])
     
     # Statistics again:    
     request_dict = {1: [], 2: [], 5: [], 10: []}
@@ -68,6 +68,8 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         if not multi_state:
             class_representations = get_singleclass_representations(args.batch_size, args.class_vector_size, episode_labels)
 
+        episode_texts = episode_texts.squeeze()
+
         # Tensoring the state:
         state = torch.FloatTensor(state)
         
@@ -84,6 +86,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Create possible next states and update stats:
         #one_hot_labels = []
         for i in range(args.batch_size):
+
             true_label = episode_labels[i]
 
             # Creating one hot labels:
@@ -118,11 +121,12 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         else:
             rewards = reinforcement_learner.collect_reward_batch(agent_actions, class_representations, args.batch_size)
 
+
         # Collecting average reward at time t over the batch:
-        episode_reward += float(sum(rewards)/args.batch_size)
+        episode_reward += float(sum(rewards)/text_batch.size()[0])
 
         # Just some statistics logging:
-        stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
+        stats = update_dicts(text_batch.size()[0], episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
         episode_predict += stats[0]
         episode_correct += stats[1]
         episode_request += stats[2]
@@ -132,6 +136,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             next_state_start = reinforcement_learner.next_multistate_batch(agent_actions, class_representations, args.batch_size, episode_labels)
         else:
             next_state_start = reinforcement_learner.next_state_batch(agent_actions, class_representations, args.batch_size)
+
 
         # Tensoring the reward:
         rewards = Variable(torch.Tensor([rewards]))
@@ -155,6 +160,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
             target_value = q_network(Variable(next_state, volatile=True), hidden, read_only=True)[0].max(1)[0]
 
+
             # Make it un-volatile again (So we actually can backpropagate):
             target_value.volatile = False
 
@@ -166,7 +172,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             # As there is no next state, we only have the rewards:
             discounted_target_value = rewards
 
-        discounted_target_value = discounted_target_value.view(args.batch_size, -1)
+        discounted_target_value = discounted_target_value.view(text_batch.size()[0], -1)
 
         # Calculating Bellman error:
         mse_loss = criterion(current_q_values, discounted_target_value)
@@ -213,7 +219,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
     print("Batch Average Loss = " + str(total_loss)[:5])
-    total_requests = float((100.0 * episode_request) / (args.batch_size*args.episode_size))
+    total_requests = float((100.0 * episode_request) / (text_batch.size()[0]*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
     total_reward = float(episode_reward)
     print("Batch Average Reward = " + str(total_reward)[:5])
