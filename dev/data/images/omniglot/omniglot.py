@@ -58,6 +58,7 @@ class OMNIGLOT(data.Dataset):
         images = []
         if self.train:
             # Trains on whole dataset
+
             img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
 
             ind = 0

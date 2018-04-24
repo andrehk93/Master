@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from torch.utils.data.dataset import Dataset
 import numpy as np
 import random
-from utils import pattern_repl as pr
+from utils.text import pattern_repl as pr
 
 import nltk
 nltk.download("stopwords")
@@ -20,11 +20,6 @@ porter = PorterStemmer()
 stop = set(stopwords.words("english"))
 
 
-# Root file location:
-root = "./data/Reuters"
-
-
-
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -32,37 +27,36 @@ class Dictionary(object):
 
     def add_word(self, word):
         if word not in self.word2idx:
-            self.idx2word.append(word)
             self.word2idx[word] = len(self.idx2word)
+            self.idx2word.append(word)
 
     def __len__(self):
         return len(self.idx2word)
 
 class Corpus(object):
-    def __init__(self, max_size):
+    def __init__(self, max_size, root, stopwords=True):
+        self.root = root
+        self.stopwords = stopwords
         self.dictionary = Dictionary()
         self.tokenize(max_size)
+        
 
     # Tokenizing files to create the dictionaries:
     def tokenize(self, max_size):
-        path = "./data/Reuters/raw/"
 
-        print("Reading...")
-        files = return_all_data_from_file(path)
+        print("Reading from " + self.root)
+        files = return_all_data_from_file(self.root)
 
         word_counts = {}
         print("Creating Dictionary from File...")
-        tokens = 0
         for f in range(len(files)):
             if (f % 1000 == 0):
                 print("Reading [" + str(f) + "/" + str(len(files)) + "] files...")
             file = files[f]
-            tokens = 0
             for line in file.split("\n"):
                 if (len(line) <= 1):
                     continue
-                words = parse(line)
-                tokens += len(words)
+                words = parse(line, self.stopwords)
                 for word in words:
                     if (word not in word_counts):
                         word_counts[word] = 1
@@ -78,7 +72,7 @@ class Corpus(object):
 
 
 # Parsing a sentence (removing punctuation --> stopwords --> stemming):
-def parse(sentence):
+def parse(sentence, stopwords):
     ### REPLACE PATTERNS ###
     replacer = pr.RegexpReplacer()
     result = replacer.replace(sentence)
@@ -86,8 +80,13 @@ def parse(sentence):
     ### REMOVE PUNCTUATION ###
     result = re.sub("[^\w\s]", " ", result)
     ### REMOVE STOPWORDS AND STEMMING ###
-    result = [porter.stem(i.lower()) for i in wordpunct_tokenize(result)
-    if i.lower() not in stop]
+    if (stopwords):
+        result = [porter.stem(i.lower()) for i in wordpunct_tokenize(result)
+        if i.lower() not in stop]
+    else:
+        result = [porter.stem(i.lower()) for i in result.split(" ")
+        if i.lower() not in stop]
+
     return result
 
 
@@ -108,16 +107,18 @@ def return_all_data_from_file(path):
 
 def create_word_vectors(words, sen_len, corpus):
     text = []
-    sentence = torch.FloatTensor(np.zeros(sen_len))
+    sentence = torch.LongTensor(np.zeros(sen_len))
     count = 0
     for word in words:
         if word in corpus.dictionary.word2idx:
             if count > sen_len - 1:
                 text.append(sentence)
-                sentence = torch.FloatTensor(np.zeros(sen_len))
+                sentence = torch.LongTensor(np.zeros(sen_len))
                 count = 0
             sentence[count] = corpus.dictionary.word2idx[word]
             count += 1
+    if (len(text) == 0):
+        text.append(sentence)
     return text
 
 

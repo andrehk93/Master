@@ -25,28 +25,20 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
     episode_predict = 0.0
     episode_request = 0.0
     episode_reward = 0.0
-    episode_loss = 0.0
-    total_loss = 0.0
 
     # Create initial state:
     state = []
     label_dict = []
-    for i in range(args.batch_size):
+    for i in range(text_batch.size()[0]):
         state.append([0 for i in range(args.class_vector_size)])
         label_dict.append({})
 
     # Initialize q_network between each episode:
-    hidden = q_network.reset_hidden()
+    hidden = q_network.reset_hidden(text_batch.size()[0])
     
     # Statistics again:    
     request_dict = {1: [], 2: [], 5: [], 10: []}
     accuracy_dict = {1: [], 2: [], 5: [], 10: []}
-
-    # Placeholder for loss Variable:
-    if (args.cuda):
-        loss = Variable(torch.zeros(1).type(torch.Tensor)).cuda()
-    else:
-        loss = Variable(torch.zeros(1).type(torch.Tensor))
 
     # EPISODE LOOP:
     for i_e in range(len(label_batch[0])):
@@ -54,18 +46,14 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         # Collecting timestep image/label batch:
         episode_labels, episode_texts = label_batch[:, i_e], text_batch[:, i_e]
 
-        # Tensoring the state:
-        state = torch.FloatTensor(state)
-        state_batch = []
+        episode_texts = episode_texts.squeeze()
 
-        # Concatenating possible labels/zero vector with image, to create the environment state:
-        for i in range(episode_texts.size()[1]):
-            state_batch.append(torch.cat((state, episode_texts[:, i]), 1))
-        state_batch = torch.FloatTensor(torch.cat([state_batch[i] for i in range(len(state_batch))])).view(episode_texts.size()[1], episode_texts.size()[0], -1)
-        
+        # Tensoring the state:
+        state = Variable(torch.FloatTensor(state))
+
         # Create possible next states and update stats:
         one_hot_labels = []
-        for i in range(args.batch_size):
+        for i in range(text_batch.size()[0]):
             true_label = episode_labels[i]
 
             # Creating one hot labels:
@@ -80,74 +68,33 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         # Selecting an action to perform (Epsilon Greedy):
         
         if (args.cuda):
-            q_values, hidden = q_network(Variable(state_batch).type(torch.FloatTensor).cuda(), hidden, seq=state_batch.size()[0])
+            q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor).cuda(), hidden, class_vector=state, seq=text_batch.size()[0])
         else:
-            q_values, hidden = q_network(Variable(state_batch).type(torch.FloatTensor), hidden, seq=state_batch.size()[0])
+            q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor), hidden, class_vector=state, seq=text_batch.size()[0])
 
         # Choosing the largest Q-values:
-        q_network_actions = q_values.data.max(1)[1].view(args.batch_size)
+        q_network_actions = q_values.data.max(1)[1].view(text_batch.size()[0])
 
         # Collect Epsilon-Greedy actions:
-        agent_actions = reinforcement_learner.select_actions(epoch, q_network_actions, args.batch_size, args.class_vector_size, episode_labels)
+        agent_actions = reinforcement_learner.select_actions(epoch, q_network_actions, text_batch.size()[0], args.class_vector_size, episode_labels)
         
         # Collect rewards:
-        rewards = reinforcement_learner.collect_reward_batch(agent_actions, one_hot_labels, args.batch_size)
+        rewards = reinforcement_learner.collect_reward_batch(agent_actions, one_hot_labels, text_batch.size()[0])
 
         # Collecting average reward at time t over the batch:
-        episode_reward += float(sum(rewards)/args.batch_size)
+        episode_reward += float(sum(rewards)/text_batch.size()[0])
 
         # Just some statistics logging:
-        stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
+        stats = update_dicts(text_batch.size()[0], episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
         episode_predict += stats[0]
         episode_correct += stats[1]
         episode_request += stats[2]
 
         # Observe next state and images:
-        next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.batch_size)
+        next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, text_batch.size()[0])
 
         # Tensoring the reward:
         rewards = Variable(torch.Tensor([rewards]))
-
-        # Need to collect the representative Q-values:
-        agent_actions = Variable(torch.LongTensor(agent_actions)).unsqueeze(1)
-        current_q_values = q_values.gather(1, agent_actions)
-
-        # Non-final state, collected by TARGET NETWORK:
-        if (i_e < args.episode_size - 1):
-            # Collect next image:
-            next_episode_texts = text_batch[:, i_e + 1]
-
-            # Create next state:
-            next_state_batch = []
-            for i in range(next_episode_texts.size()[1]):
-                next_state_batch.append(torch.cat((torch.FloatTensor(next_state_start), next_episode_texts[:, i]), 1))
-            next_state_batch = torch.FloatTensor(torch.cat([next_state_batch[i] for i in range(len(next_state_batch))])).view(next_episode_texts.size()[1], next_episode_texts.size()[0], -1)
-        
-
-            # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
-            target_value = q_network(Variable(next_state_batch, volatile=True), hidden, read_only=True, seq=next_state_batch.size()[0])[0].max(1)[0]
-
-            # Make it un-volatile again (So we actually can backpropagate):
-            target_value.volatile = False
-
-            # Discounting the next state + reward collected in this state:
-            discounted_target_value = (GAMMA*target_value) + rewards
-
-        # Final state:
-        else:
-            # As there is no next state, we only have the rewards:
-            discounted_target_value = rewards
-
-        discounted_target_value = discounted_target_value.view(args.batch_size, -1)
-
-        # Calculating Bellman error:
-        mse_loss = criterion(current_q_values, discounted_target_value)
-
-        # Stats:
-        total_loss += mse_loss.data[0]
-
-        # Accumulate timestep loss:
-        loss += mse_loss
         
         # Update current state:
         state = next_state_start
@@ -177,14 +124,13 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
     print("Batch Average Prediction Accuracy = " + str(total_prediction_accuracy)[:5] +  " %")
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    print("Batch Average Loss = " + str(total_loss)[:5])
-    total_requests = float((100.0 * episode_request) / (args.batch_size*args.episode_size))
+    total_requests = float((100.0 * episode_request) / (text_batch.size()[0]*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
     total_reward = float(episode_reward)
     print("Batch Average Reward = " + str(total_reward)[:5])
     print("+--------------------------------------------------+\n")
 
-    return [total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward], request_dict, accuracy_dict
+    return [total_prediction_accuracy, total_requests, total_accuracy, total_reward], request_dict, accuracy_dict
 
 
 def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict):

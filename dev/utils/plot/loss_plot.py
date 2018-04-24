@@ -3,12 +3,25 @@ import numpy as np
 import os
 
 def plot(lists, labels, filename, folder, ylabel):
-	x = np.arange(1, 50*len(lists[0]) + 1, 50)
+	avg_lists = []
+	average = 5
 	for l in range(len(lists)):
-		plt.plot(x, lists[l], label=labels[l])
+		list_l = lists[l]
+		avg_lists.append([])
+		for i in range(0, len(list_l), average):
+			sub_list = list_l[i : min(i + average, len(list_l))]
+			length = len(sub_list)
+			avg_lists[l].append(float(sum(sub_list)/length))
+
+
+	x = np.arange(1, len(avg_lists[0]) + 1)
+	for l in range(len(avg_lists)):
+		avg_list = avg_lists[l]
+		plt.plot(x, avg_list, label=labels[l])
+
 	plt.legend(loc=0)
 	plt.title("RL Training Statistics")
-	plt.xlabel("Episodes")
+	plt.xlabel("Episode Batches")
 	plt.ylabel(ylabel)
 	plt.grid(True)
 	if ("stats" in filename):

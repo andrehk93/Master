@@ -24,7 +24,8 @@ def plot(dictionary, folder, batch_size, title="Plot"):
 
 	colors = ['indigo', 'aqua', 'red', 'lime']
 	lables = ['1st Instance', '2nd Instance', '5th Instance', '10th Instance']
-	plt.xlabel('Episode')
+	plt.xlabel('Episode Batches')
+	plt.grid(True)
 	if ('Prediction Accuracy' in title):
 		plt.ylabel('Percent Correct')
 	else:

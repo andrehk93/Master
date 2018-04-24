@@ -4,18 +4,19 @@ import os.path
 import random
 import errno
 import torch
-from utils import texthandler
+from utils.text import parser
 
-class ReutersLoader():
+class TextLoader():
 
 	raw_folder = 'raw'
 	processed_folder = 'processed'
 	training_file = 'training.pt'
 	test_file = 'test.pt'
 
-	def __init__(self, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16):
+	def __init__(self, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16, stopwords=True):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
+		self.stopwords = stopwords
 		if (self.classify):
 			self.training_file = "classify_" + self.training_file
 			self.test_file = "classify_" + self.test_file
@@ -47,13 +48,7 @@ class ReutersLoader():
 		# process and save as torch files
 		print('Processing raw dataset...')
 		(training_set, test_set, label_stop), word_dictionary = read_text_file(os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
-																			classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length)
-		print("training_set[0] = ", len(training_set[0]))
-		print("training_set[0][0] = ", len(training_set[0][0]))
-		print("training_set[0][0][0] = ", len(training_set[0][0][0]))
-		print("training_set[0][0][0][0] = ", training_set[0][0][0][0].size())
-		print("Training_set[1] = ", training_set[1])
-		input("WHAT IS WRONG")
+															classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length, stopwords=self.stopwords)
 		self.training_set = (
 			training_set[0],
 			torch.LongTensor(training_set[1])
@@ -76,9 +71,9 @@ class ReutersLoader():
 		return self.dictionary
 
 # Need to ensure a uniformly distributed training/test-set:
-def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16):
+def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True):
 	# Create a dictionary first:
-	word_dictionary = texthandler.Corpus(dict_max_size)
+	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
 
 	# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
@@ -87,14 +82,14 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 	progress = 0
 	for (root, dirs, files) in os.walk(path):
 		for f in files:
-			if (progress % 1000 == 0):
-				print("Reading file nr. " + str(progress))
+			if (progress % 10000 == 0):
+				print("Reading file [" + str(progress) + "/" + str(len(files)) + "]")
 			if (f != ".DS_Store"):
 				# Reading text file:
 				text = open(os.path.join(root, f), "r").read()
 
 				# Parsing text-file, and update Corpus:
-				text = texthandler.create_word_vectors(text, sentence_length, word_dictionary)
+				text = parser.create_word_vectors(parser.parse(text, stopwords), sentence_length, word_dictionary)
 
 				if (root not in label_dict):
 					label_dict[root] = label

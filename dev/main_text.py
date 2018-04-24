@@ -5,6 +5,7 @@ import time
 import os
 import shutil
 import copy
+import numpy as np
 
 ### PYTORCH STUFF ###
 import torch
@@ -13,12 +14,16 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 ### CLASSES ###
-from utils import loss_plot, percent_scatterplot as scatterplot, transforms, reutersLoader as loader, tablewriter
+from utils.plot import loss_plot, percent_scatterplot as scatterplot
+from utils.text import textLoader as loader
+from utils import transforms, tablewriter
+
+# RL and DATASETS:
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
-from data.reuters.reuters import REUTERS
+from data.text.text_dataset import TEXT
 
 from models import reinforcement_models
-from reinforcement_utils import train_text as train, test_text as test
+from reinforcement_utils.text import train_text as train, test_text as test
 
 
 
@@ -36,7 +41,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+                    help='input batch size for training (default: 50)')
+
+# Batch size:
+parser.add_argument('--test-batch-size', type=int, default=8, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Episode size:
@@ -44,7 +53,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=60000, metavar='N',
+parser.add_argument('--epochs', type=int, default=20000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -60,15 +69,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/text_reinforced_lstm/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/text_reinforced_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm/best.pth.tar', type=str,
+                    help='path to best checkpoint (default: none)')
+
+# Checkpoint Loader:
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='text_reinforced_lstm', type=str,
+parser.add_argument('--name', default='headlines_lstm', type=str,
                     help='name of file')
 
 # Seed:
@@ -94,6 +107,20 @@ def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
         acc_dict[key].append(accuracy_train_dict[key])
         req_dict[key].append(request_train_dict[key])
 
+def print_best_stats(stats):
+    # Static strings:
+    stat_string = "\n\t\tBest Training Stats"
+    table_string = "|\tReward\t|\tPred. Acc.\t|\t[Acc / Req]\t\t|"
+    str_length = 72
+
+    # Printing:
+    print(stat_string)
+    print("-"*str_length)
+    print(table_string)
+    print("-"*str_length)
+    print("|\t" + str(stats[0])[0:4] + "\t|\t" + str(stats[1])[0:4] + " %\t\t|\t" + str(stats[2])[0:4] + " % / " + str(stats[3])[0:4] + " %\t\t|\t")
+    print("-"*str_length + "\n\n")
+
 
 
 if __name__ == '__main__':
@@ -115,22 +142,32 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
 
-    # LSTM & Q Learning
-    SENTENCE_LENGTH = 50
-    NUMBER_OF_SENTENCES = 18
-    DICTIONARY_MAX_SIZE = 10000
+    # TEXT AND MODEL DETAILS:
+    EMBEDDING_SIZE = 128
+    SENTENCE_LENGTH = 16
+    NUMBER_OF_SENTENCES = 1
+    DICTIONARY_MAX_SIZE = 20000
+    STOPWORDS = False
+
+    # Different text-datasets:
+    reuters = 'reuters'
+    headlines = 'headlines'
+    dataset = 'data/text/' + headlines
     ##################
 
-    print("Loading trainingsets...")
-    reuters_loader = loader.ReutersLoader('data/reuters', classify=False, partition=0.8, classes=True,\
-                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH)
+    print("Loading datasets...")
+
+    text_loader = loader.TextLoader(dataset, classify=False, partition=0.8, classes=True,\
+                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
+
     train_loader = torch.utils.data.DataLoader(
-        REUTERS('data/reuters', train=True, download=True, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
+        TEXT(dataset, train=True, download=True, data_loader=text_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
+
     test_loader = torch.utils.data.DataLoader(
-        REUTERS('data/reuters', train=False, reuters_loader=reuters_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES),
-                batch_size=args.batch_size, shuffle=True, **kwargs)
+        TEXT(dataset, train=False, data_loader=text_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+                batch_size=args.test_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
 
@@ -143,11 +180,11 @@ if __name__ == '__main__':
 
 
     if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
     elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
     elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, SENTENCE_LENGTH)
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
 
     # Modules:
     rl = rl(classes)
@@ -160,8 +197,9 @@ if __name__ == '__main__':
     print('Number of model parameters: {}'.format(
         sum([p.data.nelement() for p in q_network.parameters()])))
 
-    best_accuracy = 0.0
 
+    # Parameters that potentially can be collected from checkpoint:
+    best_accuracy = 0.0
     req_dict = {1: [], 2: [], 5: [], 10: []}
     acc_dict = {1: [], 2: [], 5: [], 10: []}
     total_requests = []
@@ -170,6 +208,7 @@ if __name__ == '__main__':
     total_loss = []
     total_reward = []
     best = -30
+    start_time = time.time()
 
 
     ### LOADING PREVIOUS NETWORK ###
@@ -186,6 +225,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
+            start_time -= checkpoint['time']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -195,17 +235,16 @@ if __name__ == '__main__':
 
     print("Current best: ", best)
 
-    ### WEIGHT OPTIMIZER ###
+    ### WEIGHT OPTIMIZER & CRITERION FOR LOSS ###
     optimizer = optim.Adam(q_network.parameters())
     criterion = nn.MSELoss()
 
-    # Init train stuff:
+    # Init train stats:
     epoch = 0
     episode = (args.start_epoch-1)*args.batch_size
     done = False
-    start_time = time.time()
-
-    # Constants:
+    
+    # Constants for checkpoint saving:
     SAVE = 10
     BACKUP = 50
 
@@ -214,7 +253,12 @@ if __name__ == '__main__':
         for epoch in range(args.start_epoch, args.epochs + 1):
 
             ### TRAINING ###
-            print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
+            print("\n\n--- Training epoch " + str(epoch) + " ---\n")
+            
+            if (len(total_reward) > 0):
+                best_index = np.argmax(total_reward)
+            
+                print_best_stats([best, total_prediction_accuracy[best_index], total_accuracy[best_index], total_requests[best_index]])
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
             
@@ -229,7 +273,7 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 1000 == 0):
+            if (epoch % 50 == 0):
                 test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
 
@@ -248,6 +292,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'time': time.time() - start_time,
                     'best': best
                 }, filename="best.pth.tar")
 
@@ -264,6 +309,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'time': time.time() - start_time,
                     'best': best
                 })
 
@@ -280,11 +326,12 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'time': time.time() - start_time,
                     'best': best
                 }, filename="backup.pth.tar")
 
         elapsed_time = time.time() - start_time
-        print("ELAPSED TIME = " + str(elapsed_time) + " seconds")
+        print("\n--- Total Training Time ---\nT = " + str(elapsed_time) + " seconds\n")
         answer = input("How many more epochs to train: ")
         try:
             if int(answer) == 0:
@@ -308,6 +355,7 @@ if __name__ == '__main__':
     if (val.lower() == "y"):
         print("=> loading checkpoint '{}'".format(args.load_best_checkpoint))
         checkpoint = torch.load(args.load_best_checkpoint)
+        
         q_network.load_state_dict(checkpoint['state_dict'])
         print("=> loaded checkpoint '{}' (epoch {})"
               .format(args.load_checkpoint, checkpoint['epoch']))
@@ -328,6 +376,10 @@ if __name__ == '__main__':
         # Stats for tables:
         test_stats = [[], []]
         training_stats = [[], []]
+        test_acc_dict = {1: [], 2: [], 5: [], 10: []}
+        test_req_dict = {1: [], 2: [], 5: [], 10: []}
+        train_acc_dict = {1: [], 2: [], 5: [], 10: []}
+        train_req_dict = {1: [], 2: [], 5: [], 10: []}
 
         print("\n--- Testing for", int(test_epochs), "epochs ---\n")
 
@@ -335,29 +387,31 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            prediction, accuracy, requests, reward, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
-            train_prediction, train_accuracy, train_requests, _, _, _ = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            stats, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            train_stats, train_reqs, train_accs = test.validate(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
+            update_dicts(request_test_dict, accuracy_test_dict, test_req_dict, test_acc_dict)
+            update_dicts(train_reqs, train_accs, train_req_dict, train_acc_dict)
 
             # Increment episode count:
             episode += args.batch_size
 
             # Statistics:
-            test_accuracy += prediction
-            test_request += requests
-            test_reward += reward
+            test_accuracy += stats[0]
+            test_request += stats[1]
+            test_reward += stats[3]
 
             # For stat file:
-            test_stats[0].append(prediction)
-            test_stats[1].append(requests)
-            training_stats[0].append(train_prediction)
-            training_stats[1].append(train_requests)
+            test_stats[0].append(stats[0])
+            test_stats[1].append(stats[1])
+            training_stats[0].append(train_stats[0])
+            training_stats[1].append(train_stats[1])
 
             # Statistics:
-            total_accuracy.append(prediction)
-            total_requests.append(requests)
-            total_reward.append(reward)
+            total_accuracy.append(stats[0])
+            total_requests.append(stats[1])
+            total_reward.append(stats[3])
 
         test_accuracy = float(test_accuracy/test_epochs)
         test_request = float(test_request/test_epochs)
@@ -370,11 +424,38 @@ if __name__ == '__main__':
         loss_plot.plot([total_accuracy[args.epochs + 1:], total_requests[args.epochs + 1:]], ["Accuracy Percentage", "Requests Percentage"], "testing_stats", args.name + "/", "Percentage")
         loss_plot.plot([total_reward[args.epochs + 1:]], ["Average Reward"], "test_reward", args.name + "/", "Average Reward")
 
+    else:
+        checkpoint = torch.load(args.load_test_checkpoint)
+        q_network.load_state_dict(checkpoint['state_dict'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format(args.load_checkpoint, checkpoint['epoch']))
+        training_stats = checkpoint['training_stats']
+        test_stats = checkpoint['test_stats']
+        test_acc_dict = checkpoint['test_acc_dict']
+        test_req_dict = checkpoint['test_req_dict']
+        train_acc_dict = checkpoint['train_acc_dict']
+        train_req_dict = checkpoint['train_req_dict']
 
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
 
     if (test_network):
-        tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
-        tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
+        save_checkpoint({
+                    'epoch': epoch + 1,
+                    'episode': episode,
+                    'state_dict': q_network.state_dict(),
+                    'requests': req_dict,
+                    'accuracy': acc_dict,
+                    'tot_accuracy': total_accuracy,
+                    'tot_requests': total_requests,
+                    'tot_pred_acc': total_prediction_accuracy,
+                    'tot_loss': total_loss,
+                    'tot_reward': total_reward,
+                    'best': best
+                }, filename="testpoint.pth.tar")
+
+    tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
+    tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
+    tablewriter.print_k_shot_tables(test_acc_dict, test_req_dict, "test", args.name + "/")
+    tablewriter.print_k_shot_tables(train_acc_dict, train_req_dict, "train", args.name + "/")
 

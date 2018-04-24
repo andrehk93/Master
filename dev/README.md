@@ -1,14 +1,18 @@
 # Development for Masters Project 2018
 
 ## Important
-For the OMNIGLOT dataset:
+### For the OMNIGLOT dataset:
 Go to https://github.com/brendenlake/omniglot/tree/master/python and download the OMNIGLOT dataset (images_background.zip & images_evaluation.zip). Unzip both files and put BOTH folders in a folder you call "raw", which you put in data/omniglot/, and the scripts will do the rest.
 
-For the Reuters dataset:
+To use the model/methods that utilize the OMNIGLOT dataset, please use "main_no_target.py" to train your model.
+
+### For the Reuters dataset:
 Go to http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz, and it will download the dataset immediatly. Unzip the file, and from the unzipped folder, put bot the "test" and "training"-folders inside data/reuters/. Run the script inside said folder, and then you're good to go.
 
+To use the model/methods that utilize the REUTERS dataset, please use "main_text.py" to train your model. (NOTE: Currently only tested on Windows 10)
+
 ## Models
-Here we have three different models:
+Both datasets can be trained on three different models:
 
 1. LSTM Baseline model
 Implemented from "Active One-Shot Learning" (https://cs.stanford.edu/~woodward/papers/active_one_shot_learning_2016.pdf). This is used as a baseline for my experiments with different memory structures.

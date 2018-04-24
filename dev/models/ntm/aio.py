@@ -11,8 +11,8 @@ from .memory import NTMMemory
 
 class EncapsulatedNTM(nn.Module):
 
-    def __init__(self, num_inputs, num_outputs,
-                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M):
+    def __init__(self, num_inputs, num_outputs, num_classes,
+                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M, output_classes=3, embedding=False, dict_size=5000, embedding_size=128):
         """Initialize an EncapsulatedNTM.
         :param num_inputs: External number of inputs.
         :param num_outputs: External number of outputs.
@@ -27,6 +27,7 @@ class EncapsulatedNTM(nn.Module):
         # Save args
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
+        self.num_classes = num_classes
         self.controller_size = controller_size
         self.controller_layers = controller_layers
         self.num_heads = num_read_heads + num_write_heads
@@ -34,10 +35,13 @@ class EncapsulatedNTM(nn.Module):
         self.num_write_heads = num_write_heads
         self.N = N
         self.M = M
+        self.output_classes = output_classes
+        self.embedding = embedding
+        self.dict_size = dict_size
 
         # Create the NTM components
         memory = NTMMemory(N, M)
-        controller = LSTMController(num_inputs + M*num_read_heads, controller_size, controller_layers)
+        controller = LSTMController(num_inputs + M*num_read_heads, controller_size, controller_layers, num_classes, embedding=embedding, dict_size=dict_size, embedding_size=embedding_size)
         heads = nn.ModuleList([])
         for i in range(num_read_heads):
             heads += [
@@ -47,7 +51,7 @@ class EncapsulatedNTM(nn.Module):
             heads += [
                 NTMWriteHead(memory, controller_size)
             ]
-        self.ntm = NTM(num_inputs, num_outputs, controller, memory, heads)
+        self.ntm = NTM(num_inputs, output_classes, controller, memory, heads, embedding=embedding)
         self.memory = memory
 
     def init_sequence(self, batch_size):
@@ -57,17 +61,17 @@ class EncapsulatedNTM(nn.Module):
         self.previous_state = self.ntm.create_new_state(batch_size)
         return self.previous_state
 
-    def forward(self, x=None, previous_state=None, read_only=False, text=False):
+    def forward(self, x=None, previous_state=None, class_vector=None, read_only=False, text=False):
         # For testing copy-task:
         if x is None:
             x = Variable(torch.zeros(self.batch_size, self.num_inputs))
 
         # For RL:
         if (previous_state == None):
-            o, self.previous_state = self.ntm(x, self.previous_state, read_only)
+            o, self.previous_state = self.ntm(x, self.previous_state, class_vector=class_vector, read_only=read_only)
             return o, self.previous_state
         else:
-            return self.ntm(x, previous_state, read_only)
+            return self.ntm(x, previous_state, class_vector=class_vector, read_only=read_only)
 
     def calculate_num_params(self):
         """Returns the total number of parameters."""

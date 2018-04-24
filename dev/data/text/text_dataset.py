@@ -11,7 +11,7 @@ from utils import transforms
 
 
 
-class REUTERS(data.Dataset):
+class TEXT(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
     training_file = 'training.pt'
@@ -26,22 +26,23 @@ class REUTERS(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, reuters_loader=None, classes=3, episode_size=30, tensor_length=18):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
+        self.sentence_length = sentence_length
         self.train = train  # training set or test set
         self.classes = classes
         self.episode_size = episode_size
-        self.classify = reuters_loader.classify
+        self.classify = data_loader.classify
         if (self.classify):
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
 
         if download and not self._check_exists():
-            self.training_set = reuters_loader.get_training_set()
-            self.test_set = reuters_loader.get_test_set()
-            self.dictionary = reuters_loader.get_dictionary()
+            self.training_set = data_loader.get_training_set()
+            self.test_set = data_loader.get_test_set()
+            self.dictionary = data_loader.get_dictionary()
             self.write_datasets()
 
         if not self._check_exists():
@@ -58,6 +59,7 @@ class REUTERS(data.Dataset):
         self.dictionary = torch.load(os.path.join(self.root, self.processed_folder, self.dictionary_file))
 
     def __getitem__(self, index):
+
         text_list = []
         label_list = []
         if self.train:
@@ -69,14 +71,16 @@ class REUTERS(data.Dataset):
                 for i in text_classes:
                     if (len(self.train_data[i]) < int(self.episode_size / self.classes)):
                         accepted = False
-                    
 
             # Give random class-slot in vector:
             ind = 0
+            count = 0
             for i in text_classes:
                 for j in self.train_data[i]:
                     if (len(j) == 0):
+                        count += 1
                         continue
+
                     text_list.append(j)
                     label_list.append(ind)
                 ind += 1
@@ -97,7 +101,6 @@ class REUTERS(data.Dataset):
                     text_list.append(j)
                     label_list.append(ind)
                 ind += 1
-
         text_indexes = np.random.choice(len(text_list), self.episode_size, replace=False)
 
         episode_texts, episode_labels = [], []
@@ -106,8 +109,8 @@ class REUTERS(data.Dataset):
             episode_texts.append(text_list[index])
             episode_labels.append(label_list[index])
 
-        zero_tensor = torch.Tensor(torch.cat([torch.Tensor(torch.cat([torch.zeros(50) for i in range(tensor_length)])) for j in range(self.episode_size)]))
-        episode_tensor = zero_tensor.view(self.episode_size, tensor_length, 50)
+        zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+        episode_tensor = zero_tensor.view(self.episode_size, tensor_length, self.sentence_length)
 
         episode_list = list(zip(episode_texts, episode_labels))
 
@@ -121,13 +124,6 @@ class REUTERS(data.Dataset):
                     break
                 episode_tensor[i][j] = shuffled_text[i][j]
 
-
-        """
-        print("labels: ", len(shuffled_labels))
-        print("Text: ", len(shuffled_text))
-        print("Text[0]: ", len(shuffled_text[0]))
-        print("Text[0][0]: ", len(shuffled_text[0][0]))
-        """
         return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):

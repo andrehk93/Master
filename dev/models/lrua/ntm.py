@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 class NTM(nn.Module):
     """A Neural Turing Machine."""
-    def __init__(self, num_inputs, num_outputs, controller, memory, heads):
+    def __init__(self, num_inputs, num_outputs, controller, memory, heads, embedding=False):
         """Initialize the NTM.
         :param num_inputs: External input size.
         :param num_outputs: External output size.
@@ -26,6 +26,7 @@ class NTM(nn.Module):
         self.controller = controller
         self.memory = memory
         self.heads = heads
+        self.embedding = embedding
 
         self.N, self.M = memory.size()
         _, self.controller_size = controller.size()
@@ -44,7 +45,7 @@ class NTM(nn.Module):
 
         # Initialize a fully connected layer to produce the actual output:
         #   [controller_output; previous_reads ] -> output
-        self.fc = nn.Linear(self.controller_size + (self.num_read_heads * self.M), num_outputs)
+        self.fc = nn.Linear(self.controller_size + (self.num_read_heads * self.M), num_outputs + 1)
         self.reset_parameters()
 
     def create_new_state(self, batch_size):
@@ -63,22 +64,23 @@ class NTM(nn.Module):
         nn.init.xavier_uniform(self.fc.weight, gain=1)
         nn.init.normal(self.fc.bias, std=0.01)
 
-    def forward(self, x, prev_state, read_only=False):
+    def forward(self, x, prev_state, class_vector=None, read_only=False):
         """NTM forward function.
         :param x: input vector (batch_size x num_inputs)
         :param prev_state: The previous state of the NTM
         """
         # Unpack the previous state
-        # [(1x50), (1x1x100), (3x128)]
+        # [(1x50), (1x1x100), (1x128)]
         prev_reads, prev_controller_state, prev_heads_states = prev_state
 
-        # Use the controller to get an embedding
+        # Use the controller to get an embedding, needs to be done in the controller IF text:
         # Concat: [(785x1)] + (1x50)
-        inp = torch.cat([x] + prev_reads, dim=1)
-        #print("BEFORE: controller state volatile = ", prev_controller_state[0].volatile)
-        controller_outp, controller_state = self.controller(inp, prev_controller_state)
-        
-        
+        if (self.embedding):
+            controller_outp, controller_state = self.controller(x, prev_controller_state, prev_reads=prev_reads, class_vector=class_vector, seq=x.size()[1])
+        else:
+            inp = torch.cat([x] + prev_reads, dim=1)
+            controller_outp, controller_state = self.controller(inp, prev_controller_state)
+            
 
         # Read/Write from the list of heads
         reads = []
@@ -89,7 +91,7 @@ class NTM(nn.Module):
                 reads += [r]
 
             else:
-                # When getting optimal Q-values, we need only read:
+                # When getting future Q-values, we need only read, NOT WRITE:
                 if (not read_only):
                     head_state = head(controller_outp, prev_head_state, self.num_read_heads)
             heads_states += [head_state]

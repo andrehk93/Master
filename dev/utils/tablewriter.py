@@ -91,3 +91,16 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
     file.write(table)
     print("Table successfully written!")
     file.close()
+
+
+
+def print_k_shot_tables(accuracies, requests, dataset, folder):
+    filename = "results/plots/" + str(folder) + "k_shot_table_" + dataset + ".txt"
+    for key in accuracies.keys():
+        accuracies[key] = float(sum(accuracies[key])/max(len(accuracies[key]), 1))
+        requests[key] = float(sum(requests[key])/max(len(requests[key]), 1))
+    with open(filename, "w") as table:
+        table.write("\n\n--- K-shot predictions for " + dataset + "-set ---\n")
+        table.write("Instance:\tAccuracy:\tRequests:\n")
+        for key in accuracies.keys():
+            table.write(str(key) + ":\t\t" + str(accuracies[key])[0:4] + " %\t\t" + str(requests[key])[0:4] + " %\n")
