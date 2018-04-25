@@ -65,7 +65,7 @@ parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='Number of classes per episode (default: 3)')
 
 # CUDA:
-parser.add_argument('--no-cuda', action='store_true', default=True,
+parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
@@ -342,7 +342,6 @@ if __name__ == '__main__':
         except:
             done = True
 
-    
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
@@ -421,9 +420,10 @@ if __name__ == '__main__':
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
         print("Testing Average Requests = ", str(test_request) + " %")
         print("Testing Average Reward = ", str(test_reward))
+        
         loss_plot.plot([total_accuracy[args.epochs + 1:], total_requests[args.epochs + 1:]], ["Accuracy Percentage", "Requests Percentage"], "testing_stats", args.name + "/", "Percentage")
         loss_plot.plot([total_reward[args.epochs + 1:]], ["Average Reward"], "test_reward", args.name + "/", "Average Reward")
-
+        
     else:
         checkpoint = torch.load(args.load_test_checkpoint)
         q_network.load_state_dict(checkpoint['state_dict'])

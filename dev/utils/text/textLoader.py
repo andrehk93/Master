@@ -84,7 +84,7 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 		for f in files:
 			if (progress % 10000 == 0):
 				print("Reading file [" + str(progress) + "/" + str(len(files)) + "]")
-			if (f != ".DS_Store"):
+			if (f != ".DS_Store" and not "unknown" in root):
 				# Reading text file:
 				text = open(os.path.join(root, f), "r").read()
 

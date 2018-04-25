@@ -28,8 +28,8 @@ class LSTMController(nn.Module):
 
 
         # The hidden state is a learned parameter
-        self.lstm_h_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
-        self.lstm_c_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
+        self.lstm_h_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05).cuda()
+        self.lstm_c_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05).cuda()
 
         self.reset_parameters()
 

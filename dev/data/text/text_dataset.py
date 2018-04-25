@@ -26,7 +26,7 @@ class TEXT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -34,6 +34,7 @@ class TEXT(data.Dataset):
         self.classes = classes
         self.episode_size = episode_size
         self.classify = data_loader.classify
+        self.cuda = cuda
         if (self.classify):
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
@@ -109,7 +110,11 @@ class TEXT(data.Dataset):
             episode_texts.append(text_list[index])
             episode_labels.append(label_list[index])
 
-        zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+        if (self.cuda):
+            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+        else:
+            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+        
         episode_tensor = zero_tensor.view(self.episode_size, tensor_length, self.sentence_length)
 
         episode_list = list(zip(episode_texts, episode_labels))
@@ -124,7 +129,10 @@ class TEXT(data.Dataset):
                     break
                 episode_tensor[i][j] = shuffled_text[i][j]
 
-        return episode_tensor, torch.LongTensor(shuffled_labels)
+        if (self.cuda):
+            return episode_tensor, torch.LongTensor(shuffled_labels).cuda()
+        else:
+            return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):
         if self.train:

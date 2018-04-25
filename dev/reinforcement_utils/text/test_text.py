@@ -49,7 +49,10 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         episode_texts = episode_texts.squeeze()
 
         # Tensoring the state:
-        state = Variable(torch.FloatTensor(state))
+        if (args.cuda):
+            state = Variable(torch.FloatTensor(state)).cuda()
+        else:
+            state = Variable(torch.FloatTensor(state))
 
         # Create possible next states and update stats:
         one_hot_labels = []
@@ -93,9 +96,6 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         # Observe next state and images:
         next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, text_batch.size()[0])
 
-        # Tensoring the reward:
-        rewards = Variable(torch.Tensor([rewards]))
-        
         # Update current state:
         state = next_state_start
 

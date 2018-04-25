@@ -56,7 +56,10 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         episode_texts = episode_texts.squeeze()
         
         # Tensoring the state:
-        state = Variable(torch.FloatTensor(state))
+        if (args.cuda):
+            state = Variable(torch.FloatTensor(state)).cuda()
+        else:
+            state = Variable(torch.FloatTensor(state))
 
         # Create possible next states and update stats:
         one_hot_labels = []
@@ -100,20 +103,33 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.batch_size)
 
         # Tensoring the reward:
-        rewards = Variable(torch.Tensor([rewards]))
+        if (args.cuda):
+            rewards = Variable(torch.Tensor([rewards])).cuda()
+        else:
+            rewards = Variable(torch.Tensor([rewards]))
 
         # Need to collect the representative Q-values:
-        agent_actions = Variable(torch.LongTensor(agent_actions)).unsqueeze(1)
+        if (args.cuda):
+            agent_actions = Variable(torch.LongTensor(agent_actions)).cuda().unsqueeze(1)
+        else:
+            agent_actions = Variable(torch.LongTensor(agent_actions)).unsqueeze(1)
         current_q_values = q_values.gather(1, agent_actions)
 
         # Non-final state, collected by TARGET NETWORK:
         if (i_e < args.episode_size - 1):
             # Collect next state:
             next_episode_texts = text_batch[:, i_e + 1].squeeze()
-            next_state = Variable(torch.FloatTensor(next_state_start), volatile=True)
+
+            if (args.cuda):
+                next_state = Variable(torch.FloatTensor(next_state_start), volatile=True).cuda()
+            else:
+                next_state = Variable(torch.FloatTensor(next_state_start), volatile=True)
 
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
-            target_value = q_network(Variable(next_episode_texts, volatile=True), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
+            if (args.cuda):
+                target_value = q_network(Variable(next_episode_texts, volatile=True).cuda(), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
+            else:
+                target_value = q_network(Variable(next_episode_texts, volatile=True), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
 
             # Make it un-volatile again (So we actually can backpropagate):
             target_value.volatile = False
