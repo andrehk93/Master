@@ -25,13 +25,15 @@ class OMNIGLOT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.classes = classes
         self.episode_size = episode_size
+        self.scenario = scenario
+        self.scenario_size = scenario_size
         self.classify = omniglot_loader.classify
         if (self.classify):
             self.training_file = "classify_" + self.training_file
@@ -55,60 +57,95 @@ class OMNIGLOT(data.Dataset):
                 os.path.join(self.root, self.processed_folder, self.test_file))
 
     def __getitem__(self, index):
-        images = []
-        if self.train:
-            # Trains on whole dataset
-
-            img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-
+        if self.scenario:
+            images = []
+            img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
             ind = 0
             for i in img_classes:
-                for j in self.train_data[i]:
-                    images.append((j, ind))
+                if (ind == 0):
+                    for j in range(self.scenario_size):
+                        images.append((self.test_data[i][j], ind))
+                else:
+                    images.append((self.test_data[i][0], ind))
                 ind += 1
+
+            img_list, target_list = [], [] 
+
+            for i in range(len(images)):
+                img, label = images[i]
+                img = Image.fromarray(img.numpy())
+
+                if self.transform is not None:
+                    img = self.transform(img)
+
+                # Normalizing (pixels are binary):
+                for row in range(len(img[0])):
+                    for i in range(len(img[0][row])):
+                        if (img[0][row][i] > 0):
+                            img[0][row][i] = 0.0
+                        else:
+                            img[0][row][i] = 1.0
+                
+                img_list.append(img)
+                target_list.append(label)
+
+            return img_list, target_list
+
         else:
-            img_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
-            ind = 0
-            for i in img_classes:
-                for j in self.test_data[i]:
-                    images.append((j, ind))
-                ind += 1
+            images = []
+            if self.train:
+                # Trains on whole dataset
 
-        images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
-        img_list = []
-        target_list = []
-        rotations = [0, 90, 180, 270]
+                img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
 
-        image_rotations = [rotations[random.randint(0, len(rotations)-1)] for i in range(len(img_classes))]
-        for i in images_indexes:
-            img, label = images[i]
-            img = Image.fromarray(img.numpy())
+                ind = 0
+                for i in img_classes:
+                    for j in self.train_data[i]:
+                        images.append((j, ind))
+                    ind += 1
+            else:
+                img_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
+                ind = 0
+                for i in img_classes:
+                    for j in self.test_data[i]:
+                        images.append((j, ind))
+                    ind += 1
 
-            if self.transform is not None:
+            images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
+            img_list = []
+            target_list = []
+            rotations = [0, 90, 180, 270]
 
-                # Applying class specific rotations:
-                if (image_rotations[label] == 90):
-                    img = transforms.vflip(img)
-                elif (image_rotations[label] == 180):
-                    img = transforms.hflip(img)
-                elif (image_rotations[label] == 270):
-                    img = transforms.hflip(transforms.vflip(img))
-                img = self.transform(img)
-            if self.target_transform is not None:
-                target = self.target_transform(target)
+            image_rotations = [rotations[random.randint(0, len(rotations)-1)] for i in range(len(img_classes))]
+            for i in images_indexes:
+                img, label = images[i]
+                img = Image.fromarray(img.numpy())
 
-            # Normalizing (pixels are binary):
-            for row in range(len(img[0])):
-                for i in range(len(img[0][row])):
-                    if (img[0][row][i] > 0):
-                        img[0][row][i] = 0.0
-                    else:
-                        img[0][row][i] = 1.0
-            
-            img_list.append(img)
-            target_list.append(label)
+                if self.transform is not None:
 
-        return img_list, target_list
+                    # Applying class specific rotations:
+                    if (image_rotations[label] == 90):
+                        img = transforms.vflip(img)
+                    elif (image_rotations[label] == 180):
+                        img = transforms.hflip(img)
+                    elif (image_rotations[label] == 270):
+                        img = transforms.hflip(transforms.vflip(img))
+                    img = self.transform(img)
+                if self.target_transform is not None:
+                    target = self.target_transform(target)
+
+                # Normalizing (pixels are binary):
+                for row in range(len(img[0])):
+                    for i in range(len(img[0][row])):
+                        if (img[0][row][i] > 0):
+                            img[0][row][i] = 0.0
+                        else:
+                            img[0][row][i] = 1.0
+                
+                img_list.append(img)
+                target_list.append(label)
+
+            return img_list, target_list
 
     def __len__(self):
         if self.train:

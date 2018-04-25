@@ -43,7 +43,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             label_dict.append({})
 
     # Initialize q_network between each episode:
-    hidden = q_network.reset_hidden(text_batch.size()[0])
+    hidden = q_network.reset_hidden(args.batch_size)
     
     # Statistics again:    
     request_dict = {1: [], 2: [], 5: [], 10: []}
@@ -68,7 +68,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         if not multi_state:
             class_representations = get_singleclass_representations(args.batch_size, args.class_vector_size, episode_labels)
 
-        episode_texts = episode_texts.squeeze()
+        episode_images = episode_images.squeeze()
 
         # Tensoring the state:
         state = torch.FloatTensor(state)
@@ -123,10 +123,10 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
 
 
         # Collecting average reward at time t over the batch:
-        episode_reward += float(sum(rewards)/text_batch.size()[0])
+        episode_reward += float(sum(rewards)/args.batch_size)
 
         # Just some statistics logging:
-        stats = update_dicts(text_batch.size()[0], episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
+        stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
         episode_predict += stats[0]
         episode_correct += stats[1]
         episode_request += stats[2]
@@ -172,7 +172,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             # As there is no next state, we only have the rewards:
             discounted_target_value = rewards
 
-        discounted_target_value = discounted_target_value.view(text_batch.size()[0], -1)
+        discounted_target_value = discounted_target_value.view(args.batch_size, -1)
 
         # Calculating Bellman error:
         mse_loss = criterion(current_q_values, discounted_target_value)
@@ -219,7 +219,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
     print("Batch Average Loss = " + str(total_loss)[:5])
-    total_requests = float((100.0 * episode_request) / (text_batch.size()[0]*args.episode_size))
+    total_requests = float((100.0 * episode_request) / (args.batch_size*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
     total_reward = float(episode_reward)
     print("Batch Average Reward = " + str(total_reward)[:5])

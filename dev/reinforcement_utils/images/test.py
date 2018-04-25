@@ -37,7 +37,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
             label_dict.append({})
 
     # Initialize model between each episode:
-    hidden = model.reset_hidden()
+    hidden = model.reset_hidden(args.batch_size)
 
     # Statistics again:    
     request_dict = {1: [], 2: [], 5: [], 10: []}
