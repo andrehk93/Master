@@ -27,16 +27,6 @@ from reinforcement_utils.text import train_text as train, test_text as test
 
 
 
-### IMPORTANT NOTICE ###
-"""
-If train on 3 classes (or more):
-    omniglot.py, line 64: img_classes = np.random.choice(3, self.classes, replace=False)
-
-If train on whole dataset:
-    omniglot.py, line 64: img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-"""
-
-
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -65,7 +55,7 @@ parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='Number of classes per episode (default: 3)')
 
 # CUDA:
-parser.add_argument('--no-cuda', action='store_true', default=False,
+parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
