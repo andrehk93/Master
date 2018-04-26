@@ -79,7 +79,6 @@ class OMNIGLOT(data.Dataset):
                     else:
                         images.append((self.test_data[i][random.randint(0, 19)], ind))
                     ind += 1
-            print("collected Images: ", img_classes)
             img_list, target_list = [], [] 
 
             for i in range(len(images)):

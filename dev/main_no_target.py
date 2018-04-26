@@ -6,6 +6,7 @@ import os
 import shutil
 import copy
 import math
+import numpy as np
 
 ### PYTORCH STUFF ###
 import torch
@@ -68,19 +69,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_penalty2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_penalty2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_penalty2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm', type=str,
+parser.add_argument('--name', default='reinforced_lstm_penalty2', type=str,
                     help='name of file')
 
 # Seed:
@@ -105,6 +106,21 @@ def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
     for key in acc_dict.keys():
         acc_dict[key].append(accuracy_train_dict[key])
         req_dict[key].append(request_train_dict[key])
+
+
+def print_best_stats(stats):
+    # Static strings:
+    stat_string = "\n\t\tBest Training Stats"
+    table_string = "|\tReward\t|\tPred. Acc.\t|\t[Acc / Req]\t\t|"
+    str_length = 72
+
+    # Printing:
+    print(stat_string)
+    print("-"*str_length)
+    print(table_string)
+    print("-"*str_length)
+    print("|\t" + str(stats[0])[0:4] + "\t|\t" + str(stats[1])[0:4] + " %\t\t|\t" + str(stats[2])[0:4] + " % / " + str(stats[3])[0:4] + " %\t\t|\t")
+    print("-"*str_length + "\n\n")
 
 
 
@@ -243,6 +259,12 @@ if __name__ == '__main__':
 
             ### TRAINING ###
             print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
+
+            if (len(total_reward) > 0):
+                best_index = np.argmax(total_reward)
+            
+                print_best_stats([best, total_prediction_accuracy[best_index], total_accuracy[best_index], total_requests[best_index]])
+
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion,\
             multi_state=multi_state, state_size=state_size)

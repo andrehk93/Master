@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from reinforcement_utils.images import scenario
+from reinforcement_utils.images import scenario, scenario2
 from utils.images import imageLoader as loader
 from data.images.omniglot.omniglot import OMNIGLOT
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
@@ -24,7 +24,7 @@ def load_scenario(size, batch_size):
     print("Loading scenario...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     scenario_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=False, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size),
+        OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size),
         batch_size=batch_size, shuffle=True)
 
     return scenario_loader
@@ -66,7 +66,7 @@ def bar_plot(lists, bar_type, name, labels):
 
     lab = 0
     colors = ["red", "green", "blue", "yellow", "magenta"]
-    if (bar_type == "Request"):
+    if ("Request" in bar_type):
         x1 = np.arange(1, len(plot_list))
         x2 = len(plot_list)
         plt.bar(x1, plot_list[0:len(plot_list)-1], color=colors[0], label=labels[0], edgecolor="black")
@@ -102,7 +102,7 @@ def bar_plot(lists, bar_type, name, labels):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm'
+    name = 'reinforced_lstm_penalty2'
     checkpoint = 'pretrained/' + name + '/best.pth.tar'
 
     batch_size = 16
@@ -132,15 +132,14 @@ if __name__ == '__main__':
     if os.path.isfile(checkpoint):
         checkpoint = torch.load(checkpoint)
         q_network.load_state_dict(checkpoint['state_dict'])
-        best = checkpoint['best']
     else:
         print("=> no checkpoint found at '{}'".format(checkpoint))
 
-    print("Best reward given = ", best)
     rl = rl(classes)
 
     iterations = 10
 
+    # Scenario 1:
     requests, accuracies = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
     for t in range(iterations - 1):
         r, a = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
@@ -153,6 +152,19 @@ if __name__ == '__main__':
 
     bar_plot(requests, "Request", name, ["First Class", "Second Class"])
     bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2"])
+
+    # Scenario 2:
+    total_percentages = scenario2.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
+
+    for t in range(iterations - 1):
+        request_percentage = scenario2.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
+        add_list(total_percentages, request_percentage, dim=1)
+
+    divide_list(total_percentages, iterations, dim=1)
+
+    bar_plot(total_percentages, "Request Percentage", name, ["First Class", "Second Class"])
+
+
 
 
 
