@@ -63,7 +63,17 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
             q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor).cuda(), hidden)
         else:
             q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor), hidden)
-            
+        
+        q_values = F.softmax(q_values, dim=1)
+        """
+        if (i_e == 0):
+            print("Probabilities:\n")
+            for p in range(len(q_values[0])):
+                if (p < class_vector_size):
+                    print("Class " + str(p) + ":\t" + str(q_values.data[0][p])[0:4])
+                else:
+                    print("Request:\t" + str(q_values.data[0][p])[0:4])
+        """
         requests.append(torch.mean(q_values.data[:, -1]))
         accuracies.append(torch.mean(q_values.data[: ,: class_vector_size], 0))
 

@@ -30,6 +30,26 @@ def load_scenario(size, batch_size):
     return scenario_loader
 
 
+def add_list(list1, list2, dim=1):
+    if (dim == 1):
+        for l in range(len(list2)):
+            list1[l] += list2[l]
+    elif (dim == 2):
+        for l in range(len(list2)):
+            for i in range(len(list2[l])):
+                list1[l][i] += list2[l][i]
+
+def divide_list(list1, iterations, dim=1):
+    if (dim == 1):
+        for l in range(len(list1)):
+            list1[l] = float(list1[l]/iterations)
+    elif (dim == 2):
+        for l in range(len(list1)):
+            for i in range(len(list1[l])):
+                list1[l][i] = float(list1[l][i]/iterations)
+
+
+
 def bar_plot(lists, bar_type, name, labels):
     plot_list = []
     for i in range(len(lists)):
@@ -55,10 +75,7 @@ def bar_plot(lists, bar_type, name, labels):
         plt.ylabel("% Label Requests")
 
     else:
-        np_lists = np.array(plot_list)
-        print(np_lists)
-        np_lists = np_lists.transpose()
-        print(np_lists)
+        np_lists = np.array(plot_list).transpose()
         x = np.arange(1, len(plot_list) + 1)
         bottom_list = []
         for i in range(len(np_lists)):
@@ -86,15 +103,15 @@ def bar_plot(lists, bar_type, name, labels):
 if __name__ == '__main__':
 
     name = 'reinforced_lstm'
-    checkpoint = 'pretrained/' + name + '/checkpoint.pth.tar'
+    checkpoint = 'pretrained/' + name + '/best.pth.tar'
 
     batch_size = 16
-    scenario_size = 5
+    scenario_size = 10
     classes = 3
     cuda = False
 
     # LSTM & Q Learning
-    IMAGE_SCALE = 28
+    IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
     ##################
 
@@ -115,17 +132,27 @@ if __name__ == '__main__':
     if os.path.isfile(checkpoint):
         checkpoint = torch.load(checkpoint)
         q_network.load_state_dict(checkpoint['state_dict'])
+        best = checkpoint['best']
     else:
         print("=> no checkpoint found at '{}'".format(checkpoint))
 
+    print("Best reward given = ", best)
     rl = rl(classes)
 
+    iterations = 10
+
     requests, accuracies = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
+    for t in range(iterations - 1):
+        r, a = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
+        add_list(requests, r, dim=1)
+        add_list(accuracies, a, dim=2)
+
+    divide_list(requests, iterations, dim=1)
+    divide_list(accuracies, iterations, dim=2)
+
 
     bar_plot(requests, "Request", name, ["First Class", "Second Class"])
     bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2"])
-
-
 
 
 

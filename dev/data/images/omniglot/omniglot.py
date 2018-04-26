@@ -59,16 +59,27 @@ class OMNIGLOT(data.Dataset):
     def __getitem__(self, index):
         if self.scenario:
             images = []
-            img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
-            ind = 0
-            for i in img_classes:
-                if (ind == 0):
-                    for j in range(self.scenario_size):
-                        images.append((self.test_data[i][j], ind))
-                else:
-                    images.append((self.test_data[i][0], ind))
-                ind += 1
-
+            if (self.train):
+                img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
+                ind = 0
+                for i in img_classes:
+                    if (ind == 0):
+                        for j in range(self.scenario_size):
+                            images.append((self.train_data[i][j], ind))
+                    else:
+                        images.append((self.train_data[i][random.randint(0, 19)], ind))
+                    ind += 1
+            else:
+                img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                ind = 0
+                for i in img_classes:
+                    if (ind == 0):
+                        for j in range(self.scenario_size):
+                            images.append((self.test_data[i][j], ind))
+                    else:
+                        images.append((self.test_data[i][random.randint(0, 19)], ind))
+                    ind += 1
+            print("collected Images: ", img_classes)
             img_list, target_list = [], [] 
 
             for i in range(len(images)):
