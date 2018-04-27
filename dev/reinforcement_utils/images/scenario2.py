@@ -57,7 +57,6 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
             state = torch.cat((state, flat_images), 1)
 
 
-
         # Selecting an action to perform (Epsilon Greedy):
         if (cuda):
             q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor).cuda(), hidden)

@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from utils.images import imageLoader as loader
 from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils import transforms, tablewriter
+from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 
 # RL:
@@ -69,19 +70,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_penalty2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_penalty2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_penalty2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_penalty2', type=str,
+parser.add_argument('--name', default='reinforced_lstm_margin', type=str,
                     help='name of file')
 
 # Seed:
@@ -146,6 +147,7 @@ if __name__ == '__main__':
     # LSTM & Q Learning
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
+    MARGIN_TIME = 2
     ##################
 
     train_transform = transforms.Compose([
@@ -156,19 +158,6 @@ if __name__ == '__main__':
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
     ])
-
-    root = 'data/images/omniglot'
-
-    print("Loading trainingsets...")
-    omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
-    print("Loading testset...")
-    test_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=False, transform=test_transform, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
-    print("Done loading datasets!")
 
     # abcde-vectors for classes (3125 different classes):
     multi_state = False
@@ -192,6 +181,19 @@ if __name__ == '__main__':
         q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
     elif LRUA:
         q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
+
+    root = 'data/images/omniglot'
+
+    print("Loading trainingsets...")
+    omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
+    train_loader = torch.utils.data.DataLoader(
+        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
+        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+    print("Loading testset...")
+    test_loader = torch.utils.data.DataLoader(
+        OMNIGLOT(root, train=False, transform=test_transform, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
+        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+    print("Done loading datasets!")
 
     # Modules:
     rl = rl(output_classes)
