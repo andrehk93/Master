@@ -15,7 +15,7 @@ class ReinforcementLearning():
         self.classes = classes
         self.request_reward = -0.05
         self.prediction_reward = 1.0
-        self.prediction_penalty = -2.0
+        self.prediction_penalty = -1.0
 
     def select_actions(self, epoch, model_actions, batch_size, class_vector_size, episode_labels):
 

@@ -50,7 +50,7 @@ def divide_list(list1, iterations, dim=1):
 
 
 
-def bar_plot(lists, bar_type, name, labels):
+def bar_plot(lists, bar_type, name, labels, size):
     plot_list = []
     for i in range(len(lists)):
         if (type(lists[i]) != type(0.2)):
@@ -96,16 +96,16 @@ def bar_plot(lists, bar_type, name, labels):
     directory = "results/plots/"
     if not os.path.exists(directory + name):
         os.makedirs(directory + name)
-    plt.savefig(directory + name + bar_type + ".png")
+    plt.savefig(directory + name + bar_type + "_" + str(size) + ".png")
     plt.show()
 
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm_penalty2'
-    checkpoint = 'pretrained/' + name + '/best.pth.tar'
+    name = 'reinforced_lrua_notarget/'
+    checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
-    batch_size = 16
+    batch_size = 32
     scenario_size = 10
     classes = 3
     cuda = False
@@ -117,9 +117,9 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size)
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
 
     if LSTM:
@@ -150,8 +150,8 @@ if __name__ == '__main__':
     divide_list(accuracies, iterations, dim=2)
 
 
-    bar_plot(requests, "Request", name, ["First Class", "Second Class"])
-    bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2"])
+    bar_plot(requests, "Request", name, ["First Class", "Second Class"], scenario_size)
+    bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2"], scenario_size)
 
     # Scenario 2:
     total_percentages = scenario2.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
     divide_list(total_percentages, iterations, dim=1)
 
-    bar_plot(total_percentages, "Request Percentage", name, ["First Class", "Second Class"])
+    bar_plot(total_percentages, "Request Percentage", name, ["First Class", "Second Class"], scenario_size)
 
 
 

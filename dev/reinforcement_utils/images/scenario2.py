@@ -55,8 +55,7 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
             state = torch.cat((state, flat_images), 1)
         else:
             state = torch.cat((state, flat_images), 1)
-        print("Time: ", i_e)
-        print(state[0][0:3])
+
 
 
         # Selecting an action to perform (Epsilon Greedy):
