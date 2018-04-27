@@ -48,7 +48,6 @@ class ReinforcedLSTM(nn.Module):
     def forward(self, x, hidden, class_vector=None, seq=1):
         batch_size = hidden[1].size()[1]
         
-        d_size = 20000
         # If we handle text, we need additional embeddings for each token/word:
         if (self.embedding):
             try:
