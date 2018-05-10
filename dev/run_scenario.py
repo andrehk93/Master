@@ -19,15 +19,14 @@ def load_scenario(size, batch_size):
         transforms.ToTensor()
     ])
     
-    OMNIGLOT = False
+    OMNIGLOT_DATASET = False
 
-    if (OMNIGLOT):
+    if (OMNIGLOT_DATASET):
         root = 'data/images/omniglot'
-
         print("Loading scenario...")
         omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
         scenario_loader = torch.utils.data.DataLoader(
-            OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size),
+            OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size, test=True),
             batch_size=batch_size, shuffle=True)
     else:
         root = 'data/images/mnist'
@@ -116,7 +115,7 @@ if __name__ == '__main__':
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
-    scenario_size = 10
+    scenario_size = 5
     classes = 3
     cuda = False
 
