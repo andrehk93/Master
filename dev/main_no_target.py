@@ -43,11 +43,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=64, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
