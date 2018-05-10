@@ -18,6 +18,7 @@ def plot(dictionary, folder, batch_size, title="Plot"):
 
 	fig = plt.figure()
 	plt.ylim((0.0, 1.0))
+	plt.yticks(np.arange(0, 1, step=0.1))
 	x = []
 	for i in range(len(percentages[1])):
 		x.append(i*interval)

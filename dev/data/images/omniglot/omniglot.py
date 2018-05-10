@@ -89,12 +89,8 @@ class OMNIGLOT(data.Dataset):
                     img = self.transform(img)
 
                 # Normalizing (pixels are binary):
-                for row in range(len(img[0])):
-                    for i in range(len(img[0][row])):
-                        if (img[0][row][i] > 0):
-                            img[0][row][i] = 0.0
-                        else:
-                            img[0][row][i] = 1.0
+                threshold = torch.Tensor([0.0])
+                img = (img == threshold).float() * 1
                 
                 img_list.append(img)
                 target_list.append(label)
@@ -145,12 +141,8 @@ class OMNIGLOT(data.Dataset):
                     target = self.target_transform(target)
 
                 # Normalizing (pixels are binary):
-                for row in range(len(img[0])):
-                    for i in range(len(img[0][row])):
-                        if (img[0][row][i] > 0):
-                            img[0][row][i] = 0.0
-                        else:
-                            img[0][row][i] = 1.0
+                threshold = torch.Tensor([0.0])
+                img = (img == threshold).float() * 1
                 
                 img_list.append(img)
                 target_list.append(label)

@@ -65,7 +65,7 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 
     lab = 0
-    colors = ["red", "green", "blue", "yellow", "magenta"]
+    colors = ["red", "green", "blue", "yellow", "magenta", "white", "grey"]
     if ("Request" in bar_type):
         x1 = np.arange(1, len(plot_list))
         x2 = len(plot_list)
@@ -102,7 +102,7 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lrua_notarget/'
+    name = 'reinforced_lstm/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
@@ -117,9 +117,9 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size)
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
 
     if LSTM:
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
 
     bar_plot(requests, "Request", name, ["First Class", "Second Class"], scenario_size)
-    bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2"], scenario_size)
+    bar_plot(accuracies, "Accuracy", name, ["Class 0", "Class 1", "Class 2", "Class 3", "Class 4"], scenario_size)
 
     # Scenario 2:
     total_percentages = scenario2.run(q_network, scenario_loader, batch_size, rl, classes, cuda)

@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from utils.images import imageLoader as loader
 from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils import transforms, tablewriter
-from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
+#from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 
 # RL:
@@ -42,11 +42,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=64, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Episode size:
@@ -70,19 +70,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_wiped/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm_wiped/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_ntm_wiped/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_margin', type=str,
+parser.add_argument('--name', default='reinforced_ntm_wiped', type=str,
                     help='name of file')
 
 # Seed:
@@ -170,8 +170,8 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = True
-    NTM = False
+    LSTM = False
+    NTM = True
     LRUA = False
 
 
@@ -187,11 +187,11 @@ if __name__ == '__main__':
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
+        OMNIGLOT(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=False, transform=test_transform, omniglot_loader=omniglot_loader, episode_size=args.episode_size),
+        OMNIGLOT(root, train=False, transform=test_transform, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
@@ -363,7 +363,7 @@ if __name__ == '__main__':
         checkpoint = torch.load(args.load_best_checkpoint)
         q_network.load_state_dict(checkpoint['state_dict'])
         print("=> loaded checkpoint '{}' (epoch {})"
-              .format(args.load_checkpoint, checkpoint['epoch']))
+              .format(args.load_best_checkpoint, checkpoint['epoch']))
         test_accuracy = 0.0
         test_request = 0.0
         test_reward = 0.0

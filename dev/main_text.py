@@ -59,19 +59,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lrua_2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_ntm_wiped/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lrua_2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_ntm_wiped/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lrua_2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_ntm_wiped/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lrua_2', type=str,
+parser.add_argument('--name', default='headlines_ntm_wiped', type=str,
                     help='name of file')
 
 # Seed:
@@ -151,12 +151,12 @@ if __name__ == '__main__':
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
 
     train_loader = torch.utils.data.DataLoader(
-        TEXT(dataset, train=True, download=True, data_loader=text_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+        TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
 
     test_loader = torch.utils.data.DataLoader(
-        TEXT(dataset, train=False, data_loader=text_loader, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+        TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.test_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
@@ -165,8 +165,8 @@ if __name__ == '__main__':
     classes = args.class_vector_size
 
     LSTM = False
-    NTM = False
-    LRUA = True
+    NTM = True
+    LRUA = False
 
 
     if LSTM:
