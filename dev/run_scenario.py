@@ -4,6 +4,7 @@ import numpy as np
 from reinforcement_utils.images import scenario, scenario2
 from utils.images import imageLoader as loader
 from data.images.omniglot.omniglot import OMNIGLOT
+from data.images.mnist.MNIST import MNIST
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from utils import transforms
 import torch
@@ -17,15 +18,24 @@ def load_scenario(size, batch_size):
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
     ])
+    
+    OMNIGLOT = False
 
+    if (OMNIGLOT):
+        root = 'data/images/omniglot'
 
-    root = 'data/images/omniglot'
+        print("Loading scenario...")
+        omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
+        scenario_loader = torch.utils.data.DataLoader(
+            OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size),
+            batch_size=batch_size, shuffle=True)
+    else:
+        root = 'data/images/mnist'
 
-    print("Loading scenario...")
-    omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    scenario_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size),
-        batch_size=batch_size, shuffle=True)
+        print("Loading scenario...")
+        scenario_loader = torch.utils.data.DataLoader(
+            MNIST(root, transform=scenario_transform, download=True, scenario_size=scenario_size, scenario=True),
+            batch_size=batch_size, shuffle=True)
 
     return scenario_loader
 

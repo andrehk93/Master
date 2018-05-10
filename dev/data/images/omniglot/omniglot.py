@@ -25,7 +25,7 @@ class OMNIGLOT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, test=False):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
@@ -33,6 +33,7 @@ class OMNIGLOT(data.Dataset):
         self.classes = classes
         self.episode_size = episode_size
         self.scenario = scenario
+        self.test = test
         self.scenario_size = scenario_size
         self.classify = omniglot_loader.classify
         if (self.classify):
@@ -128,14 +129,14 @@ class OMNIGLOT(data.Dataset):
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
-
-                    # Applying class specific rotations:
-                    if (image_rotations[label] == 90):
-                        img = transforms.vflip(img)
-                    elif (image_rotations[label] == 180):
-                        img = transforms.hflip(img)
-                    elif (image_rotations[label] == 270):
-                        img = transforms.hflip(transforms.vflip(img))
+                    if (self.train and not self.test):
+                        # Applying class specific rotations:
+                        if (image_rotations[label] == 90):
+                            img = transforms.vflip(img)
+                        elif (image_rotations[label] == 180):
+                            img = transforms.hflip(img)
+                        elif (image_rotations[label] == 270):
+                            img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
                 if self.target_transform is not None:
                     target = self.target_transform(target)

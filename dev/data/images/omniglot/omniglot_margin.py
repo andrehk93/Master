@@ -33,6 +33,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.classes = classes
+        self.big_diff = 0
         self.episode_size = episode_size
         self.scenario = scenario
         self.scenario_size = scenario_size
@@ -141,14 +142,14 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
-
-                    # Applying class specific rotations:
-                    if (image_rotations[label] == 90):
-                        img = transforms.vflip(img)
-                    elif (image_rotations[label] == 180):
-                        img = transforms.hflip(img)
-                    elif (image_rotations[label] == 270):
-                        img = transforms.hflip(transforms.vflip(img))
+                    if (self.train):
+                        # Applying class specific rotations:
+                        if (image_rotations[label] == 90):
+                            img = transforms.vflip(img)
+                        elif (image_rotations[label] == 180):
+                            img = transforms.hflip(img)
+                        elif (image_rotations[label] == 270):
+                            img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
                 if self.target_transform is not None:
                     target = self.target_transform(target)
@@ -185,17 +186,29 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img_list.append(img)
                 target_list.append(label)
 
+            largest = 0
+            smallest = 10000
             for key in margins.keys():
                 margins[key] = sum(margins[key])
+                if (margins[key] > largest):
+                    largest = margins[key]
+                if (margins[key] < smallest):
+                    smallest = margins[key]
 
+            diff = largest - smallest
 
             sorted_margins = sorted(margins.items(), key=operator.itemgetter(1))
+
+            if (diff > self.big_diff):
+                print("Largest Margin Diff: ", diff)
+                self.big_diff = diff
 
             margin_images_pruned, margin_labels = [], []
             for x in range(self.classes):
                 margin_labels.append(sorted_margins[x][0])
 
             margin_labels.sort()
+
 
             ind = 0
             ind_dict = {}
