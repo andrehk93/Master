@@ -19,14 +19,14 @@ class ReinforcedLSTM(nn.Module):
         self.gpu = CUDA
 
         print("Model Input Size: ", str(self.input_size + self.input_classes))
-        print("Model Output Size: ", str(self.output_size + 1))
+        print("Model Output Size: ", str(self.output_size))
 
         if (EMBEDDING):
             self.embedding_layer = nn.Embedding(self.dict_size, self.input_size)
 
         # Architecture
         self.lstm = nn.LSTM(self.input_size + self.input_classes, self.hidden_nodes)
-        self.hidden2probs = nn.Linear(self.hidden_nodes, self.output_size + 1)
+        self.hidden2probs = nn.Linear(self.hidden_nodes, self.output_size)
 
 
     def init_hidden(self, batch_size):
@@ -64,6 +64,8 @@ class ReinforcedLSTM(nn.Module):
         else:
             x = x.view(seq, batch_size, -1)
             lstm_out, next_hidden = self.lstm(x, hidden)
-            
-        x = self.hidden2probs(lstm_out[-1])
+        if (seq == 1):
+            x = self.hidden2probs(lstm_out[-1])
+        else:
+            x = self.hidden2probs(lstm_out)
         return x, next_hidden

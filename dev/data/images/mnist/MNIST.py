@@ -67,7 +67,7 @@ class MNIST(data.Dataset):
                     for j in range(self.scenario_size):
                         images.append((self.test_data[i][j], ind))
                 else:
-                    images.append((self.test_data[i][random.randint(0, len(self.test_data[i]))], ind))
+                    images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
                 ind += 1
             img_list, target_list = [], [] 
 
@@ -135,7 +135,7 @@ class MNIST(data.Dataset):
                 pass
             else:
                 raise
-        """
+        
         for url in self.urls:
             print('Downloading ' + url)
             data = urllib.request.urlopen(url)
@@ -147,7 +147,7 @@ class MNIST(data.Dataset):
                     gzip.GzipFile(file_path) as zip_f:
                 out_f.write(zip_f.read())
             os.unlink(file_path)
-        """
+        
         # process and save as torch files
         print('Processing...')
 
