@@ -8,7 +8,7 @@ import math
 
 
 GAMMA = 0.5
-def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode, criterion,  multi_state=False, state_size=5):
+def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, episode, criterion,  multi_state=False, state_size=5, batch_size=32):
 
     # Initialize training:
     model.eval()
@@ -26,25 +26,25 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
     if (multi_state):
         state = []
         label_dict = []
-        for i in range(args.batch_size):
+        for i in range(batch_size):
             state.append([0 for i in range(state_size*state_size)])
             label_dict.append({})
     else:
         state = []
         label_dict = []
-        for i in range(args.batch_size):
+        for i in range(batch_size):
             state.append([0 for i in range(args.class_vector_size)])
             label_dict.append({})
 
     # Initialize model between each episode:
-    hidden = model.reset_hidden(args.batch_size)
+    hidden = model.reset_hidden(batch_size)
 
     # Statistics again:    
     request_dict = {1: [], 2: [], 5: [], 10: []}
     accuracy_dict = {1: [], 2: [], 5: [], 10: []}
 
     if (multi_state):
-        class_representations = get_multiclass_representations(args.batch_size, args.class_vector_size)
+        class_representations = get_multiclass_representations(batch_size, args.class_vector_size)
 
     # EPISODE LOOP:
     for i_e in range(len(label_batch)):
@@ -52,23 +52,23 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         episode_images = image_batch[i_e]
 
         if (not multi_state):
-            class_representations = get_singleclass_representations(args.batch_size, args.class_vector_size, episode_labels)
+            class_representations = get_singleclass_representations(batch_size, args.class_vector_size, episode_labels)
 
         # Tensoring the state:
         state = torch.FloatTensor(state)
         
         # Need to add image to the state vector:
-        flat_images = episode_images.squeeze().view(args.batch_size, -1)
+        flat_images = episode_images.squeeze().view(batch_size, -1)
 
         # Concatenating possible labels/zero vector with image, to create the environment state:
         if (multi_state):
-            state = state.view(args.batch_size, -1)
+            state = state.view(batch_size, -1)
             state = torch.cat((state, flat_images), 1)
         else:
             state = torch.cat((state, flat_images), 1)
 
         
-        for i in range(args.batch_size):
+        for i in range(batch_size):
             true_label = episode_labels[i]
 
             # Logging statistics:
@@ -84,7 +84,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
             q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor), hidden)
 
         # Choosing the largest Q-values:
-        model_actions = q_values.data.max(1)[1].view(args.batch_size)
+        model_actions = q_values.data.max(1)[1].view(batch_size)
 
         # NOT Performing Epsilon Greedy Exploration:
         agent_actions = model_actions
@@ -92,24 +92,24 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
         # Collect rewards:
         # Collect rewards:
         if (multi_state):
-            rewards = reinforcement_learner.collect_reward_multistate_batch(agent_actions, class_representations, args.batch_size, episode_labels)
+            rewards = reinforcement_learner.collect_reward_multistate_batch(agent_actions, class_representations, batch_size, episode_labels)
         else:
-            rewards = reinforcement_learner.collect_reward_batch(agent_actions, class_representations, args.batch_size)
+            rewards = reinforcement_learner.collect_reward_batch(agent_actions, class_representations, batch_size)
 
         # Collecting average reward at time t:
-        episode_reward += float(sum(rewards)/args.batch_size)
+        episode_reward += float(sum(rewards)/batch_size)
 
         # Just some statistics logging:
-        stats = update_dicts(args.batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
+        stats = update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict)
         episode_predict += stats[0]
         episode_correct += stats[1]
         episode_request += stats[2]
 
         # Observe next state and images:
         if (multi_state):
-            next_state_start = reinforcement_learner.next_multistate_batch(agent_actions, class_representations, args.batch_size, episode_labels)
+            next_state_start = reinforcement_learner.next_multistate_batch(agent_actions, class_representations, batch_size, episode_labels)
         else:
-            next_state_start = reinforcement_learner.next_state_batch(agent_actions, class_representations, args.batch_size)
+            next_state_start = reinforcement_learner.next_state_batch(agent_actions, class_representations, batch_size)
         
         # Update current state:
         state = next_state_start
@@ -137,7 +137,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
     print("Batch Average Prediction Accuracy = " + str(total_prediction_accuracy)[:5] +  " %")
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    total_requests = float((100.0 * episode_request) / (args.batch_size*args.episode_size))
+    total_requests = float((100.0 * episode_request) / (batch_size*args.episode_size))
     print("Batch Average Requests = " + str(total_requests)[:5] + " %")
     total_reward = float(episode_reward)
     print("Batch Average Reward = " + str(total_reward)[:5])

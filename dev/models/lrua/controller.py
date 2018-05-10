@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.nn import Parameter
 import numpy as np
+import torch.autograd as autograd
 
 
 class LSTMController(nn.Module):
@@ -35,8 +36,11 @@ class LSTMController(nn.Module):
 
     def create_new_state(self, batch_size):
         # Dimension: (num_layers * num_directions, batch, hidden_size)
-        lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
-        lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
+        #lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
+        #lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
+        lstm_h = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
+        lstm_c = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
+
         return lstm_h, lstm_c
 
     def reset_parameters(self):

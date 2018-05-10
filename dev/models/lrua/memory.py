@@ -30,6 +30,7 @@ class NTMMemory(nn.Module):
 
         self.N = N
         self.M = M
+        self.memory = ""
 
         # The memory bias allows the heads to learn how to initially address
         # memory locations by content
@@ -43,7 +44,9 @@ class NTMMemory(nn.Module):
     def reset(self, batch_size):
         """Initialize memory from bias, for start-of-sequence."""
         self.batch_size = batch_size
-        self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
+
+        #self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
+        self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
 
     def size(self):
         return self.N, self.M

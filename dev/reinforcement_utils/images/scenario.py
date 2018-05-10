@@ -35,11 +35,11 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
     if (multi_state):
         class_representations = get_multiclass_representations(batch_size, class_vector_size)
 
-
     # EPISODE LOOP:
     for i_e in range(len(label_batch)):
         episode_labels = label_batch[i_e]
         episode_images = image_batch[i_e]
+
 
         if (not multi_state):
             class_representations = get_singleclass_representations(batch_size, class_vector_size, episode_labels)
@@ -94,7 +94,6 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
         state = next_state_start
 
         ### END TRAIN LOOP ###
-
 
     return requests, accuracies
 
