@@ -54,11 +54,11 @@ parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to test on at a time (default: 1)')
 
 # Episode size:
-parser.add_argument('--episode-size', type=int, default=50, metavar='N',
+parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=20000, metavar='N',
+parser.add_argument('--epochs', type=int, default=100000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -66,27 +66,27 @@ parser.add_argument('--start-epoch', type=int, default=1, metavar='N',
                     help='starting epoch (default: 1)')
 
 # Nof Classes:
-parser.add_argument('--class-vector-size', type=int, default=5, metavar='N',
+parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='Number of classes per episode (default: 3)')
 
 # CUDA:
-parser.add_argument('--no-cuda', action='store_true', default=False,
+parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/baseline_lstms/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/baseline_lruas/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/baseline_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/baseline_lrua/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/baseline_lstm/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/baseline_lrua/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='baseline_lstm', type=str,
+parser.add_argument('--name', default='baseline_lrua', type=str,
                     help='name of file')
 
 # Seed:
@@ -173,9 +173,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes, baseline=True)

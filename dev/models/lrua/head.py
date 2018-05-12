@@ -39,16 +39,22 @@ class NTMHeadBase(nn.Module):
     def is_read_head(self):
         return NotImplementedError
 
-    def _address_memory(self, k, β, g, n, w_prev):
+    def _address_memory(self, k, β, g, n, w_prev, access):
         # Handle Activations
         k = k.clone()
         β = F.softplus(β)
         g = F.sigmoid(g)
         gamma = 0.95
 
-        w_u, w_r, w_w, w_lu = self.memory.address(k, β, g, n, gamma, w_prev)
+        # READ:
+        if (access == 1):
+            w_r = self.memory.address(k, β, g, n, gamma, w_prev, access)
+            return w_r
 
-        return w_u, w_r, w_w, w_lu
+        # WRITE:
+        else:
+            w_u, w_r, w_w, w_lu = self.memory.address(k, β, g, n, gamma, w_prev, access)
+            return w_u, w_r, w_w, w_lu
 
 
 class NTMReadHead(NTMHeadBase):
@@ -61,8 +67,8 @@ class NTMReadHead(NTMHeadBase):
         self.reset_parameters()
 
     def create_new_state(self, batch_size):
-        # The state holds the previous time step weightings (3):
-        return Variable(torch.zeros(batch_size, 3, self.N))
+        # The state holds the previous time step weightings (1):
+        return Variable(torch.zeros(batch_size, 1, self.N))
 
     def reset_parameters(self):
         # Initialize the linear layers
@@ -81,12 +87,13 @@ class NTMReadHead(NTMHeadBase):
         k, β, g = _split_cols(o, self.read_lengths)
 
         # Read from memory
-        w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev)
+        #w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev, 1)
+        w_r = self._address_memory(k, β, g, n, w_prev, 1)
         r = self.memory.read(w_r)
 
-        w = torch.cat((w_u, w_r, w_lu), dim=0).view(w_u.size()[0], 3, w_u.size()[1])
+        #w = torch.cat((w_u, w_r, w_lu), dim=0).view(w_u.size()[0], 3, w_u.size()[1])
         
-        return r, w
+        return r, w_r
 
 
 class NTMWriteHead(NTMHeadBase):
@@ -118,11 +125,11 @@ class NTMWriteHead(NTMHeadBase):
         k, β, g = _split_cols(o, self.write_lengths)
 
         # Address memory
-        w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev)
+        w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev, 0)
 
         # With LRUA we use the cosine similarity vector wc for writing to memory
         self.memory.lrua_write(w_w, k)
 
-        w = torch.cat((w_u, w_r, w_lu), dim=0).view(w_u.size()[0], 3, w_u.size()[1])
+        w = torch.cat((w_u, w_r, w_lu), dim=1).view(w_u.size()[0], 3, w_u.size()[1])
 
         return w

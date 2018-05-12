@@ -45,7 +45,7 @@ class NTM(nn.Module):
 
         # Initialize a fully connected layer to produce the actual output:
         #   [controller_output; previous_reads ] -> output
-        self.fc = nn.Linear(self.controller_size + (self.num_read_heads * self.M), num_outputs + 1)
+        self.fc = nn.Linear(self.controller_size + (self.num_read_heads * self.M), num_outputs)
         self.reset_parameters()
 
     def create_new_state(self, batch_size):

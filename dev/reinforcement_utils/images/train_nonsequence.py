@@ -65,7 +65,7 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
         else:
             current_loss = criterion(actions, Variable(episode_labels))
         
-        loss = loss.add(current_loss)
+        loss += current_loss
 
 
         # Logging stats:

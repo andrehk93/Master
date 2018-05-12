@@ -45,8 +45,8 @@ class NTMMemory(nn.Module):
         """Initialize memory from bias, for start-of-sequence."""
         self.batch_size = batch_size
 
-        #self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
-        self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
+        self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
+        #self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
 
     def size(self):
         return self.N, self.M
@@ -72,7 +72,7 @@ class NTMMemory(nn.Module):
             lrua = torch.ger(w[i], k[i])
             self.memory[i] = self.prev_mem[i] + lrua
 
-    def address(self, k, β, g, n, gamma, w_prev):
+    def address(self, k, β, g, n, gamma, w_prev, access):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -81,13 +81,21 @@ class NTMMemory(nn.Module):
         :param n: Amount of reads to memory
         """
 
-        # Unpack previous state:
-        w_u_prev = w_prev[:, 0]
-        w_r_prev = w_prev[:, 1]
-        w_lu_prev = w_prev[:, 2]
+
+            
+
 
         # Get the cosine similarity probability:
         w_r = self._similarity(k, β)
+
+        # Need only read weights for reading... (SPEEDUP)
+        if (access == 1):
+            return w_r
+
+        # Unpacking previous weights:
+        w_u_prev = w_prev[:, 0]
+        w_r_prev = w_prev[:, 1]
+        w_lu_prev = w_prev[:, 2]
 
         # Get the write weights:
         w_w = self._interpolate(w_r_prev, w_lu_prev, g)
@@ -95,16 +103,11 @@ class NTMMemory(nn.Module):
         # Get the usage weights:
         w_u = gamma*w_u_prev + w_r + w_w
 
-        """
-        w_lu = Variable(torch.zeros(w_u.size()))
-            for b in range(w_lu.size()[0]):
-                n_smallest = np.partition(np.array(w_u[b].data), n-1)[n-1]
-                w_lu[b] = torch.LongTensor([0 if w_u[b].data[i] > n_smallest else 1 for i in range(w_u.size()[1])])
-        """
+
 
         n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
         w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
-            
+
         return w_u, w_r, w_w, w_lu
 
     def _similarity(self, k, β):

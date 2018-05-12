@@ -54,7 +54,7 @@ class ReinforcedNTM(nn.Module):
                 self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
 		else:
 			self.q_network = NTM(input_size + classes, classes + 1, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
+                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes + 1, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
 
 
 		self.batch_size = batch_size
@@ -92,7 +92,7 @@ class ReinforcedLRUA(nn.Module):
                 self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
 		else:
 			self.q_network = LRUA(input_size + classes, classes + 1, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
+                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes + 1, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
 
 
 		self.batch_size = batch_size
