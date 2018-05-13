@@ -108,6 +108,8 @@ class NTMMemory(nn.Module):
         n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
         w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
 
+        w_w = w_w*(Variable(torch.ones(w_lu.size()[:])) - w_lu)
+
         return w_u, w_r, w_w, w_lu
 
     def _similarity(self, k, β):

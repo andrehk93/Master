@@ -78,7 +78,7 @@ class NTMMemory(nn.Module):
             add = torch.ger(w[b], a[b])
             self.memory[b] = self.prev_mem[b] + (w * k)
 
-    def address(self, k, β, g, s, γ, w_prev):
+    def address(self, k, β, g, s, γ, w_prev, access):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -89,11 +89,15 @@ class NTMMemory(nn.Module):
         :param w_prev: The weighting produced in the previous time step.
         """
         # Content focus
-        wc = self._similarity(k, β)
+        w_r = self._similarity(k)
+
+        # If we read (Per Santoro et. al.):
+        if (access == 1):
+            return w_r
 
         # Location focus
-        wg = self._interpolate(w_prev, wc, g)
-        ŵ = self._shift(wg, s)
+        w_g = self._interpolate(w_prev, w_r, g)
+        ŵ = self._shift(w_g, s)
         w = self._sharpen(ŵ, γ)
 
         return w
