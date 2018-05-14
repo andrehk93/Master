@@ -111,11 +111,11 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm/'
+    name = 'reinforced_lstm_r2_margin/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
-    scenario_size = 5
+    scenario_size = 10
     classes = 3
     cuda = False
 

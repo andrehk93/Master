@@ -473,11 +473,8 @@ if __name__ == '__main__':
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
-        for key in acc_dict.keys():
-            for a in test_acc_dict[key]:
-                acc_dict[key].append(a)
-            for r in test_req_dict[key]:
-                req_dict[key].append(r)
+        acc_dict = checkpoint['accuracy']
+        req_dict = checkpoint['requests']
 
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
