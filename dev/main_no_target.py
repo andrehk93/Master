@@ -175,9 +175,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -192,7 +192,6 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    """
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -200,6 +199,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
+    """
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -255,7 +255,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
-            all_margins = checkpoint['all_margins']
+            #all_margins = checkpoint['all_margins']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -473,6 +473,11 @@ if __name__ == '__main__':
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
+        for key in acc_dict.keys():
+            for a in test_acc_dict[key]:
+                acc_dict[key].append(a)
+            for r in test_req_dict[key]:
+                req_dict[key].append(r)
 
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
