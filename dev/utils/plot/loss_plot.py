@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def plot(lists, labels, filename, folder, ylabel):
+def plot(lists, labels, filename, folder, ylabel, avg=5):
 	avg_lists = []
-	average = 5
+	average = avg
 	for l in range(len(lists)):
 		list_l = lists[l]
 		avg_lists.append([])

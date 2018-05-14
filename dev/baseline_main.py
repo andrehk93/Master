@@ -54,11 +54,11 @@ parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to test on at a time (default: 1)')
 
 # Episode size:
-parser.add_argument('--episode-size', type=int, default=50, metavar='N',
+parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=20000, metavar='N',
+parser.add_argument('--epochs', type=int, default=100000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -66,11 +66,11 @@ parser.add_argument('--start-epoch', type=int, default=1, metavar='N',
                     help='starting epoch (default: 1)')
 
 # Nof Classes:
-parser.add_argument('--class-vector-size', type=int, default=5, metavar='N',
+parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
                     help='Number of classes per episode (default: 3)')
 
 # CUDA:
-parser.add_argument('--no-cuda', action='store_true', default=False,
+parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:

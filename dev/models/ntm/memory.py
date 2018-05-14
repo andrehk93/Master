@@ -40,8 +40,8 @@ class NTMMemory(nn.Module):
     def reset(self, batch_size):
         """Initialize memory from bias, for start-of-sequence."""
         self.batch_size = batch_size
-        #self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
-        self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
+        self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
+        #self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
 
     def size(self):
         return self.N, self.M
@@ -50,14 +50,24 @@ class NTMMemory(nn.Module):
         """Read from memory (according to section 3.1)."""
         return torch.matmul(w.unsqueeze(1), self.memory).squeeze(1)
 
+    """
     def write(self, w, e, a):
-        """write to memory (according to section 3.2)."""
+        #write to memory (according to section 3.2)
         self.prev_mem = self.memory
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
         for b in range(self.batch_size):
             erase = torch.ger(w[b], e[b])
             add = torch.ger(w[b], a[b])
             self.memory[b] = self.prev_mem[b] * (1 - erase) + add
+    """
+
+    def write(self, w, e, a):
+        """write to memory (according to section 3.2)."""
+        self.prev_mem = self.memory
+        self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
+        erase = torch.matmul(w.unsqueeze(-1), e.unsqueeze(1))
+        add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
+        self.memory = self.prev_mem * (1 - erase) + add
 
     def lrua_write(self, w, k):
         """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
@@ -68,7 +78,7 @@ class NTMMemory(nn.Module):
             add = torch.ger(w[b], a[b])
             self.memory[b] = self.prev_mem[b] + (w * k)
 
-    def address(self, k, β, g, s, γ, w_prev):
+    def address(self, k, β, g, s, γ, w_prev, access):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -81,18 +91,20 @@ class NTMMemory(nn.Module):
         # Content focus
         w_r = self._similarity(k)
 
-        """
-        # Location focus
-        wg = self._interpolate(w_prev, wc, g)
-        ŵ = self._shift(wg, s)
-        w = self._sharpen(ŵ, γ)
-        """
+        # If we read (Per Santoro et. al.):
+        if (access == 1):
+            return w_r
 
-        return w_r
+        # Location focus
+        w_g = self._interpolate(w_prev, w_r, g)
+        ŵ = self._shift(w_g, s)
+        w = self._sharpen(ŵ, γ)
+
+        return w
 
     def _similarity(self, k):
         k = k.view(self.batch_size, 1, -1)
-        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=-1)
+        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
         return w
 
     def _interpolate(self, w_prev, wc, g):

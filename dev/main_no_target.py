@@ -43,11 +43,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # LSTM & Q Learning
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
-    MARGIN_TIME = 10
+    MARGIN_TIME = 4
     ##################
 
     train_transform = transforms.Compose([
@@ -175,9 +175,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -237,6 +237,7 @@ if __name__ == '__main__':
     total_prediction_accuracy= []
     total_loss = []
     total_reward = []
+    all_margins = []
     best = -30
 
 
@@ -254,6 +255,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
+            all_margins = checkpoint['all_margins']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -323,6 +325,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'all_margins': all_margins,
                     'best': best
                 }, filename="best.pth.tar")
 
@@ -339,6 +342,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'all_margins': all_margins,
                     'best': best
                 })
 
@@ -355,6 +359,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'all_margins': all_margins,
                     'best': best
                 }, filename="backup.pth.tar")
 
@@ -375,6 +380,7 @@ if __name__ == '__main__':
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
+    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=args.batch_size)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -490,6 +496,7 @@ if __name__ == '__main__':
                     'train_req_dict': train_req_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'all_margins': all_margins,
                     'best': best
                 }, filename="testpoint.pth.tar")
         else:
@@ -507,6 +514,7 @@ if __name__ == '__main__':
                     'test_req_dict': test_req_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'all_margins': all_margins,
                     'best': best
                 }, filename="testpoint_mnist.pth.tar")
     if not MNIST_TEST:

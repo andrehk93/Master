@@ -51,7 +51,7 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
         flat_images = episode_images.squeeze().view(batch_size, -1)
 
         # Concatenating possible labels/zero vector with image, thus creating the state:
-        state = torch.cat((state, flat_images), 1)
+        state = torch.cat((flat_images, state), 1)
 
 
         # Generating actions to choose from the model:
@@ -65,7 +65,7 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
         else:
             current_loss = criterion(actions, Variable(episode_labels))
         
-        loss = loss.add(current_loss)
+        loss += current_loss
 
 
         # Logging stats:

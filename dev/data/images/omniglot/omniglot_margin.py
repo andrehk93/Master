@@ -34,6 +34,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
         self.train = train  # training set or test set
         self.classes = classes
         self.big_diff = 0
+        self.all_margins = []
         self.episode_size = episode_size
         self.scenario = scenario
         self.scenario_size = scenario_size
@@ -114,31 +115,47 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
                 ind = 0
                 for i in img_classes:
+                    relative_label = 0
                     for j in self.train_data[i]:
-                        images.append((j, ind))
+                        images.append((j, ind, relative_label))
+                        relative_label += 1
                     ind += 1
+
             else:
                 # Test-dataset:
                 img_classes = np.random.choice(len(self.test_labels), int(self.classes*2), replace=False)
                 ind = 0
                 for i in img_classes:
+                    relative_label = 0
                     for j in self.test_data[i]:
-                        images.append((j, ind))
+                        images.append((j, ind, relative_label))
                     ind += 1
+                    relative_label += 1
 
             img_list = []
             target_list = []
             margins = {}
             rotations = [0, 90, 180, 270]
-            margin_images = []
+            margin_images = {}
 
             image_rotations = [rotations[random.randint(0, len(rotations)-1)] for i in range(len(img_classes))]
 
             state = torch.FloatTensor([0 for i in range(self.classes)])
             hidden = self.q_network.reset_hidden(1)
             rand_label = random.randint(0, self.classes)
+            next_class = False
+            current_class = 0
+
+            # Calculating Margin:
             for i in range(len(images)):
-                img, label = images[i]
+
+                # So we dont have to transform ALL images (AKA also the ones were not gonna use):
+                if (next_class == True and current_class == images[i][1]):
+                    continue
+                else:
+                    current_class = images[i][1]
+
+                img, label, rel_label = images[i]
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
@@ -158,33 +175,32 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 threshold = torch.Tensor([0.0])
                 img = (img == threshold).float() * 1
 
-                margin_images.append((img, label))
+                # Add transformed image to intermediary list:
+                if (label not in margin_images):
+                    margin_images[label] = [{rel_label: img}]
+                else:
+                    margin_images[label].append({rel_label: img})
                 
+                # Get class prediction value:
+                state = torch.cat((state, img.squeeze().view(-1)), 0).view(1, -1)
+                margin, hidden = self.q_network(Variable(state, volatile=True), hidden)
+                state = torch.FloatTensor([1 if j == rand_label else 0 for j in range(self.classes)])
+                
+                # First time new class:
                 if (label not in margins):
-                    state = torch.cat((state, img.squeeze().view(-1)), 0)
-                    margin, hidden = self.q_network(Variable(state, volatile=True), hidden)
                     margins[label] = [abs(margin.data.max(1)[0][0])]
-                    if (margin.data.max(1)[1][0] == self.classes):
-                        state = torch.FloatTensor([1 if j == rand_label else 0 for j in range(self.classes)])
-                    else:
-                        state = torch.FloatTensor([0 for j in range(self.classes)])
 
+                # Margin-time > n > 1 sees a class:
                 elif (len(margins[label]) < self.margin_time):
-                    state = torch.cat((state, img.squeeze().view(-1)), 0)
-                    margin, hidden = self.q_network(Variable(state, volatile=True), hidden)
                     margins[label].append(abs(margin.data.max(1)[0][0]))
-                    if (margin.data.max(1)[1][0] == self.classes):
-                        state = torch.FloatTensor([1 if j == rand_label else 0 for j in range(self.classes)])
-                    else:
-                        state = torch.FloatTensor([0 for j in range(self.classes)])
+                
+                # n >= margin-time:
                 else:
                     state = torch.FloatTensor([0 for j in range(self.classes)])
                     hidden = self.q_network.reset_hidden(1)
                     rand_label = random.randint(0, self.classes)
+                    next_class = True
 
-                
-                img_list.append(img)
-                target_list.append(label)
 
             largest = 0
             smallest = 10000
@@ -196,6 +212,8 @@ class OMNIGLOT_MARGIN(data.Dataset):
                     smallest = margins[key]
 
             diff = largest - smallest
+
+            self.all_margins.append(diff)
 
             sorted_margins = sorted(margins.items(), key=operator.itemgetter(1))
 
@@ -209,22 +227,58 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
             margin_labels.sort()
 
+            img_list, target_list = [], []
+            imgs_to_transform = []
 
             ind = 0
             ind_dict = {}
-            for i in range(len(margin_images)):
-                img, label = margin_images[i]
+            for i in range(len(images)):
+
+                img, label, this_rel_label = images[i]
+                
+                # Check if "valid" class:
                 if (label in margin_labels):
-                    if (label not in ind_dict):
-                        ind_dict[label] = ind
-                        ind += 1
-                    margin_images_pruned.append((img, ind_dict[label]))
+                    dict_list = margin_images[label]
 
-            images_indexes = np.random.choice(len(margin_images_pruned), self.episode_size, replace=False)
+                    # Check if Image already been transformed:
+                    if (rel_label in dict_list):
+                        if (label not in ind_dict):
+                            ind_dict[label] = ind
+                            ind += 1
+                        img_list.append(dict_list[rel_label])
+                        target_list.append(ind_dict[label])
 
-            img_list, target_list = [], []
+                    # If the image hasn'y been transformed yet:
+                    else:
+                        if (label not in ind_dict):
+                            ind_dict[label] = ind
+                            ind += 1
+                        imgs_to_transform.append((img, ind_dict[label]))
+                else:
+                    continue
+
+            images_indexes = np.random.choice(len(imgs_to_transform), int(self.episode_size - len(target_list)), replace=False)
+
+            
             for i in images_indexes:
-                img, label = margin_images_pruned[i]
+                img, label = imgs_to_transform[i]
+
+                img = Image.fromarray(img.numpy())
+
+                if self.transform is not None:
+                    if (self.train):
+                        # Applying class specific rotations:
+                        if (image_rotations[label] == 90):
+                            img = transforms.vflip(img)
+                        elif (image_rotations[label] == 180):
+                            img = transforms.hflip(img)
+                        elif (image_rotations[label] == 270):
+                            img = transforms.hflip(transforms.vflip(img))
+                    img = self.transform(img)
+
+                # Normalizing (pixels are binary):
+                threshold = torch.Tensor([0.0])
+                img = (img == threshold).float() * 1
 
                 img_list.append(img)
                 target_list.append(label)
