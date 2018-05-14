@@ -66,5 +66,8 @@ class LSTMController(nn.Module):
             lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[1], x.size()[0], -1)
 
             outp, state = self.lstm(lstm_input, prev_state)
-        
-        return outp[-1], state
+        if (seq == 1):     
+            return outp[-1], state
+
+        else: 
+            return outp, state

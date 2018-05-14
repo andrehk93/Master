@@ -19,7 +19,7 @@ class ReinforcedRNN(nn.Module):
 		if (self.baseline):
 			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, OUTPUT_CLASSES=output_classes, EMBEDDING=embedding, DICT_SIZE=dict_size)
 		else:
-			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes + 1, batch_size, cuda, OUTPUT_CLASSES=output_classes, EMBEDDING=embedding, DICT_SIZE=dict_size)
+			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, OUTPUT_CLASSES=output_classes + 1, EMBEDDING=embedding, DICT_SIZE=dict_size)
 
 		self.batch_size = batch_size
 		self.gpu = cuda

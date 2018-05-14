@@ -75,19 +75,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_margin/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lrua_margin2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm_margin/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lrua_margin2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_ntm_margin/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lrua_margin2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_ntm_margin', type=str,
+parser.add_argument('--name', default='reinforced_lrua_margin2', type=str,
                     help='name of file')
 
 # Seed:
@@ -176,8 +176,8 @@ if __name__ == '__main__':
         output_classes = nof_classes
 
     LSTM = False
-    NTM = True
-    LRUA = False
+    NTM = False
+    LRUA = True
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -195,6 +195,11 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+    """
+    train_loader = torch.utils.data.DataLoader(
+        OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
+        batch_size=args.batch_size, shuffle=True, **kwargs)
+    """
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -250,7 +255,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
-            all_margins = checkpoint['all_margins']
+            #all_margins = checkpoint['all_margins']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -470,6 +475,8 @@ if __name__ == '__main__':
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
+        acc_dict = checkpoint['accuracy']
+        req_dict = checkpoint['requests']
 
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")

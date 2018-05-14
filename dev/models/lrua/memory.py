@@ -81,12 +81,8 @@ class NTMMemory(nn.Module):
         :param n: Amount of reads to memory
         """
 
-
-            
-
-
         # Get the cosine similarity probability:
-        w_r = self._similarity(k, β)
+        w_r = self._similarity(k)
 
         # Need only read weights for reading... (SPEEDUP)
         if (access == 1):
@@ -103,18 +99,18 @@ class NTMMemory(nn.Module):
         # Get the usage weights:
         w_u = gamma*w_u_prev + w_r + w_w
 
-
-
+        # Equation (6) from MANN:
         n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
         w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
 
-        w_w = w_w*(Variable(torch.ones(w_lu.size()[:])) - w_lu)
+        # Zero out all least-used slots (from previous step):
+        w_w = w_w*(Variable(torch.ones(w_lu_prev.size()[:])) - w_lu_prev)
 
         return w_u, w_r, w_w, w_lu
 
-    def _similarity(self, k, β):
+    def _similarity(self, k):
         k = k.view(self.batch_size, 1, -1)
-        w = F.softmax(β * F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=-1)
+        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=-1)
         return w
 
     def _interpolate(self, w_r_prev, w_lu_prev, g):

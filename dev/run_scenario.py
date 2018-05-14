@@ -112,10 +112,10 @@ def bar_plot(lists, bar_type, name, labels, size):
 if __name__ == '__main__':
 
     name = 'reinforced_ntm_margin/'
-    checkpoint = 'pretrained/' + name + 'best.pth.tar'
+    checkpoint = 'pretrained/' + name + 'checkpoint.pth.tar'
 
-    batch_size = 32
-    scenario_size = 5
+    batch_size = 64
+    scenario_size = 10
     classes = 3
     cuda = False
 
