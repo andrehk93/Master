@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 ### Datasets and UTILS ###
 from utils.images import imageLoader as loader
-from utils.plot import loss_plot, percent_scatterplot as scatterplot
+#from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils import transforms, tablewriter
 #from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
@@ -338,8 +338,8 @@ if __name__ == '__main__':
 
     
     # Plotting training accuracy:
-    loss_plot.plot([total_accuracy], ["Training Accuracy Percentage"], "training_stats", args.name + "/", "Percentage")
-    loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
+    #loss_plot.plot([total_accuracy], ["Training Accuracy Percentage"], "training_stats", args.name + "/", "Percentage")
+    #loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -402,7 +402,7 @@ if __name__ == '__main__':
 
         # Printing:
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
-        loss_plot.plot([total_accuracy[args.epochs + 1:]], ["Accuracy Percentage"], "testing_stats", args.name + "/", "Percentage")
+        #loss_plot.plot([total_accuracy[args.epochs + 1:]], ["Accuracy Percentage"], "testing_stats", args.name + "/", "Percentage")
 
     else:
         checkpoint = torch.load(args.load_test_checkpoint)
@@ -416,7 +416,7 @@ if __name__ == '__main__':
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
 
-    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
+    #scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
 
     if (test_network):
         if not MNIST_TEST:

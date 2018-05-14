@@ -101,10 +101,16 @@ class OMNIGLOT(data.Dataset):
         else:
             images = []
             if self.train:
+
                 # Trains on whole dataset
-
-                img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-
+                img_classes = []
+                while len(img_classes) < self.classes:
+                    r = random.randint(0, len(self.train_labels) - 1)
+                    if (r not in img_classes):
+                        img_classes.append(r)
+                #img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
+                #new_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
+                #print("Random classes 2 = ", new_classes)
                 ind = 0
                 for i in img_classes:
                     for j in self.train_data[i]:
@@ -118,7 +124,14 @@ class OMNIGLOT(data.Dataset):
                         images.append((j, ind))
                     ind += 1
 
-            images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
+            #images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
+            images_indexes = []
+            indexes = np.arange(len(images))
+            while len(images_indexes) < self.episode_size:
+                r = indexes[random.randint(0, len(indexes) - 1)]
+                images_indexes.append(r)
+                np.delete(indexes, r)
+
             img_list = []
             target_list = []
             rotations = [0, 90, 180, 270]

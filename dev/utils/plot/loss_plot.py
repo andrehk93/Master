@@ -14,7 +14,7 @@ def plot(lists, labels, filename, folder, ylabel):
 			avg_lists[l].append(float(sum(sub_list)/length))
 
 
-	x = np.arange(1, len(avg_lists[0]) + 1)
+	x = np.arange(1, (len(avg_lists[0]) + 1))
 	for l in range(len(avg_lists)):
 		avg_list = avg_lists[l]
 		plt.plot(x, avg_list, label=labels[l])

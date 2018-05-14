@@ -36,11 +36,9 @@ class LSTMController(nn.Module):
 
     def create_new_state(self, batch_size):
         # Dimension: (num_layers * num_directions, batch, hidden_size)
-        #lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
-        #lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
-        lstm_h = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
-        lstm_c = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
-
+        lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
+        lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
+        
         return lstm_h, lstm_c
 
     def reset_parameters(self):
@@ -68,5 +66,8 @@ class LSTMController(nn.Module):
             lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[1], x.size()[0], -1)
 
             outp, state = self.lstm(lstm_input, prev_state)
-        
-        return outp[-1], state
+        if (seq == 1):     
+            return outp[-1], state
+
+        else: 
+            return outp, state

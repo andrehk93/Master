@@ -14,7 +14,7 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion):
 
     if (args.cuda):
         image_batch_sequence = image_batch_sequence.squeeze().view(args.episode_size, args.batch_size, -1).cuda()
-        label_batch_sequence = Variable(label_batch_sequence.view(-1, args.batch_size)).cuda()
+        label_batch_sequence = Variable(label_batch_sequence.view(args.episode_size, args.batch_size)).cuda()
     else:
         image_batch_sequence = image_batch_sequence.squeeze().view(args.episode_size, args.batch_size, -1)
         label_batch_sequence = Variable(label_batch_sequence.view(-1, args.batch_size))
@@ -57,7 +57,11 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion):
 
     predictions, hidden = model(Variable(episode_states), hidden, seq=args.episode_size)
 
-    loss = 0
+    if (args.cuda):
+        loss = Variable(torch.zeros(1).type(torch.Tensor)).cuda()
+    else:
+        loss = Variable(torch.zeros(1).type(torch.Tensor))
+
     for e in range(args.episode_size):
         loss += criterion(predictions[e], label_batch_sequence[e])
 
@@ -89,19 +93,18 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion):
             # Logging accuracy:
             if (actions[i_e] == true_label):
                 episode_correct += 1.0
-                episode_predict += 1.0
                 if (label_dict[i_e][true_label] in accuracy_dict):
                     accuracy_dict[label_dict[i_e][true_label]].append(1)
             else:
-                episode_predict += 1.0
                 if (label_dict[i_e][true_label] in accuracy_dict):
                     accuracy_dict[label_dict[i_e][true_label]].append(0)
+            episode_predict += 1.0
 
     # More status update:
     total_loss = loss.data[0]
 
     for key in accuracy_dict.keys():
-        accuracy_dict[key] = sum(accuracy_dict[key])/len(accuracy_dict[key])
+        accuracy_dict[key] = float(sum(accuracy_dict[key])/len(accuracy_dict[key]))
 
 
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
