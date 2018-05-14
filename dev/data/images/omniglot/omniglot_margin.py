@@ -154,6 +154,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                     continue
                 else:
                     current_class = images[i][1]
+                    next_class = False
 
                 img, label, rel_label = images[i]
                 img = Image.fromarray(img.numpy())
