@@ -265,6 +265,8 @@ if __name__ == '__main__':
 
     print("Current best: ", best)
 
+    train_loader.all_margins = all_margins
+
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(q_network.parameters())
     criterion = nn.MSELoss()

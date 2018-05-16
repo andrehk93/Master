@@ -153,8 +153,8 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 if (next_class == True and current_class == images[i][1]):
                     continue
                 else:
-                    current_class = images[i][1]
                     next_class = False
+                    current_class = images[i][1]
 
                 img, label, rel_label = images[i]
                 img = Image.fromarray(img.numpy())
@@ -254,7 +254,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                         if (label not in ind_dict):
                             ind_dict[label] = ind
                             ind += 1
-                        imgs_to_transform.append((img, ind_dict[label]))
+                        imgs_to_transform.append((img, ind_dict[label], label))
                 else:
                     continue
 
@@ -262,18 +262,18 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
             
             for i in images_indexes:
-                img, label = imgs_to_transform[i]
+                img, label, rot_label = imgs_to_transform[i]
 
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
                     if (self.train):
                         # Applying class specific rotations:
-                        if (image_rotations[label] == 90):
+                        if (image_rotations[rot_label] == 90):
                             img = transforms.vflip(img)
-                        elif (image_rotations[label] == 180):
+                        elif (image_rotations[rot_label] == 180):
                             img = transforms.hflip(img)
-                        elif (image_rotations[label] == 270):
+                        elif (image_rotations[rot_label] == 270):
                             img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
 
@@ -283,7 +283,6 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
                 img_list.append(img)
                 target_list.append(label)
-
 
             return img_list, target_list
 
