@@ -111,10 +111,10 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_ntm_margin/'
+    name = 'reinforced_lrua_margin2/'
     checkpoint = 'pretrained/' + name + 'checkpoint.pth.tar'
 
-    batch_size = 64
+    batch_size = 32
     scenario_size = 10
     classes = 3
     cuda = False
@@ -127,8 +127,8 @@ if __name__ == '__main__':
     scenario_loader = load_scenario(scenario_size, batch_size)
 
     LSTM = False
-    NTM = True
-    LRUA = False
+    NTM = False
+    LRUA = True
 
 
     if LSTM:

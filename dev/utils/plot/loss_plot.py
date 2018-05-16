@@ -2,9 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def plot(lists, labels, filename, folder, ylabel, avg=5):
+def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0):
 	avg_lists = []
-	average = avg
+	if (batch_size == 0):
+		average = avg
+	else:
+		if (avg > 0):
+			average = avg*batch_size
+		else:
+			average = batch_size
 	for l in range(len(lists)):
 		list_l = lists[l]
 		avg_lists.append([])
@@ -13,9 +19,8 @@ def plot(lists, labels, filename, folder, ylabel, avg=5):
 			length = len(sub_list)
 			avg_lists[l].append(float(sum(sub_list)/length))
 
-
-	x = np.arange(0, int(len(avg_lists[0])*average), step=average)
-	print(x)
+	x = np.arange(0, int(len(avg_lists[0])*avg), step=avg)
+	
 	for l in range(len(avg_lists)):
 		avg_list = avg_lists[l]
 		plt.plot(x, avg_list, label=labels[l])

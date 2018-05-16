@@ -39,7 +39,7 @@ class NTMHeadBase(nn.Module):
     def is_read_head(self):
         return NotImplementedError
 
-    def _address_memory(self, k, β, g, s, γ, w_prev, access):
+    def _address_memory(self, k, β, g, s, γ, w_prev):
         # Handle Activations
         k = k.clone()
         β = F.softplus(β)
@@ -47,7 +47,7 @@ class NTMHeadBase(nn.Module):
         s = F.softmax(F.softplus(s), dim=0)
         γ = 1 + F.softplus(γ)
 
-        w = self.memory.address(k, β, g, s, γ, w_prev, access)
+        w = self.memory.address(k, β, g, s, γ, w_prev)
 
         return w
 
@@ -82,7 +82,7 @@ class NTMReadHead(NTMHeadBase):
         k, β, g, s, γ = _split_cols(o, self.read_lengths)
 
         # Read from memory
-        w_r = self._address_memory(k, β, g, s, γ, w_prev, 1)
+        w_r = self._address_memory(k, β, g, s, γ, w_prev)
         r = self.memory.read(w_r)
 
         return r, w_r
@@ -120,7 +120,7 @@ class NTMWriteHead(NTMHeadBase):
         e = F.sigmoid(e)
 
         # Write to memory
-        w = self._address_memory(k, β, g, s, γ, w_prev, 0)
+        w = self._address_memory(k, β, g, s, γ, w_prev)
         self.memory.write(w, e, a)
 
         return w
