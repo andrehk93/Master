@@ -29,15 +29,18 @@ class LSTMController(nn.Module):
 
 
         # The hidden state is a learned parameter
-        self.lstm_h_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
-        self.lstm_c_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
+        #self.lstm_h_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
+        #self.lstm_c_bias = Parameter(torch.randn(self.num_layers, 1, self.num_outputs) * 0.05)
 
-        self.reset_parameters()
+        #self.reset_parameters()
 
     def create_new_state(self, batch_size):
         # Dimension: (num_layers * num_directions, batch, hidden_size)
-        lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
-        lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
+        #lstm_h = self.lstm_h_bias.clone().repeat(1, batch_size, 1)
+        #lstm_c = self.lstm_c_bias.clone().repeat(1, batch_size, 1)
+
+        lstm_h = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
+        lstm_c = autograd.Variable(torch.zeros(self.num_layers, batch_size, self.num_outputs))
         
         return lstm_h, lstm_c
 
