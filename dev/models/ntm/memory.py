@@ -74,7 +74,7 @@ class NTMMemory(nn.Module):
 
         # Content focus
         w_r = self._similarity(k, β)
-
+        
         # Location focus
         w_g = self._interpolate(w_prev, w_r, g)
         ŵ = self._shift(w_g, s)
@@ -99,4 +99,9 @@ class NTMMemory(nn.Module):
     def _sharpen(self, ŵ, γ):
         w = ŵ ** γ
         w = torch.div(w, torch.sum(w, dim=1).view(-1, 1) + 1e-16)
+        #print("Blurred: ", ŵ[0][0:2])
+        #print("Sharp: ", w[0][0:2])
+        #print("Size ŵ: ", ŵ.size())
+        #print("Size w: ", w.size())
+        #input("OK")
         return w

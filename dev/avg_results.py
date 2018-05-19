@@ -5,10 +5,14 @@ from operator import add
 from utils.plot import percent_scatterplot as scatterplot
 from utils import tablewriter
 
-model = "reinforced_lstm"
+directory = "results/plots/"
+model = "reinforced_lstm_r2"
 name = "avg_results" + "_" + model
 
-checkpoints = ["reinforced_lstm_r2", "reinforced_lstm_r2_margin"]
+if not os.path.exists(directory + name):
+        os.makedirs(directory + name)
+
+checkpoints = ["reinforced_lstm_r2", "reinforced_lstm_r2_2"]
 
 #Scatterplots:
 total_acc_dict = {}
@@ -39,8 +43,10 @@ for c_point in checkpoints:
         total_training_stats = training_stats
         total_test_stats = test_stats
     else:
-        total_training_stats += training_stats
-        total_test_stats += test_stats
+        total_training_stats[0] = list(map(add, total_training_stats[0], training_stats[0]))
+        total_training_stats[1] = list(map(add, total_training_stats[1], training_stats[1]))
+        total_test_stats[0] = list(map(add, total_test_stats[0], test_stats[0]))
+        total_test_stats[1] = list(map(add, total_test_stats[1], test_stats[1]))
 
 
 
@@ -81,10 +87,11 @@ for c_point in checkpoints:
 
 # Averaging accuracies:
 for stat in range(len(total_training_stats)):
-    for s in total_training_stats[stat]:
-        s = float(s/len(checkpoints))
-    for s in total_test_stats[stat]:
-        s = float(s/len(checkpoints))
+    for s in range(len(total_training_stats[stat])):
+        total_training_stats[stat][s] = float(total_training_stats[stat][s]/len(checkpoints))
+        total_test_stats[stat][s] = float(total_test_stats[stat][s]/len(checkpoints))
+    print("t: ", total_training_stats[stat])
+    input("OK")
 
 
 tablewriter.write_stats(total_training_stats[1], total_training_stats[0], -1.0, name + "/")

@@ -12,14 +12,14 @@ from torch.utils.data import DataLoader
 from models import reinforcement_models
 
 
-def load_scenario(size, batch_size):
+def load_scenario(size, batch_size, OMNIGLOT_DATASET=True):
 
     scenario_transform = transforms.Compose([
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
     ])
     
-    OMNIGLOT_DATASET = False
+    
 
     if (OMNIGLOT_DATASET):
         root = 'data/images/omniglot'
@@ -112,23 +112,27 @@ def bar_plot(lists, bar_type, name, labels, size):
 if __name__ == '__main__':
 
     name = 'reinforced_lrua_margin3/'
-    checkpoint = 'pretrained/' + name + 'checkpoint.pth.tar'
+    checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
-    scenario_size = 10
+    scenario_size = 5
     classes = 3
     cuda = False
 
     # LSTM & Q Learning
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
+    OMNIGLOT_DATASET = True
     ##################
 
-    scenario_loader = load_scenario(scenario_size, batch_size)
+    scenario_loader = load_scenario(scenario_size, batch_size, OMNIGLOT_DATASET=OMNIGLOT_DATASET)
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
+
+    if (not OMNIGLOT_DATASET):
+        name = "MNIST_" + name
 
 
     if LSTM:

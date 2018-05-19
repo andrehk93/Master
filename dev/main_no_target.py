@@ -190,6 +190,9 @@ if __name__ == '__main__':
 
     MNIST_TEST = False
 
+    if (MNIST_TEST):
+        args.name = "MNIST_" + args.name
+
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     train_loader = torch.utils.data.DataLoader(
