@@ -9,9 +9,9 @@ import numpy as np
 def _convolve(w, s):
     """Circular convolution implementation."""
     assert s.size(0) == 3
-    t = torch.cat([w[-2:], w, w[:2]])
+    t = torch.cat([w[-1:], w, w[:1]])
     c = F.conv1d(t.view(1, 1, -1), s.view(1, 1, -1)).view(-1)
-    return c[1:-1]
+    return c
 
 
 class NTMMemory(nn.Module):
@@ -30,7 +30,8 @@ class NTMMemory(nn.Module):
 
         # The memory bias allows the heads to learn how to initially address
         # memory locations by content
-        self.mem_bias = Variable(torch.Tensor(N, M))
+        #self.mem_bias = Variable(torch.Tensor(N, M))
+        self.register_buffer('mem_bias', torch.Tensor(N, M))
         #self.register_buffer('mem_bias', self.mem_bias.data)
 
         # Initialize memory bias
@@ -40,7 +41,7 @@ class NTMMemory(nn.Module):
     def reset(self, batch_size):
         """Initialize memory from bias, for start-of-sequence."""
         self.batch_size = batch_size
-        self.memory = self.mem_bias.clone().repeat(batch_size, 1, 1)
+        self.memory = Variable(self.mem_bias.clone().repeat(batch_size, 1, 1))
         #self.memory = Variable(torch.zeros(batch_size, self.N, self.M))
 
     def size(self):
@@ -50,17 +51,6 @@ class NTMMemory(nn.Module):
         """Read from memory (according to section 3.1)."""
         return torch.matmul(w.unsqueeze(1), self.memory).squeeze(1)
 
-    """
-    def write(self, w, e, a):
-        #write to memory (according to section 3.2)
-        self.prev_mem = self.memory
-        self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
-        for b in range(self.batch_size):
-            erase = torch.ger(w[b], e[b])
-            add = torch.ger(w[b], a[b])
-            self.memory[b] = self.prev_mem[b] * (1 - erase) + add
-    """
-
     def write(self, w, e, a):
         """write to memory (according to section 3.2)."""
         self.prev_mem = self.memory
@@ -69,16 +59,9 @@ class NTMMemory(nn.Module):
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         self.memory = self.prev_mem * (1 - erase) + add
 
-    def lrua_write(self, w, k):
-        """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
-        self.prev_mem = self.memory
-        self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
-        for b in range(self.batch_size):
-            erase = torch.ger(w[b], e[b])
-            add = torch.ger(w[b], a[b])
-            self.memory[b] = self.prev_mem[b] + (w * k)
+    
 
-    def address(self, k, β, g, s, γ, w_prev, access):
+    def address(self, k, β, g, s, γ, w_prev):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -88,23 +71,20 @@ class NTMMemory(nn.Module):
         :param γ: Sharpen weighting scalar.
         :param w_prev: The weighting produced in the previous time step.
         """
+
         # Content focus
-        w_r = self._similarity(k)
-
-        # If we read (Per Santoro et. al.):
-        if (access == 1):
-            return w_r
-
+        w_r = self._similarity(k, β)
+        
         # Location focus
         w_g = self._interpolate(w_prev, w_r, g)
         ŵ = self._shift(w_g, s)
-        w = self._sharpen(ŵ, γ)
+        w_t = self._sharpen(ŵ, γ)
 
-        return w
+        return w_t
 
-    def _similarity(self, k):
+    def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)
-        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
+        w = F.softmax(β * F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
         return w
 
     def _interpolate(self, w_prev, wc, g):
@@ -119,4 +99,9 @@ class NTMMemory(nn.Module):
     def _sharpen(self, ŵ, γ):
         w = ŵ ** γ
         w = torch.div(w, torch.sum(w, dim=1).view(-1, 1) + 1e-16)
+        #print("Blurred: ", ŵ[0][0:2])
+        #print("Sharp: ", w[0][0:2])
+        #print("Size ŵ: ", ŵ.size())
+        #print("Size w: ", w.size())
+        #input("OK")
         return w

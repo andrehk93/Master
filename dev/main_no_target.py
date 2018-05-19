@@ -75,19 +75,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_r2_margin2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_r2_margin2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_r2_margin2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_r2_margin2', type=str,
+parser.add_argument('--name', default='reinforced_lstm_margin2', type=str,
                     help='name of file')
 
 # Seed:
@@ -190,6 +190,9 @@ if __name__ == '__main__':
 
     MNIST_TEST = False
 
+    if (MNIST_TEST):
+        args.name = "MNIST_" + args.name
+
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     train_loader = torch.utils.data.DataLoader(
@@ -255,7 +258,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
-            #all_margins = checkpoint['all_margins']
+            all_margins = checkpoint['all_margins']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -265,7 +268,7 @@ if __name__ == '__main__':
 
     print("Current best: ", best)
 
-    train_loader.all_margins = all_margins
+    train_loader.dataset.all_margins = all_margins
 
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(q_network.parameters())
@@ -327,7 +330,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': all_margins,
+                    'all_margins': train_loader.dataset.all_margins,
                     'best': best
                 }, filename="best.pth.tar")
 
@@ -344,7 +347,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': all_margins,
+                    'all_margins': train_loader.dataset.all_margins,
                     'best': best
                 })
 
@@ -361,7 +364,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': all_margins,
+                    'all_margins': train_loader.dataset.all_margins,
                     'best': best
                 }, filename="backup.pth.tar")
 
@@ -382,7 +385,7 @@ if __name__ == '__main__':
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
-    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=args.batch_size)
+    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -500,7 +503,7 @@ if __name__ == '__main__':
                     'train_req_dict': train_req_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': all_margins,
+                    'all_margins': train_loader.dataset.all_margins,
                     'best': best
                 }, filename="testpoint.pth.tar")
         else:
@@ -518,7 +521,7 @@ if __name__ == '__main__':
                     'test_req_dict': test_req_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': all_margins,
+                    'all_margins': train_loader.dataset.all_margins,
                     'best': best
                 }, filename="testpoint_mnist.pth.tar")
     if not MNIST_TEST:

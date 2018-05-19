@@ -30,12 +30,12 @@ class NTMMemory(nn.Module):
 
         self.N = N
         self.M = M
-        self.memory = ""
 
         # The memory bias allows the heads to learn how to initially address
         # memory locations by content
-        self.mem_bias = Variable(torch.Tensor(N, M))
-        #self.register_buffer('mem_bias', self.mem_bias.data)
+        #self.mem_bias = Variable(torch.Tensor(N, M))
+        #self.mem_bias = Variable(torch.Tensor(N, M))
+        self.register_buffer('mem_bias', Variable(torch.Tensor(N, M)))
 
         # Initialize memory bias
         stdev = 1 / (np.sqrt(N + M))
@@ -68,9 +68,10 @@ class NTMMemory(nn.Module):
         """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
         self.prev_mem = self.memory
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
-        for i in range(self.batch_size):
-            lrua = torch.ger(w[i], k[i])
-            self.memory[i] = self.prev_mem[i] + lrua
+        lrua = torch.matmul(w.unsqueeze(-1), k.unsqueeze(1))
+        self.memory = self.prev_mem + lrua
+
+
 
     def address(self, k, β, g, n, gamma, w_prev, access):
         """NTM Addressing (according to section 3.3).

@@ -24,7 +24,7 @@ from data.images.mnist.MNIST import MNIST
 
 # RL:
 from models import reinforcement_models
-from reinforcement_utils.images import train_nonsequence as train, test_sequence as test
+from reinforcement_utils.images import train_nonsequence as train, test_nonsequence as test
 
 
 
@@ -74,19 +74,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/baseline_lstms/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/baseline_lrua/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/baseline_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/baseline_lrua/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/baseline_lstm/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/baseline_lrua/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='baseline_lstm', type=str,
+parser.add_argument('--name', default='baseline_lrua', type=str,
                     help='name of file')
 
 # Seed:
@@ -173,9 +173,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes, baseline=True)
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     print("Current best: ", best)
 
     ### WEIGHT OPTIMIZER ###
-    optimizer = optim.Adam(q_network.parameters())
+    optimizer = optim.Adam(q_network.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
 
     # Init train stuff:
