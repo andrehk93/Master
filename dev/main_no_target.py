@@ -492,6 +492,8 @@ if __name__ == '__main__':
 
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy", zoom=True)
+    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests", zoom=True)
 
     if (test_network):
         if not MNIST_TEST:

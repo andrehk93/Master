@@ -3,14 +3,20 @@ import numpy as np
 import os
 
 
-def plot(dictionary, folder, batch_size, title="Plot"):
+def plot(dictionary, folder, batch_size, title="Plot", zoom=False, max_epochs=100000):
 	percentages = {1: [], 2: [], 5: [], 10: []}
 
 	# Hyper parameter for plotting (How many episodes to average over per scatter):
 	interval = 1000
+	start = 0
+
+	if (zoom):
+		start = int(max_epochs*0.8)
+		print("START: ", start)
+		interval = 200
 
 	for k in dictionary.keys():
-		for episode_batch in range(0, len(dictionary[k]), interval):
+		for episode_batch in range(start, len(dictionary[k]), interval):
 			sub_list = dictionary[k][episode_batch : min(episode_batch + interval, len(dictionary[k]))]
 			length = len(sub_list)
 			percentages[k].append(float(sum(sub_list)/length))
@@ -21,7 +27,9 @@ def plot(dictionary, folder, batch_size, title="Plot"):
 	plt.yticks(np.arange(0, 1, step=0.1))
 	x = []
 	for i in range(len(percentages[1])):
-		x.append(i*interval)
+		x.append(start + (i*interval))
+
+	plt.axvline(x=max_epochs, color="red")
 
 	colors = ['indigo', 'aqua', 'red', 'lime']
 	lables = ['1st Instance', '2nd Instance', '5th Instance', '10th Instance']
@@ -39,5 +47,8 @@ def plot(dictionary, folder, batch_size, title="Plot"):
            ncol=4, mode="expand", borderaxespad=0.01)
 	if (not os.path.exists("results/plots/" + folder)):
 		os.makedirs("results/plots/" + folder)
-	plt.savefig("results/plots/" + folder + title + ".png")
+	if (zoom):
+		plt.savefig("results/plots/" + folder + title + "_zoom.png")
+	else:
+		plt.savefig("results/plots/" + folder + title + ".png")
 	plt.show()	
