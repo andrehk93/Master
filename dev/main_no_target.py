@@ -178,9 +178,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)

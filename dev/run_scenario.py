@@ -111,7 +111,7 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm_r2_2/'
+    name = 'reinforced_lrua_margin3/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
