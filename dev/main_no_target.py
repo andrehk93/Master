@@ -75,19 +75,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin_r1_t5/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin_r1_t5/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin_r1_t5/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_margin_r2_cm9', type=str,
+parser.add_argument('--name', default='reinforced_lstm_margin_r1_t5', type=str,
                     help='name of file')
 
 # Seed:
@@ -108,10 +108,10 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     print("Checkpoint successfully saved!")
 
-def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
-    for key in acc_dict.keys():
-        acc_dict[key].append(accuracy_train_dict[key])
-        req_dict[key].append(request_train_dict[key])
+def update_dicts(from_dict_1, from_dict_2, to_dict_1, to_dict_2):
+    for key in to_dict_1.keys():
+        to_dict_1[key].append(from_dict_1[key])
+        to_dict_2[key].append(from_dict_2[key])
 
 
 def print_best_stats(stats):
@@ -178,9 +178,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -420,8 +420,10 @@ if __name__ == '__main__':
         training_stats = [[], []]
         test_acc_dict = {1: [], 2: [], 5: [], 10: []}
         test_req_dict = {1: [], 2: [], 5: [], 10: []}
+        test_pred_dict = {1: [], 2: [], 5: [], 10: []}
         train_acc_dict = {1: [], 2: [], 5: [], 10: []}
         train_req_dict = {1: [], 2: [], 5: [], 10: []}
+        train_pred_dict = {1: [], 2: [], 5: [], 10: []}
 
         print("\n--- Testing for", int(test_epochs), "epochs ---\n")
 
@@ -429,12 +431,13 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            stats, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+            stats, request_test_dict, accuracy_test_dict, prediction_accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
             if not MNIST_TEST:
-                train_stats, train_reqs, train_accs = test.validate(q_network, epoch, optimizer, test_train_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+                train_stats, train_reqs, train_accs, prediction_accuracy_train_dict = test.validate(q_network, epoch, optimizer, test_train_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
             update_dicts(request_test_dict, accuracy_test_dict, test_req_dict, test_acc_dict)
+            update_dicts(prediction_accuracy_test_dict, prediction_accuracy_train_dict, test_pred_dict, train_pred_dict)
             if not MNIST_TEST:
                 update_dicts(train_reqs, train_accs, train_req_dict, train_acc_dict)
 
@@ -479,9 +482,11 @@ if __name__ == '__main__':
         test_stats = checkpoint['test_stats']
         test_acc_dict = checkpoint['test_acc_dict']
         test_req_dict = checkpoint['test_req_dict']
+        test_pred_dict = checkpoint['test_pred_dict']
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
+            train_pred_dict = checkpoint['train_pred_dict']
         acc_dict = checkpoint['accuracy']
         req_dict = checkpoint['requests']
 
@@ -531,8 +536,8 @@ if __name__ == '__main__':
     if not MNIST_TEST:
         tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
     tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
-    tablewriter.print_k_shot_tables(test_acc_dict, test_req_dict, "test", args.name + "/")
+    tablewriter.print_k_shot_tables(test_pred_dict, test_acc_dict, test_req_dict, "test", args.name + "/")
     if not MNIST_TEST:
-        tablewriter.print_k_shot_tables(train_acc_dict, train_req_dict, "train", args.name + "/")
+        tablewriter.print_k_shot_tables(train_pred_dict, train_acc_dict, train_req_dict, "train", args.name + "/")
 
 
