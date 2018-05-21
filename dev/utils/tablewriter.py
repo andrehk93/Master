@@ -178,16 +178,17 @@ def write_baseline_stats(accuracy, folder, test=False):
 
 
 
-def print_k_shot_tables(accuracies, requests, dataset, folder):
+def print_k_shot_tables(prediction_accuracies, accuracies, requests, dataset, folder):
     filename = "results/plots/" + str(folder) + "k_shot_table_" + dataset + ".txt"
     for key in accuracies.keys():
+        prediction_accuracies[key] = 100.0 * float(sum(prediction_accuracies[key])/max(len(prediction_accuracies[key]), 1))
         accuracies[key] = 100.0 * float(sum(accuracies[key])/max(len(accuracies[key]), 1))
         requests[key] = 100.0 * float(sum(requests[key])/max(len(requests[key]), 1))
     with open(filename, "w") as table:
         table.write("\n\n--- K-shot predictions for " + dataset + "-set ---\n")
-        table.write("Instance:\tAccuracy:\tRequests:\n")
+        table.write("Instance:\tPred. Acc:\tAccuracy:\tRequests:\n")
         for key in accuracies.keys():
-            table.write(str(key) + ":\t\t" + str(accuracies[key])[0:4] + " %\t\t" + str(requests[key])[0:4] + " %\n")
+            table.write(str(key) + ":\t\t" + str(prediction_accuracies[key])[0:4] + " %\t\t" + str(accuracies[key])[0:4] + " %\t\t" + str(requests[key])[0:4] + " %\n")
 
 def print_k_shot_baseline_tables(accuracies, dataset, folder):
     filename = "results/plots/" + str(folder) + "k_shot_table_" + dataset + ".txt"

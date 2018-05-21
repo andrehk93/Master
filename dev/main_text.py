@@ -31,7 +31,7 @@ from reinforcement_utils.text import train_text as train, test_text as test
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Batch size:
@@ -43,7 +43,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=20000, metavar='N',
+parser.add_argument('--epochs', type=int, default=25000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -59,19 +59,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_ntm_wiped/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_ntm_wiped/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_ntm_wiped/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_ntm_wiped', type=str,
+parser.add_argument('--name', default='headlines_lstm', type=str,
                     help='name of file')
 
 # Seed:
@@ -164,8 +164,8 @@ if __name__ == '__main__':
     # Different Models:
     classes = args.class_vector_size
 
-    LSTM = False
-    NTM = True
+    LSTM = True
+    NTM = False
     LRUA = False
 
 

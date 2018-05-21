@@ -108,10 +108,10 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     print("Checkpoint successfully saved!")
 
-def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
-    for key in acc_dict.keys():
-        acc_dict[key].append(accuracy_train_dict[key])
-        req_dict[key].append(request_train_dict[key])
+def update_dicts(from_dict_1, from_dict_2, to_dict_1, to_dict_2):
+    for key in to_dict_1.keys():
+        to_dict_1[key].append(from_dict_1[key])
+        to_dict_2[key].append(from_dict_2[key])
 
 
 def print_best_stats(stats):
@@ -149,10 +149,13 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
 
-    # LSTM & Q Learning
+    # IMAGE HANDLING:
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
+
+    # CLASS MARGIN SAMPLING:
     MARGIN_TIME = 4
+    CMS = 3
     ##################
 
     train_transform = transforms.Compose([
@@ -197,7 +200,7 @@ if __name__ == '__main__':
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     """
     train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
+        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
     """
     train_loader = torch.utils.data.DataLoader(
@@ -416,8 +419,10 @@ if __name__ == '__main__':
         training_stats = [[], []]
         test_acc_dict = {1: [], 2: [], 5: [], 10: []}
         test_req_dict = {1: [], 2: [], 5: [], 10: []}
+        test_pred_dict = {1: [], 2: [], 5: [], 10: []}
         train_acc_dict = {1: [], 2: [], 5: [], 10: []}
         train_req_dict = {1: [], 2: [], 5: [], 10: []}
+        train_pred_dict = {1: [], 2: [], 5: [], 10: []}
 
         print("\n--- Testing for", int(test_epochs), "epochs ---\n")
 
@@ -425,12 +430,13 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            stats, request_test_dict, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+            stats, request_test_dict, accuracy_test_dict, prediction_accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
             if not MNIST_TEST:
-                train_stats, train_reqs, train_accs = test.validate(q_network, epoch, optimizer, test_train_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+                train_stats, train_reqs, train_accs, prediction_accuracy_train_dict = test.validate(q_network, epoch, optimizer, test_train_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
             update_dicts(request_test_dict, accuracy_test_dict, test_req_dict, test_acc_dict)
+            update_dicts(prediction_accuracy_test_dict, prediction_accuracy_train_dict, test_pred_dict, train_pred_dict)
             if not MNIST_TEST:
                 update_dicts(train_reqs, train_accs, train_req_dict, train_acc_dict)
 
@@ -475,9 +481,11 @@ if __name__ == '__main__':
         test_stats = checkpoint['test_stats']
         test_acc_dict = checkpoint['test_acc_dict']
         test_req_dict = checkpoint['test_req_dict']
+        test_pred_dict = checkpoint['test_pred_dict']
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
+            train_pred_dict = checkpoint['train_pred_dict']
         acc_dict = checkpoint['accuracy']
         req_dict = checkpoint['requests']
 
@@ -527,8 +535,8 @@ if __name__ == '__main__':
     if not MNIST_TEST:
         tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
     tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
-    tablewriter.print_k_shot_tables(test_acc_dict, test_req_dict, "test", args.name + "/")
+    tablewriter.print_k_shot_tables(test_pred_dict, test_acc_dict, test_req_dict, "test", args.name + "/")
     if not MNIST_TEST:
-        tablewriter.print_k_shot_tables(train_acc_dict, train_req_dict, "train", args.name + "/")
+        tablewriter.print_k_shot_tables(train_pred_dict, train_acc_dict, train_req_dict, "train", args.name + "/")
 
 

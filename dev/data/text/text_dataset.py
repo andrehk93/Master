@@ -102,6 +102,12 @@ class TEXT(data.Dataset):
                     text_list.append(j)
                     label_list.append(ind)
                 ind += 1
+
+        print("\n\nTEXT LIST:\n")
+        for t in text_list:
+            print(t)
+            input("Next text list:")
+            
         text_indexes = np.random.choice(len(text_list), self.episode_size, replace=False)
 
         episode_texts, episode_labels = [], []
