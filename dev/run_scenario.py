@@ -115,7 +115,7 @@ if __name__ == '__main__':
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 32
-    scenario_size = 5
+    scenario_size = 10
     classes = 3
     cuda = False
 
@@ -127,9 +127,9 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size, OMNIGLOT_DATASET=OMNIGLOT_DATASET)
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     if (not OMNIGLOT_DATASET):
         name = "MNIST_" + name
