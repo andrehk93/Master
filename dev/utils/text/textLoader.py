@@ -72,6 +72,7 @@ class TextLoader():
 
 # Need to ensure a uniformly distributed training/test-set:
 def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True):
+	
 	# Create a dictionary first:
 	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
 

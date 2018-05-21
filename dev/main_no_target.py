@@ -75,19 +75,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin_r2_cm9/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_margin2', type=str,
+parser.add_argument('--name', default='reinforced_lstm_margin_r2_cm9', type=str,
                     help='name of file')
 
 # Seed:
@@ -149,10 +149,13 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
 
-    # LSTM & Q Learning
+    # IMAGE HANDLING:
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
+
+    # CLASS MARGIN SAMPLING:
     MARGIN_TIME = 4
+    CMS = 3
     ##################
 
     train_transform = transforms.Compose([
@@ -195,8 +198,9 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
+    
     train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, q_network=q_network),
+        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
     """
     train_loader = torch.utils.data.DataLoader(
@@ -289,7 +293,7 @@ if __name__ == '__main__':
         for epoch in range(args.start_epoch, args.epochs + 1):
 
             ### TRAINING ###
-            print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
+            print("\n\n--- " + args.name + ": Training epoch " + str(epoch) + " ---\n\n")
 
             if (len(total_reward) > 0):
                 best_index = np.argmax(total_reward)
