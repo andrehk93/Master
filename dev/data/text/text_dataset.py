@@ -34,6 +34,7 @@ class TEXT(data.Dataset):
         self.classes = classes
         self.episode_size = episode_size
         self.classify = data_loader.classify
+        self.all_margins = []
         self.cuda = cuda
         if (self.classify):
             self.training_file = "classify_" + self.training_file
@@ -103,10 +104,6 @@ class TEXT(data.Dataset):
                     label_list.append(ind)
                 ind += 1
 
-        print("\n\nTEXT LIST:\n")
-        for t in text_list:
-            print(t)
-            input("Next text list:")
             
         text_indexes = np.random.choice(len(text_list), self.episode_size, replace=False)
 

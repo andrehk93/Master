@@ -14,11 +14,14 @@ GAMMA = 0.5
 
 def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, multi_state=False, state_size=5):
 
-    # Initialize training:
-    q_network.train()
+    # For faster margin calculation:
+    q_network.eval()
 
     # Collect a random batch:
     image_batch, label_batch = train_loader.__iter__().__next__()
+
+    # Initialize training:
+    q_network.train()
 
     # Episode Statistics:
     episode_correct = 0.0
