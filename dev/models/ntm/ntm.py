@@ -49,13 +49,9 @@ class NTM(nn.Module):
         self.reset_parameters()
 
     def create_new_state(self, batch_size):
-        #print("Before: ", self.init_r)
         init_r = [r.clone().repeat(batch_size, 1) for r in self.init_r]
-        #print("Start state: ", init_r)
         controller_state = self.controller.create_new_state(batch_size)
-        #print("Init controller state: ", controller_state)
         heads_state = [head.create_new_state(batch_size) for head in self.heads]
-        #print("Init heads state: ", heads_state)
 
         return init_r, controller_state, heads_state
 

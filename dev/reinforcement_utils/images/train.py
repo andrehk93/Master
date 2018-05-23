@@ -1,4 +1,3 @@
-
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -12,13 +11,19 @@ import copy
 #Discount:
 GAMMA = 0.5
 
-def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, multi_state=False, state_size=5):
+def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, class_margin_sampler, multi_state=False, state_size=5):
+
+    # For faster margin calculation:
+    q_network.eval()
+
+    # Collect a random batch:
+    margin_batch, margin_label_batch = train_loader.__iter__().__next__()
+
+    # Get margin classes:
+    image_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch, q_network, args.batch_size)
 
     # Initialize training:
     q_network.train()
-
-    # Collect a random batch:
-    image_batch, label_batch = train_loader.__iter__().__next__()
 
     # Episode Statistics:
     episode_correct = 0.0

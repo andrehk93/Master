@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from utils.images import imageLoader as loader
 from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils import transforms, tablewriter
-from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
+from data.images.omniglot.omniglot_class_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 from data.images.mnist.MNIST import MNIST
 
@@ -27,6 +27,8 @@ from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from models import reinforcement_models
 from reinforcement_utils.images import train, test
 
+# Class margin sampling:
+from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 
 
 ### IMPORTANT NOTICE ###
@@ -155,7 +157,7 @@ if __name__ == '__main__':
 
     # CLASS MARGIN SAMPLING:
     MARGIN_TIME = 4
-    CMS = 3
+    CMS = 2
     ##################
 
     train_transform = transforms.Compose([
@@ -166,6 +168,8 @@ if __name__ == '__main__':
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
         transforms.ToTensor()
     ])
+
+    class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, train_transform)
 
     # abcde-vectors for classes (3125 different classes):
     multi_state = False
@@ -198,7 +202,7 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    
+
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -272,7 +276,8 @@ if __name__ == '__main__':
 
     print("Current best: ", best)
 
-    train_loader.dataset.all_margins = all_margins
+    #58410 epoch
+    class_margin_sampler.all_margins = all_margins
 
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(q_network.parameters())
@@ -302,7 +307,7 @@ if __name__ == '__main__':
 
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion,\
-            multi_state=multi_state, state_size=state_size)
+            class_margin_sampler, multi_state=multi_state, state_size=state_size)
             
             episode += args.batch_size
 
@@ -334,7 +339,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best
                 }, filename="best.pth.tar")
 
@@ -351,7 +356,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best
                 })
 
@@ -368,7 +373,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best
                 }, filename="backup.pth.tar")
 
@@ -389,7 +394,7 @@ if __name__ == '__main__':
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
-    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
+    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -490,7 +495,7 @@ if __name__ == '__main__':
                     'train_pred_dict': train_pred_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best
                 }, filename="testpoint.pth.tar")
         else:
@@ -509,7 +514,7 @@ if __name__ == '__main__':
                     'test_pred_dict': test_pred_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best
                 }, filename="testpoint_mnist.pth.tar")
 

@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # LSTM & Q Learning
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
-    OMNIGLOT_DATASET = True
+    OMNIGLOT_DATASET = False
     ##################
 
     scenario_loader = load_scenario(scenario_size, batch_size, OMNIGLOT_DATASET=OMNIGLOT_DATASET)

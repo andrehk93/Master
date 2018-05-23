@@ -7,7 +7,7 @@ def plot(dictionary, folder, batch_size, title="Plot", zoom=False, max_epochs=10
 	percentages = {1: [], 2: [], 5: [], 10: []}
 
 	# Hyper parameter for plotting (How many episodes to average over per scatter):
-	interval = 1000
+	interval = int(max_epochs/100)
 	start = 0
 
 	if (zoom):
