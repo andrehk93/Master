@@ -75,19 +75,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lrua_standard/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_margin_r1_cm9_2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lrua_standard/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_margin_r1_cm9_2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lrua_standard/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_margin_r1_cm9_2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lrua_standard', type=str,
+parser.add_argument('--name', default='reinforced_lstm_margin_r1_cm9_2', type=str,
                     help='name of file')
 
 # Seed:
@@ -178,9 +178,9 @@ if __name__ == '__main__':
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    """
+    
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -206,6 +206,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
+    """
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -261,7 +262,7 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
-            all_margins = checkpoint['all_margins']
+            #all_margins = checkpoint['all_margins']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -468,6 +469,50 @@ if __name__ == '__main__':
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
         print("Testing Average Requests = ", str(test_request) + " %")
         print("Testing Average Reward = ", str(test_reward))
+
+        if not MNIST_TEST:
+            save_checkpoint({
+                    'epoch': epoch + 1,
+                    'episode': episode,
+                    'state_dict': q_network.state_dict(),
+                    'requests': req_dict,
+                    'accuracy': acc_dict,
+                    'tot_accuracy': total_accuracy,
+                    'tot_requests': total_requests,
+                    'tot_pred_acc': total_prediction_accuracy,
+                    'training_stats': training_stats,
+                    'test_stats': test_stats,
+                    'test_acc_dict': test_acc_dict,
+                    'test_req_dict': test_req_dict,
+                    'train_acc_dict': train_acc_dict,
+                    'train_req_dict': train_req_dict,
+                    'test_pred_dict': test_pred_dict,
+                    'train_pred_dict': train_pred_dict,
+                    'tot_loss': total_loss,
+                    'tot_reward': total_reward,
+                    'all_margins': train_loader.dataset.all_margins,
+                    'best': best
+                }, filename="testpoint.pth.tar")
+        else:
+            save_checkpoint({
+                    'epoch': epoch + 1,
+                    'episode': episode,
+                    'state_dict': q_network.state_dict(),
+                    'requests': req_dict,
+                    'accuracy': acc_dict,
+                    'tot_accuracy': total_accuracy,
+                    'tot_requests': total_requests,
+                    'tot_pred_acc': total_prediction_accuracy,
+                    'test_stats': test_stats,
+                    'test_acc_dict': test_acc_dict,
+                    'test_req_dict': test_req_dict,
+                    'test_pred_dict': test_pred_dict,
+                    'tot_loss': total_loss,
+                    'tot_reward': total_reward,
+                    'all_margins': train_loader.dataset.all_margins,
+                    'best': best
+                }, filename="testpoint_mnist.pth.tar")
+
         loss_plot.plot([total_accuracy[args.epochs + 1:], total_requests[args.epochs + 1:]], ["Accuracy Percentage", "Requests Percentage"], "testing_stats", args.name + "/", "Percentage")
         loss_plot.plot([total_reward[args.epochs + 1:]], ["Average Reward"], "test_reward", args.name + "/", "Average Reward")
 
@@ -494,46 +539,7 @@ if __name__ == '__main__':
     scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy", zoom=True)
     scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests", zoom=True)
 
-    if (test_network):
-        if not MNIST_TEST:
-            save_checkpoint({
-                    'epoch': epoch + 1,
-                    'episode': episode,
-                    'state_dict': q_network.state_dict(),
-                    'requests': req_dict,
-                    'accuracy': acc_dict,
-                    'tot_accuracy': total_accuracy,
-                    'tot_requests': total_requests,
-                    'tot_pred_acc': total_prediction_accuracy,
-                    'training_stats': training_stats,
-                    'test_stats': test_stats,
-                    'test_acc_dict': test_acc_dict,
-                    'test_req_dict': test_req_dict,
-                    'train_acc_dict': train_acc_dict,
-                    'train_req_dict': train_req_dict,
-                    'tot_loss': total_loss,
-                    'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
-                    'best': best
-                }, filename="testpoint.pth.tar")
-        else:
-            save_checkpoint({
-                    'epoch': epoch + 1,
-                    'episode': episode,
-                    'state_dict': q_network.state_dict(),
-                    'requests': req_dict,
-                    'accuracy': acc_dict,
-                    'tot_accuracy': total_accuracy,
-                    'tot_requests': total_requests,
-                    'tot_pred_acc': total_prediction_accuracy,
-                    'test_stats': test_stats,
-                    'test_acc_dict': test_acc_dict,
-                    'test_req_dict': test_req_dict,
-                    'tot_loss': total_loss,
-                    'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
-                    'best': best
-                }, filename="testpoint_mnist.pth.tar")
+        
     if not MNIST_TEST:
         tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
     tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
