@@ -120,7 +120,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
     for key in request_dict.keys():
         request_dict[key] = float(sum(request_dict[key])/len(request_dict[key]))
         accuracy_dict[key] = float(sum(accuracy_dict[key])/len(accuracy_dict[key]))
-        prediction_accuracy_dict[key] = float(sum(prediction_accuracy_dict[key])/len(prediction_accuracy_dict[key]))
+        prediction_accuracy_dict[key] = float(sum(prediction_accuracy_dict[key])/max(1, len(prediction_accuracy_dict[key])))
 
     print("\n---Validation Statistics---\n")
 

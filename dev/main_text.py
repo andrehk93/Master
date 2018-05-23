@@ -420,6 +420,30 @@ if __name__ == '__main__':
         print("\nTesting Average Accuracy = ", str(test_accuracy) + " %")
         print("Testing Average Requests = ", str(test_request) + " %")
         print("Testing Average Reward = ", str(test_reward))
+
+        # Saving:
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'episode': episode,
+            'state_dict': q_network.state_dict(),
+            'requests': req_dict,
+            'accuracy': acc_dict,
+            'tot_accuracy': total_accuracy,
+            'tot_requests': total_requests,
+            'tot_pred_acc': total_prediction_accuracy,
+            'training_stats': training_stats,
+            'test_stats': test_stats,
+            'test_acc_dict': test_acc_dict,
+            'test_req_dict': test_req_dict,
+            'test_pred_dict': test_pred_dict,
+            'train_acc_dict': train_acc_dict,
+            'train_req_dict': train_req_dict,
+            'train_pred_dict': train_pred_dict,
+            'tot_loss': total_loss,
+            'tot_reward': total_reward,
+            'all_margins': train_loader.dataset.all_margins,
+            'best': best
+        }, filename="testpoint.pth.tar")
         
         loss_plot.plot([total_accuracy[args.epochs + 1:], total_requests[args.epochs + 1:]], ["Accuracy Percentage", "Requests Percentage"], "testing_stats", args.name + "/", "Percentage")
         loss_plot.plot([total_reward[args.epochs + 1:]], ["Average Reward"], "test_reward", args.name + "/", "Average Reward")
@@ -437,33 +461,15 @@ if __name__ == '__main__':
         train_req_dict = checkpoint['train_req_dict']
         test_pred_dict = checkpoint['test_pred_dict']
         train_pred_dict = checkpoint['train_pred_dict']
+        acc_dict = checkpoint['accuracy']
+        req_dict = checkpoint['requests']
 
-    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy")
-    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests")
-    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy", zoom=True)
-    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests", zoom=True)
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy", max_epochs=args.epochs)
+    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests", max_epochs=args.epochs)
+    scatterplot.plot(acc_dict, args.name + "/", args.batch_size, title="Prediction Accuracy", zoom=True, max_epochs=args.epochs)
+    scatterplot.plot(req_dict, args.name + "/", args.batch_size, title="Total Requests", zoom=True, max_epochs=args.epochs)
 
-    if (test_network):
-        save_checkpoint({
-                    'epoch': epoch + 1,
-                    'episode': episode,
-                    'state_dict': q_network.state_dict(),
-                    'requests': req_dict,
-                    'accuracy': acc_dict,
-                    'tot_accuracy': total_accuracy,
-                    'tot_requests': total_requests,
-                    'tot_pred_acc': total_prediction_accuracy,
-                    'training_stats': training_stats,
-                    'test_stats': test_stats,
-                    'test_acc_dict': test_acc_dict,
-                    'test_req_dict': test_req_dict,
-                    'train_acc_dict': train_acc_dict,
-                    'train_req_dict': train_req_dict,
-                    'tot_loss': total_loss,
-                    'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
-                    'best': best
-                }, filename="testpoint.pth.tar")
+        
 
     tablewriter.write_stats(training_stats[1], training_stats[0], rl.prediction_penalty, args.name + "/")
     tablewriter.write_stats(test_stats[1], test_stats[0], rl.prediction_penalty, args.name + "/", test=True)
