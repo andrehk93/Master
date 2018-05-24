@@ -26,7 +26,7 @@ def load_scenario(size, batch_size, OMNIGLOT_DATASET=True):
         print("Loading scenario...")
         omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
         scenario_loader = torch.utils.data.DataLoader(
-            OMNIGLOT(root, train=True, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size, test=True),
+            OMNIGLOT(root, train=False, transform=scenario_transform, download=True, omniglot_loader=omniglot_loader, episode_size=0, scenario=True, scenario_size=size, test=True),
             batch_size=batch_size, shuffle=True)
     else:
         root = 'data/images/mnist'
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # LSTM & Q Learning
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
-    OMNIGLOT_DATASET = False
+    OMNIGLOT_DATASET = True
     ##################
 
     scenario_loader = load_scenario(scenario_size, batch_size, OMNIGLOT_DATASET=OMNIGLOT_DATASET)
