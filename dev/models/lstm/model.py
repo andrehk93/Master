@@ -54,7 +54,7 @@ class ReinforcedLSTM(nn.Module):
                 x = self.embedding_layer(x)
             except RuntimeError as e:
                 print(e)
-                print(x)
+                return False
 
             lstm_input = []
             for i in range(x.size()[1]):
@@ -64,8 +64,7 @@ class ReinforcedLSTM(nn.Module):
         else:
             x = x.view(seq, batch_size, -1)
             lstm_out, next_hidden = self.lstm(x, hidden)
-        if (seq == 1):
-            x = self.hidden2probs(lstm_out[-1])
-        else:
-            x = self.hidden2probs(lstm_out)
+        
+        x = self.hidden2probs(lstm_out[-1])
+        
         return x, next_hidden

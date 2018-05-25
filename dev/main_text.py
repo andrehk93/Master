@@ -20,7 +20,9 @@ from utils import transforms, tablewriter
 
 # RL and DATASETS:
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
+from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 from data.text.text_dataset import TEXT
+from data.text.text_class_margin import TextMargin
 
 from models import reinforcement_models
 from reinforcement_utils.text import train_text as train, test_text as test
@@ -59,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_standard/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_margin_test/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_standard/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_margin_test/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_standard/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_margin_test/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm_standard', type=str,
+parser.add_argument('--name', default='headlines_lstm_margin_test', type=str,
                     help='name of file')
 
 # Seed:
@@ -132,11 +134,17 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
 
+    # CLASS MARGIN SAMPLING:
+    MARGIN_TIME = 4
+    CMS = 3
+
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 128
     SENTENCE_LENGTH = 12
     NUMBER_OF_SENTENCES = 1
     DICTIONARY_MAX_SIZE = 10000
+
+    class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, None, episode_size=args.episode_size, sentence_length=NUMBER_OF_SENTENCES, tensor_length=SENTENCE_LENGTH)
 
     # TRUE = REMOVE STOPWORDS:
     STOPWORDS = True
@@ -146,21 +154,6 @@ if __name__ == '__main__':
     headlines = 'headlines'
     dataset = 'data/text/' + headlines
     ##################
-
-    print("Loading datasets...")
-
-    text_loader = loader.TextLoader(dataset, classify=False, partition=0.8, classes=True,\
-                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
-
-    train_loader = torch.utils.data.DataLoader(
-        TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
-                batch_size=args.batch_size, shuffle=True, **kwargs)
-    print("Loading testset...")
-
-    test_loader = torch.utils.data.DataLoader(
-        TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
-                batch_size=args.test_batch_size, shuffle=True, **kwargs)
-    print("Done loading datasets!")
 
 
     # Different Models:
@@ -177,6 +170,28 @@ if __name__ == '__main__':
         q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
     elif LRUA:
         q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
+
+    print("Loading datasets...")
+    text_loader = loader.TextLoader(dataset, classify=False, partition=0.8, classes=True,\
+                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
+
+    # MARGIN SAMPLING:
+    train_loader = torch.utils.data.DataLoader(
+        TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
+                batch_size=args.batch_size, shuffle=True, **kwargs)
+    
+    # NO MARGIN:
+    """
+    train_loader = torch.utils.data.DataLoader(
+        TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+                batch_size=args.batch_size, shuffle=True, **kwargs)
+    """
+    
+    print("Loading testset...")
+    test_loader = torch.utils.data.DataLoader(
+        TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
+                batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    print("Done loading datasets!")
 
     # Modules:
     rl = rl(classes)
@@ -199,6 +214,7 @@ if __name__ == '__main__':
     total_prediction_accuracy= []
     total_loss = []
     total_reward = []
+    all_margins = []
     best = -30
     start_time = time.time()
 
@@ -246,14 +262,14 @@ if __name__ == '__main__':
         for epoch in range(args.start_epoch, args.epochs + 1):
 
             ### TRAINING ###
-            print("\n\n--- Training epoch " + str(epoch) + " ---\n")
+            print("\n\n--- " + args.name + ": Training epoch " + str(epoch) + " ---\n")
             
             if (len(total_reward) > 0):
                 best_index = np.argmax(total_reward)
             
                 print_best_stats([best, total_prediction_accuracy[best_index], total_accuracy[best_index], total_requests[best_index]])
 
-            stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES, class_margin_sampler)
             
             episode += args.batch_size
 
@@ -285,7 +301,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best,
                     'time': time.time() - start_time
                 }, filename="best.pth.tar")
@@ -303,7 +319,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best,
                     'time': time.time() - start_time
                 })
@@ -321,7 +337,7 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': train_loader.dataset.all_margins,
+                    'all_margins': class_margin_sampler.all_margins,
                     'best': best,
                     'time': time.time() - start_time
                 }, filename="backup.pth.tar")
@@ -441,7 +457,7 @@ if __name__ == '__main__':
             'train_pred_dict': train_pred_dict,
             'tot_loss': total_loss,
             'tot_reward': total_reward,
-            'all_margins': train_loader.dataset.all_margins,
+            'all_margins': class_margin_sampler.all_margins,
             'best': best
         }, filename="testpoint.pth.tar")
         

@@ -76,6 +76,8 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 	# Create a dictionary first:
 	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
 
+	print("Created dictionary of size: ", len(word_dictionary.dictionary.word2idx))
+
 	# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
 	label_dict = {}

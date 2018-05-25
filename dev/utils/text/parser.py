@@ -9,6 +9,15 @@ import random
 from utils.text import pattern_repl as pr
 
 import nltk
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+    
 nltk.download("stopwords")
 
 
@@ -24,12 +33,14 @@ class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
         self.idx2word = []
+        self.oov_index = 1
 
     def add_word(self, word):
-        # NEED TO SAVE 0 INDEX FOR "UNKNOWN" WORDS:
+        # NEED TO SAVE MAX INDEX FOR "UNKNOWN" WORDS, AND 0 INDEX FOR PADDING:
         if word not in self.word2idx:
             self.word2idx[word] = len(self.idx2word) + 1
             self.idx2word.append(word)
+            self.oov_index += 1
 
     def __len__(self):
         return len(self.idx2word)
@@ -96,6 +107,9 @@ def return_all_data_from_file(path):
     all_words = []
     print("Loading from path: ", path)
     for root, dirs, files in os.walk(path):
+        print(len(files))
+        print("In directory: ", root)
+        input("OK length?")
         for file in files:
             if (".DS_Store" not in file):
                 new_file = []
@@ -111,6 +125,8 @@ def create_word_vectors(words, sen_len, corpus):
     sentence = torch.LongTensor(np.zeros(sen_len))
     count = 0
     for word in words:
+
+        # In Vocabulary:
         if word in corpus.dictionary.word2idx:
             if count > sen_len - 1:
                 text.append(sentence)
@@ -118,8 +134,19 @@ def create_word_vectors(words, sen_len, corpus):
                 count = 0
             sentence[count] = corpus.dictionary.word2idx[word]
             count += 1
+
+        # Out of Vocabulary, but still "counts":
+        else:
+            if count > sen_len - 1:
+                text.append(sentence)
+                sentence = torch.LongTensor(np.zeros(sen_len))
+                count = 0
+            sentence[count] = corpus.dictionary.oov_index
+            count += 1
+
     if (len(text) == 0):
         text.append(sentence)
+
     return text
 
 

@@ -11,7 +11,7 @@ from utils import transforms
 
 
 
-class TEXT(data.Dataset):
+class TextMargin(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
     training_file = 'training.pt'
@@ -26,7 +26,7 @@ class TEXT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, margin_time=4, CMS=2, q_network=None):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -35,6 +35,9 @@ class TEXT(data.Dataset):
         self.episode_size = episode_size
         self.classify = data_loader.classify
         self.scenario_size = scenario_size
+        self.margin_time = margin_time
+        self.CMS = CMS
+        self.q_network = q_network
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
@@ -119,7 +122,7 @@ class TEXT(data.Dataset):
                 # Collect randomly drawn classes:
                 accepted = False
                 while not accepted:
-                    text_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
+                    text_classes = np.random.choice(len(self.train_labels), self.classes*self.CMS, replace=False)
                     accepted = True
                     for i in text_classes:
                         if (len(self.train_data[i]) < int(self.episode_size / self.classes)):
@@ -127,21 +130,21 @@ class TEXT(data.Dataset):
 
                 # Give random class-slot in vector:
                 ind = 0
-                count = 0
                 for i in text_classes:
+                    n = 0
                     for j in self.train_data[i]:
-                        if (len(j) == 0):
-                            count += 1
-                            continue
+                        if (n >= int(self.episode_size/self.classes)):
+                            break
 
                         text_list.append(j)
                         label_list.append(ind)
+                        n += 1
                     ind += 1
             else:
                 # Collect randomly drawn classes:
                 accepted = False
                 while not accepted:
-                    text_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
+                    text_classes = np.random.choice(len(self.test_labels), self.classes*self.CMS, replace=False)
                     accepted = True
                     for i in text_classes:
                         if (len(self.test_data[i]) < int(self.episode_size / self.classes)):
@@ -150,42 +153,30 @@ class TEXT(data.Dataset):
                 # Give random class-slot in vector:
                 ind = 0
                 for i in text_classes:
+                    n = 0
                     for j in self.test_data[i]:
+                        if (n >= int(self.episode_size/self.classes)):
+                            break
                         text_list.append(j)
                         label_list.append(ind)
+                        n += 1
                     ind += 1
 
-            text_indexes = np.random.choice(len(text_list), self.episode_size, replace=False)
-
-            episode_texts, episode_labels = [], []
+            print("\nTransforming...") 
             tensor_length = self.tensor_length
-            for index in text_indexes:
-                episode_texts.append(text_list[index])
-                episode_labels.append(label_list[index])
 
-            if (self.cuda):
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
-            else:
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
+            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(len(text_list))]))
             
-            episode_tensor = zero_tensor.view(self.episode_size, tensor_length, self.sentence_length)
+            episode_tensor = zero_tensor.view(len(text_list), tensor_length, self.sentence_length)
 
-            episode_list = list(zip(episode_texts, episode_labels))
-
-            #shuffle_list = list(zip(text_list, label_list))
-            random.shuffle(episode_list)
-            shuffled_text, shuffled_labels = zip(*episode_list)
-
-            for i in range(self.episode_size):
+            for i in range(len(text_list)):
                 for j in range(tensor_length):
-                    if (j >= len(shuffled_text[i])):
+                    if (j >= len(text_list[i])):
                         break
-                    episode_tensor[i][j] = shuffled_text[i][j]
+                    episode_tensor[i][j] = text_list[i][j]
+            print("Done!\n")
 
-            if (self.cuda):
-                return episode_tensor, torch.LongTensor(shuffled_labels).cuda()
-            else:
-                return episode_tensor, torch.LongTensor(shuffled_labels)
+            return episode_tensor, torch.LongTensor(label_list)
 
     def __len__(self):
         if self.train:
