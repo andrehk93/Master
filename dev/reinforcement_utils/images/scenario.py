@@ -31,6 +31,7 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
     # Statistics again:    
     requests = []
     accuracies = []
+    request_percentage = []
 
     if (multi_state):
         class_representations = get_multiclass_representations(batch_size, class_vector_size)
@@ -65,21 +66,22 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
             q_values, hidden = model(Variable(state, volatile=True).type(torch.FloatTensor), hidden)
         
         q_values = F.softmax(q_values, dim=1)
-        """
-        if (i_e == 0):
-            print("Probabilities:\n")
-            for p in range(len(q_values[0])):
-                if (p < class_vector_size):
-                    print("Class " + str(p) + ":\t" + str(q_values.data[0][p])[0:4])
-                else:
-                    print("Request:\t" + str(q_values.data[0][p])[0:4])
-        """
+
         requests.append(torch.mean(q_values.data[:, -1]))
         accuracies.append(torch.mean(q_values.data[: ,: class_vector_size], 0))
 
-
         # Choosing the largest Q-values:
         model_actions = q_values.data.max(1)[1].view(batch_size)
+
+        # Logging action:
+        reqs = 0
+        total = 0
+        for a in model_actions:
+            if (a == class_vector_size):
+                reqs += 1
+            total += 1
+            
+        request_percentage.append(float(reqs/total))
 
         # NOT Performing Epsilon Greedy Exploration:
         agent_actions = model_actions
@@ -95,7 +97,7 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
 
         ### END TRAIN LOOP ###
 
-    return requests, accuracies
+    return requests, accuracies, request_percentage
 
 
 def get_multiclass_representations(batch_size, classes):
