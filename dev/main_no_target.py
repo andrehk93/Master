@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
     # CLASS MARGIN SAMPLING:
     MARGIN_TIME = 4
-    CMS = 2
+    CMS = 3
     ##################
 
     train_transform = transforms.Compose([
