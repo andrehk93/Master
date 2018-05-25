@@ -109,7 +109,7 @@ def bar_plot(lists, bar_type, name, labels, size):
                 bottom_list += np_lists[i]
         plt.ylabel("Class Q-value")
 
-    plt.legend(loc=0)
+    plt.legend(loc=9)
     plt.title("RL Scenario")
     plt.xlabel("Time step")
     
@@ -123,7 +123,7 @@ def bar_plot(lists, bar_type, name, labels, size):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lrua_standard/'
+    name = 'reinforced_lstm3/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     batch_size = 64
@@ -153,9 +153,9 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size, dataset)
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
     if (dataset == REUTERS_DATASET):
         name = "REUTERS_" + name

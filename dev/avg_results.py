@@ -6,13 +6,13 @@ from utils.plot import percent_scatterplot as scatterplot
 from utils import tablewriter
 
 directory = "results/plots/"
-model = "reinforced_lstm_r1_margin"
+model = "reinforced_lstm_2"
 name = "avg_results" + "_" + model
 
 if not os.path.exists(directory + name):
         os.makedirs(directory + name)
 
-checkpoints = ["reinforced_lstm_margin_r1_t5", "reinforced_lstm_margin2"]
+checkpoints = ["reinforced_lstm2", "reinforced_lstm3"]
 
 #Scatterplots:
 total_acc_dict = {}
@@ -21,8 +21,11 @@ total_req_dict = {}
 # K-shot tables:
 total_test_acc_dict = {}
 total_test_req_dict = {}
+total_test_pred_dict = {}
+
 total_train_acc_dict = {}
 total_train_req_dict = {}
+total_train_pred_dict = {}
 
 # Avg. accuracies:
 total_training_stats = []
@@ -69,20 +72,29 @@ for c_point in checkpoints:
     # For K-shot tables:
     test_acc_dict = checkpoint['test_acc_dict']
     test_req_dict = checkpoint['test_req_dict']
+    #test_pred_dict = checkpoint['test_pred_dict']
+
     train_acc_dict = checkpoint['train_acc_dict']
     train_req_dict = checkpoint['train_req_dict']
+    #train_pred_dict = checkpoint['train_pred_dict']
 
     for key in test_acc_dict.keys():
         if (key not in total_test_acc_dict):
             total_test_acc_dict[key] = test_acc_dict[key]
             total_test_req_dict[key] = test_req_dict[key]
+            #total_test_pred_dict[key] = test_pred_dict[key]
+
             total_train_acc_dict[key] = train_acc_dict[key]
             total_train_req_dict[key] = train_req_dict[key]
+            #total_train_pred_dict[key] = train_pred_dict[key]
         else:
             total_test_acc_dict[key] = list(map(add, total_test_acc_dict[key], test_acc_dict[key]))
             total_test_req_dict[key] = list(map(add, total_test_req_dict[key], test_req_dict[key]))
+            #total_test_pred_dict[key] = list(map(add, total_test_pred_dict[key], test_pred_dict[key]))
+
             total_train_acc_dict[key] = list(map(add, total_train_acc_dict[key], train_acc_dict[key]))
             total_train_req_dict[key] = list(map(add, total_train_req_dict[key], train_req_dict[key]))
+            #total_train_pred_dict[key] = list(map(add, total_train_pred_dict[key], train_pred_dict[key]))
 
 
 # Averaging accuracies:
@@ -90,8 +102,7 @@ for stat in range(len(total_training_stats)):
     for s in range(len(total_training_stats[stat])):
         total_training_stats[stat][s] = float(total_training_stats[stat][s]/len(checkpoints))
         total_test_stats[stat][s] = float(total_test_stats[stat][s]/len(checkpoints))
-    print("t: ", total_training_stats[stat])
-    input("OK")
+ 
 
 
 tablewriter.write_stats(total_training_stats[1], total_training_stats[0], -1.0, name + "/")
@@ -108,7 +119,8 @@ for key in total_acc_dict.keys():
 
 scatterplot.plot(total_acc_dict, name + "/", 50, title=model + "Prediction Accuracy")
 scatterplot.plot(total_req_dict, name + "/", 50, title=model + "Total Requests")
-
+scatterplot.plot(total_acc_dict, name + "/", 50, title=model + "Prediction Accuracy", zoom=True)
+scatterplot.plot(total_req_dict, name + "/", 50, title=model + "Total Requests", zoom=True)
 
 
 
@@ -122,7 +134,14 @@ for key in total_test_acc_dict.keys():
         total_test_req_dict[key][r] = float(total_test_req_dict[key][r]/len(checkpoints))
     for r in range(len(total_train_req_dict[key])):
         total_train_req_dict[key][r] = float(total_train_req_dict[key][r]/len(checkpoints))
-
-tablewriter.print_k_shot_tables(total_test_acc_dict, total_test_req_dict, "test", name + "/")
-tablewriter.print_k_shot_tables(total_train_acc_dict, total_train_req_dict, "train", name + "/")
+    """
+    for p in range(len(total_test_pred_dict[key])):
+        total_test_pred_dict[key][r] = float(total_test_pred_dict[key][r]/len(checkpoints))
+    for p in range(len(total_train_pred_dict[key])):
+        total_train_pred_dict[key][r] = float(total_train_pred_dict[key][r]/len(checkpoints))
+    """
+total_test_pred_dict = {1: [0], 2: [0], 5: [0], 10: [0]}
+total_train_pred_dict = {1: [0], 2: [0], 5: [0], 10: [0]}
+tablewriter.print_k_shot_tables(total_test_pred_dict, total_test_acc_dict, total_test_req_dict, "test", name + "/")
+tablewriter.print_k_shot_tables(total_train_pred_dict, total_train_acc_dict, total_train_req_dict, "train", name + "/")
 
