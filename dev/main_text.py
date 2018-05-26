@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_margin_test/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_standard/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_margin_test/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_standard/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_margin_test/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_standard/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm_margin_test', type=str,
+parser.add_argument('--name', default='headlines_lstm_standard', type=str,
                     help='name of file')
 
 # Seed:
@@ -176,16 +176,17 @@ if __name__ == '__main__':
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
 
     # MARGIN SAMPLING:
+    """
     train_loader = torch.utils.data.DataLoader(
         TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
-    
+
     # NO MARGIN:
     """
     train_loader = torch.utils.data.DataLoader(
         TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
-    """
+    
     
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(

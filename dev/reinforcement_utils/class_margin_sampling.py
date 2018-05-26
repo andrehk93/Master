@@ -55,7 +55,7 @@ class ClassMarginSampler():
 
             
             # Transforming images:
-            margin_image_batch = self.transform_images(image_class_batch, label_class_batch, batch_size, rotations, current_class)
+            margin_image_batch = self.transform_images(image_class_batch, batch_size, rotations, current_class)
             
             # Get class prediction value:
 
@@ -69,11 +69,14 @@ class ClassMarginSampler():
             # Create new state:
             state = []
             for b in range(batch_size):
-                state.append([1 if j == rand_label else 0 for j in range(self.c)])
+                if (margin.data.max(1)[1][b] == self.c + 1):
+                    state.append([1 if j == rand_label else 0 for j in range(self.c)])
+                else:
+                    state.append([0 for j in range(self.c)])
             
             # First time new class:
             if (current_margin_time < self.m_t):
-                margins[current_class] = torch.abs(margin.data.max(1)[0]) + margins[current_class]
+                margins[current_class] = torch.abs(margin.data[:, 0 : self.c].max(1)[0]) + margins[current_class]
                 current_margin_time += 1
             
             # n >= margin-time:
@@ -90,7 +93,7 @@ class ClassMarginSampler():
         margin_class_batch = self.compare_margins(margins)
 
         # Storing the max margin:
-        self.all_margins.append(torch.mean(margins.t().max(1)[0]))
+        self.all_margins.append(torch.mean(margins[:, 0 : self.c].t().max(1)[0]))
 
         episode_batch_final = torch.FloatTensor(int(self.c*10), batch_size, image_size, image_size)
         label_batch_final  = torch.LongTensor(int(self.c*10), batch_size)
