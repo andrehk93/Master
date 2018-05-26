@@ -11,13 +11,19 @@ import copy
 #Discount:
 GAMMA = 0.5
 
-def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, nof_sentences):
+def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, nof_sentences, class_margin_sampler):
+
+    # Set up CMS:
+    q_network.eval()    
+
+    # Collect a random batch:
+    margin_batch, margin_label_batch = train_loader.__iter__().__next__()
+
+    # Get margin classes:
+    text_batch, label_batch = class_margin_sampler.sample_text(margin_batch, margin_label_batch, q_network, args.batch_size)
 
     # Initialize training:
     q_network.train()
-
-    # Collect a random batch:
-    text_batch, label_batch = train_loader.__iter__().__next__()
 
     # Episode Statistics:
     episode_correct = 0.0
@@ -48,10 +54,10 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         loss = Variable(torch.zeros(1).type(torch.Tensor))
 
     # EPISODE LOOP:
-    for i_e in range(len(label_batch[0])):
+    for i_e in range(len(label_batch)):
 
         # Collecting timestep image/label batch:
-        episode_labels, episode_texts = label_batch[:, i_e], text_batch[:, i_e]
+        episode_labels, episode_texts = label_batch[i_e], text_batch[i_e]
 
         episode_texts = episode_texts.squeeze()
         
@@ -118,7 +124,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Non-final state, collected by TARGET NETWORK:
         if (i_e < args.episode_size - 1):
             # Collect next state:
-            next_episode_texts = text_batch[:, i_e + 1].squeeze()
+            next_episode_texts = text_batch[i_e + 1].squeeze()
 
             if (args.cuda):
                 next_state = Variable(torch.FloatTensor(next_state_start), volatile=True).cuda()

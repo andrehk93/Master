@@ -76,35 +76,38 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 	# Create a dictionary first:
 	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
 
+	print("Created dictionary of size: ", len(word_dictionary.dictionary.word2idx))
+
 	# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
 	label_dict = {}
 	label = label_start
 	progress = 0
 	for (root, dirs, files) in os.walk(path):
-		for f in files:
-			if (progress % 10000 == 0):
-				print("Reading file [" + str(progress) + "/" + str(len(files)) + "]")
-			if (f != ".DS_Store" and "unknown" != root.split("\\")[-1].strip()):
-				# Reading text file:
-				text = open(os.path.join(root, f), "r").read()
+		if (len(files) >= 10):
+			for f in files:
+				if (progress % 10000 == 0):
+					print("Reading file [" + str(progress) + "]")
+				if (f != ".DS_Store" and "unknown" != root.split("\\")[-1].strip()):
+					# Reading text file:
+					text = open(os.path.join(root, f), "r").read()
 
-				# Parsing text-file, and update Corpus:
-				text = parser.create_word_vectors(parser.parse(text, stopwords), sentence_length, word_dictionary)
+					# Parsing text-file, and update Corpus:
+					text = parser.create_word_vectors(parser.parse(text, stopwords), sentence_length, word_dictionary)
 
-				if (root not in label_dict):
-					label_dict[root] = label
-					label += 1
+					if (root not in label_dict):
+						label_dict[root] = label
+						label += 1
 
-				if (label_dict[root] not in uniform_distr):
-					uniform_distr[label_dict[root]] = [text]
+					if (label_dict[root] not in uniform_distr):
+						uniform_distr[label_dict[root]] = [text]
+					else:
+						uniform_distr[label_dict[root]].append(text)
+				# Skipping the "unknown" folder:
 				else:
-					uniform_distr[label_dict[root]].append(text)
-			# Skipping the "unknown" folder:
-			else:
-				break
+					break
 
-			progress += 1
+				progress += 1
 
 	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes), word_dictionary
 
