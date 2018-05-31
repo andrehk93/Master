@@ -22,6 +22,7 @@ class ClassMarginSampler():
         self.sentence_length = sentence_length
         self.tensor_length = tensor_length
         self.all_margins = []
+        self.all_choices = []
 
     def sample_images(self, image_batch, label_batch, q_network, batch_size, image_size=20):
 
@@ -37,6 +38,7 @@ class ClassMarginSampler():
         next_class = False
         current_class = 0
         margins = torch.zeros(self.cms, batch_size)
+        choices = np.zeros(self.c + 1)
 
         rotations = [np.random.choice(4, batch_size, replace=True) for i in range(self.cms)]
 
@@ -73,7 +75,9 @@ class ClassMarginSampler():
             
             # First time new class:
             if (current_margin_time < self.m_t):
-                margins[current_class] = torch.abs(margin.data[:, 0 : self.c].max(1)[0]) + margins[current_class]
+                for m_ind in margin.data.max(1)[1]:
+                    choices[m_ind] += 1
+                margins[current_class] = torch.abs(margin.data.max(1)[0]) + margins[current_class]
                 current_margin_time += 1
             
             # n >= margin-time:
@@ -91,6 +95,7 @@ class ClassMarginSampler():
 
         # Storing the max margin:
         self.all_margins.append(torch.mean(margins.t().max(1)[0]))
+        self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
 
         episode_batch_final = torch.FloatTensor(int(self.c*10), batch_size, image_size, image_size)
         label_batch_final  = torch.LongTensor(int(self.c*10), batch_size)
@@ -173,7 +178,7 @@ class ClassMarginSampler():
             
             # First time new class:
             if (current_margin_time < self.m_t):
-                margins[current_class] = torch.abs(margin.data[:, 0 : self.c].max(1)[0]) + margins[current_class]
+                margins[current_class] = torch.abs(margin.data.max(1)[0]) + margins[current_class]
                 current_margin_time += 1
             
             # n >= margin-time:
@@ -189,6 +194,7 @@ class ClassMarginSampler():
         
         # Get the c lowest margin class indexes:
         margin_class_batch = self.compare_margins(margins)
+
 
         # Storing the max margin:
         self.all_margins.append(torch.mean(margins.t().max(1)[0]))
