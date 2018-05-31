@@ -27,6 +27,8 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
     requests = []
     accuracies = []
     request_percentage = []
+    prediction_accuracy_percentage = []
+    accuracy_percentage = []
 
 
     # EPISODE LOOP:
@@ -61,12 +63,17 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
         # Logging action:
         reqs = 0
         total = 0
+        accs = 0
         for a in model_actions:
             if (a == class_vector_size):
                 reqs += 1
+            elif (a == episode_labels[total]):
+                accs += 1
             total += 1
             
         request_percentage.append(float(reqs/total))
+        prediction_accuracy_percentage.append(float(accs/max(1, (total-reqs))))
+        accuracy_percentage.append(float(accs/total))
 
         # NOT Performing Epsilon Greedy Exploration:
         agent_actions = model_actions
@@ -79,7 +86,7 @@ def run(model, scenario_loader, batch_size, reinforcement_learner, class_vector_
 
         ### END TRAIN LOOP ###
 
-    return requests, accuracies, request_percentage
+    return requests, accuracies, request_percentage, prediction_accuracy_percentage, accuracy_percentage
 
 
 def get_singleclass_representations(batch_size, classes, episode_labels):

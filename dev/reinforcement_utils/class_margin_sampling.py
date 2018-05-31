@@ -69,10 +69,7 @@ class ClassMarginSampler():
             # Create new state:
             state = []
             for b in range(batch_size):
-                if (margin.data.max(1)[1][b] == self.c + 1):
-                    state.append([1 if j == rand_label else 0 for j in range(self.c)])
-                else:
-                    state.append([0 for j in range(self.c)])
+                state.append([1 if j == rand_label else 0 for j in range(self.c)])
             
             # First time new class:
             if (current_margin_time < self.m_t):
@@ -172,10 +169,7 @@ class ClassMarginSampler():
             # Create new state:
             state = []
             for b in range(batch_size):
-                if (margin.data.max(1)[1][b] == self.c + 1):
-                    state.append([1 if j == rand_label else 0 for j in range(self.c)])
-                else:
-                    state.append([0 for j in range(self.c)])
+                state.append([1 if j == rand_label else 0 for j in range(self.c)])
             
             # First time new class:
             if (current_margin_time < self.m_t):
@@ -201,6 +195,9 @@ class ClassMarginSampler():
 
         episode_batch_final = torch.LongTensor(int(self.c*10), batch_size, self.tensor_length)
         label_batch_final  = torch.LongTensor(int(self.c*10), batch_size)
+
+        print("Final classes: ", margin_class_batch.t())
+        input("OK?")
 
         # Iterate over classes to select (meaning batch):
         b = 0
@@ -230,9 +227,15 @@ class ClassMarginSampler():
 
                 episode_batch_final[t][b] = text
                 label_batch_final[t][b] = pseudo_label
+                print("Label ", label, " got Pseudo label: ", pseudo_label)
+                input("OK")
                 t += 1
             b += 1
-
+        print(episode_batch_final.size())
+        print(label_batch_final.size())
+        for e in range(len(episode_batch_final)):
+            print(label_batch_final[e][0])
+        input("OK labels?")
         return episode_batch_final, label_batch_final
 
 

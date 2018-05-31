@@ -11,7 +11,7 @@ import copy
 #Discount:
 GAMMA = 0.5
 
-def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, class_margin_sampler, multi_state=False, state_size=5):
+def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, class_margin_sampler, multi_state=False, state_size=5, margin=False):
 
     # For faster margin calculation:
     q_network.eval()
@@ -20,7 +20,11 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     margin_batch, margin_label_batch = train_loader.__iter__().__next__()
 
     # Get margin classes:
-    image_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch, q_network, args.batch_size)
+    if (margin):
+        image_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch, q_network, args.batch_size)
+    else:
+        image_batch = margin_batch
+        label_batch = margin_label_batch
 
     # Initialize training:
     q_network.train()

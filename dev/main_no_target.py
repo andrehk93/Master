@@ -45,11 +45,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=32, metavar='N',
+parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=32, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
@@ -77,19 +77,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lrua_margin_cm3_2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lrua_r2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lrua_margin_cm3_2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lrua_r2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lrua_margin_cm3_2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lrua_r2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lrua_margin_cm3_2', type=str,
+parser.add_argument('--name', default='reinforced_lrua_r2', type=str,
                     help='name of file')
 
 # Seed:
@@ -156,6 +156,7 @@ if __name__ == '__main__':
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
 
     # CLASS MARGIN SAMPLING:
+    MARGIN = False
     MARGIN_TIME = 4
     CMS = 3
     ##################
@@ -202,7 +203,7 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-
+    """
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -210,7 +211,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
-    """
+    
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -307,7 +308,7 @@ if __name__ == '__main__':
 
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion,\
-            class_margin_sampler, multi_state=multi_state, state_size=state_size)
+            class_margin_sampler, multi_state=multi_state, state_size=state_size, margin=MARGIN)
             
             episode += args.batch_size
 

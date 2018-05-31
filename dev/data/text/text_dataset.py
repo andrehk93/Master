@@ -26,7 +26,7 @@ class TEXT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, scenario_type=0, class_choice=0):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -35,6 +35,8 @@ class TEXT(data.Dataset):
         self.episode_size = episode_size
         self.classify = data_loader.classify
         self.scenario_size = scenario_size
+        self.scenario_type = scenario_type
+        self.class_choice = class_choice
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
@@ -67,40 +69,127 @@ class TEXT(data.Dataset):
         text_list = []
         label_list = []
         if self.scenario:
-            # Collect randomly drawn classes:
-            accepted = False
-            while not accepted:
-                text_classes = np.random.choice(len(self.test_labels), 2, replace=False)
-                accepted = True
-                for i in text_classes:
-                    if (len(self.test_data[i]) < self.scenario_size):
-                        accepted = False
-
-            # Give random class-slot in vector:
-            ind = 0
-            for i in text_classes:
-                if (ind == 0):
-                    for j in range(self.scenario_size):
-                        text_list.append(self.test_data[i][j])
-                        label_list.append(ind)
+            texts = []
+            # As in Active One-Shot Learning:
+            if (self.scenario_type == 0):
+                if (self.train):
+                    txt_classes = np.random.choice(len(self.train_labels), 2, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        if (ind == 0):
+                            for j in range(self.scenario_size):
+                                texts.append((self.train_data[i][j], ind))
+                        else:
+                            texts.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
+                        ind += 1
                 else:
-                    text_list.append(self.test_data[i][random.randint(0, len(self.test_data[i]) -1)])
-                    label_list.append(ind)
-                ind += 1
+                    txt_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        if (ind == 0):
+                            for j in range(self.scenario_size):
+                                texts.append((self.test_data[i][j], ind))
+                        else:
+                            texts.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                        ind += 1
+
+            # Zero-shot scenario:
+            elif (self.scenario_type == 1):
+                if (self.train):
+                    txt_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        if (ind == self.class_choice):
+                            for j in range(self.scenario_size):
+                                texts.append((self.train_data[i][j], ind))
+                        else:
+                            texts.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
+                        ind += 1
+                else:
+                    txt_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        if (ind == self.class_choice):
+                            for j in range(self.scenario_size):
+                                texts.append((self.test_data[i][j], ind))
+                        else:
+                            texts.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                        ind += 1
+            # K-shot scenario:
+            elif (self.scenario_type == 2):
+                if (self.train):
+                    txt_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        txt_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
+                        for j in txt_samples:
+                            texts.append((self.train_data[i][j], ind))
+                        ind += 1
+                else:
+                    txt_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    ind = 0
+                    for i in txt_classes:
+                        txt_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                        for j in txt_samples:
+                            texts.append((self.test_data[i][j], ind))
+                        ind += 1
+            # One-shot scenario:
+            elif (self.scenario_type == 3):
+                if (self.train):
+                    txt_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    appended_texts = []
+                    ind = 0
+                    k = 0
+                    for i in txt_classes:
+                        if (ind == self.class_choice):
+                            txt_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
+                        else:
+                            txt_samples = np.random.choice(len(self.train_data[i]), 1, replace=False)
+                        for j in txt_samples:
+                            if (ind == self.class_choice):
+                                if (k == 0):
+                                    texts.append((self.train_data[i][j], ind))
+                                else:
+                                    appended_texts.append((self.train_data[i][j], ind))
+                            else:
+                                texts.append((self.train_data[i][j], ind))
+                            k += 1
+                        ind += 1
+                    for txt in appended_texts:
+                        texts.append(txt)
+                else:
+                    txt_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    appended_texts = []
+                    ind = 0
+                    k = 0
+                    for i in txt_classes:
+                        if (ind == self.class_choice):
+                            txt_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                        else:
+                            txt_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
+                        for j in txt_samples:
+                            if (ind == 0):
+                                if (k == self.class_choice):
+                                    texts.append((self.test_data[i][j], ind))
+                                else:
+                                    appended_texts.append((self.test_data[i][j], ind))
+                            else:
+                                texts.append((self.test_data[i][j], ind))
+                            k += 1
+                        ind += 1
+                    for txt in appended_texts:
+                        texts.append(txt)
 
 
             episode_texts, episode_labels = [], []
             tensor_length = self.tensor_length
-            for index in range(len(text_list)):
-                episode_texts.append(text_list[index])
-                episode_labels.append(label_list[index])
+            for index in range(len(texts)):
+                txt, lbl = texts[index]
+                episode_texts.append(txt)
+                episode_labels.append(lbl)
 
-            if (self.cuda):
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.scenario_size + 1)]))
-            else:
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.scenario_size + 1)]))
-            
-            episode_tensor = zero_tensor.view(self.scenario_size + 1, tensor_length, self.sentence_length)
+            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(len(texts))]))
+            episode_tensor = zero_tensor.view(len(texts), tensor_length, self.sentence_length)
 
             for i in range(len(episode_texts)):
                 for j in range(tensor_length):
@@ -108,44 +197,27 @@ class TEXT(data.Dataset):
                         break
                     episode_tensor[i][j] = episode_texts[i][j]
 
-            if (self.cuda):
-                return episode_tensor, torch.LongTensor(episode_labels).cuda()
-            else:
-                return episode_tensor, torch.LongTensor(episode_labels)
+            return episode_tensor, torch.LongTensor(episode_labels)
 
 
         else:
             if self.train:
                 # Collect randomly drawn classes:
-                accepted = False
-                while not accepted:
-                    text_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-                    accepted = True
-                    for i in text_classes:
-                        if (len(self.train_data[i]) < int(self.episode_size / self.classes)):
-                            accepted = False
+                text_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
+
 
                 # Give random class-slot in vector:
                 ind = 0
                 count = 0
                 for i in text_classes:
                     for j in self.train_data[i]:
-                        if (len(j) == 0):
-                            count += 1
-                            continue
 
                         text_list.append(j)
                         label_list.append(ind)
                     ind += 1
             else:
                 # Collect randomly drawn classes:
-                accepted = False
-                while not accepted:
-                    text_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
-                    accepted = True
-                    for i in text_classes:
-                        if (len(self.test_data[i]) < int(self.episode_size / self.classes)):
-                            accepted = False
+                text_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
 
                 # Give random class-slot in vector:
                 ind = 0
@@ -188,6 +260,9 @@ class TEXT(data.Dataset):
                 return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):
+        # Max batch size:
+        return 256
+
         if self.train:
             return len(self.train_data)
         else:

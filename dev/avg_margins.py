@@ -50,6 +50,9 @@ if os.path.isfile(checkpoint):
     epoch = checkpoint['epoch']
     all_margins = checkpoint['all_margins']
 
+print("LENGTH OF MARGINS: ", len(all_margins))
+input("OK?")
+
 new_margins = []
 
 for m in range(0, len(all_margins), batch_size):
