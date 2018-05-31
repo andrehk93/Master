@@ -109,7 +109,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
             return img_list, target_list
 
         else:
-            images = []
+            img_list, target_list = [], []
             if self.train:
                 # Train-dataset:
                 img_classes = np.random.choice(len(self.train_labels), int(self.classes*self.CMS), replace=False)
@@ -117,7 +117,8 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 ind = 0
                 for i in img_classes:
                     for j in self.train_data[i]:
-                        images.append((j, ind))
+                        img_list.append(j)
+                        target_list.append(ind)
                     ind += 1
 
             else:
@@ -126,37 +127,9 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 ind = 0
                 for i in img_classes:
                     for j in self.test_data[i]:
-                        images.append((j, ind))
+                        img_list.append(j)
+                        target_list.append(ind)
                     ind += 1
-
-            img_list = []
-            target_list = []
-
-            
-            for image in images:
-                img, label = image
-
-                """
-                img = Image.fromarray(img.numpy())
-
-                if self.transform is not None:
-                    if (self.train):
-                        # Applying class specific rotations:
-                        if (image_rotations[rot_label] == 90):
-                            img = transforms.vflip(img)
-                        elif (image_rotations[rot_label] == 180):
-                            img = transforms.hflip(img)
-                        elif (image_rotations[rot_label] == 270):
-                            img = transforms.hflip(transforms.vflip(img))
-                    img = self.transform(img)
-
-                # Normalizing (pixels are binary):
-                threshold = torch.Tensor([0.0])
-                img = (img == threshold).float() * 1
-                """
-
-                img_list.append(img)
-                target_list.append(label)
 
             return img_list, target_list
 

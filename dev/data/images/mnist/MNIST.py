@@ -39,12 +39,14 @@ class MNIST(data.Dataset):
     training_file = 'training.pt'
     test_file = 'test.pt'
 
-    def __init__(self, root, transform=None, target_transform=None, download=False, scenario_size=5, episode_size=30, classes=3, scenario=False):
+    def __init__(self, root, transform=None, target_transform=None, download=False, scenario_size=5, episode_size=30, classes=3, scenario=False, scenario_type=0, class_choice=0):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.scenario_size = scenario_size
         self.episode_size = episode_size
+        self.scenario_type = scenario_type
+        self.class_choice = class_choice
         self.classes = classes
         self.scenario = scenario
 
@@ -60,15 +62,62 @@ class MNIST(data.Dataset):
     def __getitem__(self, index):
         if (self.scenario):
             images = []
-            img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
-            ind = 0
-            for i in img_classes:
-                if (ind == 0):
-                    for j in range(self.scenario_size):
+            # As in Active One-Shot Learning:
+            if (self.scenario_type == 0):
+                img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                ind = 0
+                for i in img_classes:
+                    if (ind == 0):
+                        for j in range(self.scenario_size):
+                            images.append((self.test_data[i][j], ind))
+                    else:
+                        images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                    ind += 1
+
+            # My own:
+            elif (self.scenario_type == 1):
+                img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                ind = 0
+                for i in img_classes:
+                    if (ind == 0):
+                        for j in range(self.scenario_size):
+                            images.append((self.test_data[i][j], ind))
+                    else:
+                        images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                    ind += 1
+
+            elif (self.scenario_type == 2):
+                img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                ind = 0
+                for i in img_classes:
+                    img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                    for j in img_samples:
                         images.append((self.test_data[i][j], ind))
-                else:
-                    images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
-                ind += 1
+                    ind += 1
+
+            elif (self.scenario_type == 3):
+                img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                appended_images = []
+                ind = 0
+                k = 0
+                for i in img_classes:
+                    if (ind == self.class_choice):
+                        img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                    else:
+                        img_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
+                    for j in img_samples:
+                        if (ind == self.class_choice):
+                            if (k == 0):
+                                images.append((self.test_data[i][j], ind))
+                            else:
+                                appended_images.append((self.test_data[i][j], ind))
+                        else:
+                            images.append((self.test_data[i][j], ind))
+                        k += 1
+                    ind += 1
+                for img in appended_images:
+                    images.append(img)
+
             img_list, target_list = [], [] 
 
             for i in range(len(images)):

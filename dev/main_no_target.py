@@ -156,6 +156,7 @@ if __name__ == '__main__':
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
 
     # CLASS MARGIN SAMPLING:
+    MARGIN = False
     MARGIN_TIME = 4
     CMS = 3
     ##################
@@ -202,7 +203,7 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-
+    """
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -210,7 +211,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
-    """
+    
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -307,7 +308,7 @@ if __name__ == '__main__':
 
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion,\
-            class_margin_sampler, multi_state=multi_state, state_size=state_size)
+            class_margin_sampler, multi_state=multi_state, state_size=state_size, margin=MARGIN)
             
             episode += args.batch_size
 

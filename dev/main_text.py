@@ -160,9 +160,9 @@ if __name__ == '__main__':
     # Different Models:
     classes = args.class_vector_size
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
 
     if LSTM:

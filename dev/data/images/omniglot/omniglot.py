@@ -25,13 +25,15 @@ class OMNIGLOT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, test=False):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, test=False, scenario_type=0, class_choice=0):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.classes = classes
         self.episode_size = episode_size
+        self.scenario_type = scenario_type
+        self.class_choice = class_choice
         self.scenario = scenario
         self.test = test
         self.scenario_size = scenario_size
@@ -60,26 +62,118 @@ class OMNIGLOT(data.Dataset):
     def __getitem__(self, index):
         if self.scenario:
             images = []
-            if (self.train):
-                img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
-                ind = 0
-                for i in img_classes:
-                    if (ind == 0):
-                        for j in range(self.scenario_size):
+            # As in Active One-Shot Learning:
+            if (self.scenario_type == 0):
+                if (self.train):
+                    img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        if (ind == 0):
+                            for j in range(self.scenario_size):
+                                images.append((self.train_data[i][j], ind))
+                        else:
+                            images.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
+                        ind += 1
+                else:
+                    img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        if (ind == 0):
+                            for j in range(self.scenario_size):
+                                images.append((self.test_data[i][j], ind))
+                        else:
+                            images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                        ind += 1
+
+            # My own:
+            elif (self.scenario_type == 1):
+                if (self.train):
+                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        if (ind == self.class_choice):
+                            img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
+                            for j in img_samples:
+                                images.append((self.train_data[i][j], ind))
+                        else:
+                            images.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
+                        ind += 1
+                else:
+                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        if (ind == self.class_choice):
+                            img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                            for j in img_samples:
+                                images.append((self.test_data[i][j], ind))
+                        else:
+                            images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
+                        ind += 1
+            elif (self.scenario_type == 2):
+                if (self.train):
+                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
+                        for j in img_samples:
                             images.append((self.train_data[i][j], ind))
-                    else:
-                        images.append((self.train_data[i][random.randint(0, 19)], ind))
-                    ind += 1
-            else:
-                img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
-                ind = 0
-                for i in img_classes:
-                    if (ind == 0):
-                        for j in range(self.scenario_size):
+                        ind += 1
+                else:
+                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    ind = 0
+                    for i in img_classes:
+                        img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                        for j in img_samples:
                             images.append((self.test_data[i][j], ind))
-                    else:
-                        images.append((self.test_data[i][random.randint(0, 19)], ind))
-                    ind += 1
+                        ind += 1
+
+            elif (self.scenario_type == 3):
+                if (self.train):
+                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+                    appended_images = []
+                    ind = 0
+                    k = 0
+                    for i in img_classes:
+                        if (ind == self.class_choice):
+                            img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
+                        else:
+                            img_samples = np.random.choice(len(self.train_data[i]), 1, replace=False)
+                        for j in img_samples:
+                            if (ind == self.class_choice):
+                                if (k == 0):
+                                    images.append((self.train_data[i][j], ind))
+                                else:
+                                    appended_images.append((self.train_data[i][j], ind))
+                            else:
+                                images.append((self.train_data[i][j], ind))
+                            k += 1
+
+                        ind += 1
+                    for img in appended_images:
+                        images.append(img)
+                else:
+                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    appended_images = []
+                    ind = 0
+                    k = 0
+                    for i in img_classes:
+                        if (ind == self.class_choice):
+                            img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
+                        else:
+                            img_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
+                        for j in img_samples:
+                            if (ind == self.class_choice):
+                                if (k == 0):
+                                    images.append((self.test_data[i][j], ind))
+                                else:
+                                    appended_images.append((self.test_data[i][j], ind))
+                            else:
+                                images.append((self.test_data[i][j], ind))
+                            k += 1
+                        ind += 1
+                    for img in appended_images:
+                        images.append(img)
+
             img_list, target_list = [], [] 
 
             for i in range(len(images)):
