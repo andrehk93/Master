@@ -69,10 +69,7 @@ class ClassMarginSampler():
             # Create new state:
             state = []
             for b in range(batch_size):
-                if (margin.data.max(1)[1][b] == self.c + 1):
-                    state.append([1 if j == rand_label else 0 for j in range(self.c)])
-                else:
-                    state.append([0 for j in range(self.c)])
+                state.append([1 if j == rand_label else 0 for j in range(self.c)])
             
             # First time new class:
             if (current_margin_time < self.m_t):
@@ -172,10 +169,7 @@ class ClassMarginSampler():
             # Create new state:
             state = []
             for b in range(batch_size):
-                if (margin.data.max(1)[1][b] == self.c + 1):
-                    state.append([1 if j == rand_label else 0 for j in range(self.c)])
-                else:
-                    state.append([0 for j in range(self.c)])
+                state.append([1 if j == rand_label else 0 for j in range(self.c)])
             
             # First time new class:
             if (current_margin_time < self.m_t):
