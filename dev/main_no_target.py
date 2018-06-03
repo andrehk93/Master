@@ -77,19 +77,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_5/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_5/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_5/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_r2_cm3_5', type=str,
+parser.add_argument('--name', default='reinforced_lstm_r2_cm3_last', type=str,
                     help='name of file')
 
 # Seed:
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
     loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5)
     all_choices = np.array(all_choices)
-    loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=5)
+    loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=20)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")

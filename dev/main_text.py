@@ -33,11 +33,11 @@ from reinforcement_utils.text import train_text as train, test_text as test
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Batch size:
-parser.add_argument('--test-batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Episode size:
@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_standard_r2/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_cm2_test_2s/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_standard_r2/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_cm2_test_2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_standard_r2/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_cm2_test_2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm_standard_r2', type=str,
+parser.add_argument('--name', default='headlines_lstm_cm2_test_2', type=str,
                     help='name of file')
 
 # Seed:
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     ### PARAMETERS ###
 
     # CLASS MARGIN SAMPLING:
-    MARGIN = False
+    MARGIN = True
     MARGIN_TIME = 4
     CMS = 2
 
@@ -160,9 +160,9 @@ if __name__ == '__main__':
     # Different Models:
     classes = args.class_vector_size
 
-    LSTM = False
+    LSTM = True
     NTM = False
-    LRUA = True
+    LRUA = False
 
 
     if LSTM:
@@ -177,17 +177,17 @@ if __name__ == '__main__':
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
 
     # MARGIN SAMPLING:
-    """
+    
     train_loader = torch.utils.data.DataLoader(
         TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
-                batch_size=args.batch_size, shuffle=True, **kwargs)
+                batch_size=args.batch_size, shuffle=False, **kwargs)
 
     # NO MARGIN:
     """
     train_loader = torch.utils.data.DataLoader(
         TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
-    
+    """
     print("Loading testset...")
     test_loader = torch.utils.data.DataLoader(
         TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
@@ -216,6 +216,7 @@ if __name__ == '__main__':
     total_loss = []
     total_reward = []
     all_margins = []
+    all_choices = []
     best = -30
     start_time = time.time()
 
@@ -236,6 +237,7 @@ if __name__ == '__main__':
             total_reward = checkpoint['tot_reward']
             start_time -= checkpoint['time']
             all_margins = checkpoint['all_margins']
+            all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -244,6 +246,8 @@ if __name__ == '__main__':
             print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
 
     print("Current best: ", best)
+    class_margin_sampler.all_margins = all_margins
+    class_margin_sampler.all_choices = all_choices
 
     ### WEIGHT OPTIMIZER & CRITERION FOR LOSS ###
     optimizer = optim.Adam(q_network.parameters())
@@ -303,6 +307,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
                 }, filename="best.pth.tar")
@@ -321,6 +326,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
                 })
@@ -339,6 +345,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
                 }, filename="backup.pth.tar")
@@ -355,11 +362,14 @@ if __name__ == '__main__':
         except:
             done = True
 
+
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
     loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
+    all_choices = np.array(all_choices)
+    loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=5)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -459,6 +469,7 @@ if __name__ == '__main__':
             'tot_loss': total_loss,
             'tot_reward': total_reward,
             'all_margins': class_margin_sampler.all_margins,
+            'all_choices': class_margin_sampler.all_choices,
             'best': best
         }, filename="testpoint.pth.tar")
         

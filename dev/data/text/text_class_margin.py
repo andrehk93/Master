@@ -41,6 +41,7 @@ class TextMargin(data.Dataset):
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
+        self.printed = False
         if (self.classify):
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
@@ -85,9 +86,7 @@ class TextMargin(data.Dataset):
 
         tensor_length = self.tensor_length
 
-        zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(len(text_list))]))
-        
-        episode_tensor = zero_tensor.view(len(text_list), tensor_length, self.sentence_length)
+        episode_tensor = torch.zeros(len(text_list), tensor_length, self.sentence_length).type(torch.LongTensor)
 
         for i in range(len(text_list)):
             for j in range(tensor_length):
