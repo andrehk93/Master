@@ -25,9 +25,8 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
 
     # Averaging over 20 episodes:
     for s in specs:
-        length = min(20, len(s))
-        average = float(sum(s[len(s) - length:])/length)
-        stat_file.write(str(average)[0:4] + "\n")
+        average = float(sum(s)/len(s))
+        stat_file.write(str(average)[0:5] + "\n")
     stat_file.close()
 
     # Reading from stat_file:
@@ -107,11 +106,9 @@ def write_baseline_stats(accuracy, folder, test=False):
 
     stat_file.write(method + "\n")
 
-    # Averaging over 20 episodes:
     for s in specs:
-        length = min(20, len(s))
-        average = float(sum(s[len(s) - length:])/length)
-        stat_file.write(str(average)[0:4] + "\n")
+        average = float(sum(s)/len(s))
+        stat_file.write(str(average)[0:5] + "\n")
     stat_file.close()
 
     # Reading from stat_file:
