@@ -54,10 +54,22 @@ class NTMMemory(nn.Module):
     def write(self, w, e, a):
         """write to memory (according to section 3.2)."""
         self.prev_mem = self.memory
+        """
+        print("\nBEFORE:")
+        print("Memory: ", self.prev_mem)
+        print("Memory Size: ", self.prev_mem.size())
+        input("OK")
+        """
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
         erase = torch.matmul(w.unsqueeze(-1), e.unsqueeze(1))
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         self.memory = self.prev_mem * (1 - erase) + add
+        """
+        print("\nAFTER:")
+        print("Memory: ", self.memory)
+        print("Memory Size: ", self.memory.size())
+        input("OK")
+        """
 
     
 
@@ -74,11 +86,35 @@ class NTMMemory(nn.Module):
 
         # Content focus
         w_r = self._similarity(k, β)
-        
+
+        """
+        print("Read Weights: ", w_r)
+        print("Read Weights Size: ", w_r.size())
+        print("SUM: ", torch.sum(w_r[0, :]))
+        input("OK")
+        """
         # Location focus
         w_g = self._interpolate(w_prev, w_r, g)
+        """
+        print("Interpol Weights: ", w_g)
+        print("Interpol Weights Size: ", w_g.size())
+        print("SUM: ", torch.sum(w_g[0, :]))
+        input("OK")
+        """
         ŵ = self._shift(w_g, s)
+        """
+        print("Shifted Weights: ", ŵ)
+        print("Shifted Weights Size: ", ŵ.size())
+        print("SUM: ", torch.sum(ŵ[0, :]))
+        input("OK")
+        """
         w_t = self._sharpen(ŵ, γ)
+        """
+        print("Sharpened Weights: ", w_t)
+        print("Sharpened Weights Size: ", w_t.size())
+        print("SUM: ", torch.sum(w_t[0, :]))
+        input("OK")
+        """
 
         return w_t
 
