@@ -26,6 +26,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         text_batch = margin_batch
         label_batch = margin_label_batch
 
+
     # Initialize training:
     q_network.train()
 
@@ -64,7 +65,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         episode_labels, episode_texts = label_batch[:, i_e], text_batch[:, i_e]
 
         episode_texts = episode_texts.squeeze()
-        
+
         # Tensoring the state:
         if (args.cuda):
             state = Variable(torch.FloatTensor(state)).cuda()
@@ -123,6 +124,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             agent_actions = Variable(torch.LongTensor(agent_actions)).cuda().unsqueeze(1)
         else:
             agent_actions = Variable(torch.LongTensor(agent_actions)).unsqueeze(1)
+
         current_q_values = q_values.gather(1, agent_actions)
 
         # Non-final state, collected by TARGET NETWORK:

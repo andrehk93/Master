@@ -45,11 +45,11 @@ If train on whole dataset:
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
@@ -77,19 +77,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lstm_r1_cm2/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lstm_r1_cm2/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_r2_cm3_last/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lstm_r1_cm2/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lstm_r2_cm3_last', type=str,
+parser.add_argument('--name', default='reinforced_lstm_r1_cm2', type=str,
                     help='name of file')
 
 # Seed:
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     # CLASS MARGIN SAMPLING:
     MARGIN = True
     MARGIN_TIME = 4
-    CMS = 3
+    CMS = 2
     ##################
 
     train_transform = transforms.Compose([

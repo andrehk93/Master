@@ -105,8 +105,8 @@ class ClassMarginSampler():
         for m_c in margin_class_batch.t():
             images = []
             for c in m_c:
-                for i in range(len(image_batch[c*20 : c*20 + 20])):
-                    images.append((image_batch[c*20 : c*20 + 20][i][b], c))
+                for i in range(c*20, c*20 + 20):
+                    images.append((image_batch[i][b], c))
 
             class_indexes = np.random.choice(len(images), int(self.c*10), replace=False)
 
@@ -203,7 +203,7 @@ class ClassMarginSampler():
         self.all_margins.append(torch.mean(margins.t().max(1)[0]))
         self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
 
-        episode_batch_final = torch.zeros(batch_size, int(self.c*10), self.tensor_length).type(torch.LongTensor)
+        episode_batch_final = torch.zeros(batch_size, int(self.c*10), self.tensor_length, -1).type(torch.LongTensor)
         #episode_batch_final = torch.LongTensor(batch_size, int(self.c*10), self.tensor_length)
         label_batch_final  = torch.LongTensor(batch_size, int(self.c*10))
 
@@ -211,10 +211,10 @@ class ClassMarginSampler():
         b = 0
         for m_c in margin_class_batch.t():
             texts = []
-
             for c in m_c:
                 for i in range(c*10, c*10 + 10):
                     texts.append((text_batch[b][i], c))
+
             class_indexes = np.random.choice(len(texts), int(self.c*10), replace=False)
 
             labels = {}

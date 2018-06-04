@@ -44,6 +44,7 @@ class ReinforcementLearning():
 
                 # Incorrect Prediction:
                 elif (epsilon_action == 1):
+                    
                     wrong_label = random.randint(0, class_vector_size - 1)
                     while (wrong_label == episode_labels[i]):
                         wrong_label = random.randint(0, class_vector_size - 1)
