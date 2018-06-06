@@ -1,6 +1,7 @@
 import os
 from models import reinforcement_models
 import torch
+import numpy as np
 
 # Saves checkpoint to disk
 def save_checkpoint(state, name, filename='checkpoint.pth.tar'):
@@ -11,8 +12,8 @@ def save_checkpoint(state, name, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     print("Checkpoint successfully saved!")
 
-name = 'reinforced_lstm_margin2_AVG'
-checkpoint = 'pretrained/reinforced_lstm_margin2/checkpoint.pth.tar'
+name = 'reinforced_lstm_cm3_Q_AVG'
+checkpoint = 'pretrained/reinforced_lstm_r1_cm3_last/checkpoint.pth.tar'
 
 # Set batch_size:
 batch_size = 32
@@ -49,18 +50,31 @@ if os.path.isfile(checkpoint):
     q_network.load_state_dict(checkpoint['state_dict'])
     epoch = checkpoint['epoch']
     all_margins = checkpoint['all_margins']
+    low_margins = checkpoint['low_margins']
+    all_choices = checkpoint['all_choices']
 
-print("LENGTH OF MARGINS: ", len(all_margins))
+new_choices = []
+epochs = 100000
+margin_classes = 3
+classes = nof_classes
+margin_time = 4
+print("LENGTH OF MARGINS: ", len(all_choices), " ==", epochs)
 input("OK?")
+assert(len(all_choices) == epochs)
 
-new_margins = []
 
-for m in range(0, len(all_margins), batch_size):
-	new_margins.append(float(sum(all_margins[m : min(m + batch_size, len(all_margins))])/len(all_margins[m : min(m + batch_size, len(all_margins))])))
+total = margin_time*margin_classes*classes
 
-print(len(new_margins))
+for i in range(len(all_choices)):
+    new_choices.append([])
+for i in range(0, len(all_choices)):
+    for m in range(len(all_choices[i])):
+       new_choices[i].append(float(all_choices[i][m]/total))
+
+print(len(new_choices), " ==", epochs)
 print("EPOCHS: ", epoch)
-print(new_margins[0: 10])
+print(new_choices[-10:-1])
+input("OK FINAL?")
 
 input("SAVE?")
 
@@ -75,7 +89,9 @@ save_checkpoint({
     'tot_pred_acc': total_prediction_accuracy,
     'tot_loss': total_loss,
     'tot_reward': total_reward,
-    'all_margins': new_margins,
+    'all_margins': all_margins,
+    'low_margins': low_margins,
+    'all_choices': new_choices,
     'best': best
 }, name)
 

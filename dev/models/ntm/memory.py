@@ -73,7 +73,7 @@ class NTMMemory(nn.Module):
 
     
 
-    def address(self, k, β, g, s, γ, w_prev):
+    def address(self, k, w_prev):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -85,7 +85,9 @@ class NTMMemory(nn.Module):
         """
 
         # Content focus
-        w_r = self._similarity(k, β)
+        w_r = self._similarity_mann(k)
+
+        return w_r
 
         """
         print("Read Weights: ", w_r)
@@ -94,21 +96,21 @@ class NTMMemory(nn.Module):
         input("OK")
         """
         # Location focus
-        w_g = self._interpolate(w_prev, w_r, g)
+        #w_g = self._interpolate(w_prev, w_r, g)
         """
         print("Interpol Weights: ", w_g)
         print("Interpol Weights Size: ", w_g.size())
         print("SUM: ", torch.sum(w_g[0, :]))
         input("OK")
         """
-        ŵ = self._shift(w_g, s)
+        #ŵ = self._shift(w_g, s)
         """
         print("Shifted Weights: ", ŵ)
         print("Shifted Weights Size: ", ŵ.size())
         print("SUM: ", torch.sum(ŵ[0, :]))
         input("OK")
         """
-        w_t = self._sharpen(ŵ, γ)
+        #w_t = self._sharpen(ŵ, γ)
         """
         print("Sharpened Weights: ", w_t)
         print("Sharpened Weights Size: ", w_t.size())
@@ -117,6 +119,11 @@ class NTMMemory(nn.Module):
         """
 
         return w_t
+
+    def _similarity_mann(self, k):
+        k = k.view(self.batch_size, 1, -1)
+        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
+        return w
 
     def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)

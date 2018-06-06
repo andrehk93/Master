@@ -6,13 +6,13 @@ from utils.plot import percent_scatterplot as scatterplot
 from utils import tablewriter
 
 directory = "results/plots/"
-model = "FINAL_reinforced_lstm_r2_margin_cm3"
+model = "FINAL_reinforced_lstm"
 name = "avg_results" + "_" + model
 
 if not os.path.exists(directory + name):
         os.makedirs(directory + name)
 
-checkpoints = ["reinforced_lstm_r2_cm3_5", "reinforced_lstm_margin_r2_cm9"]
+checkpoints = ["reinforced_lstm2", "reinforced_lstm3"]
 
 #Scatterplots:
 total_acc_dict = {}

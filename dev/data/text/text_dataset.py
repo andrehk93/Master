@@ -205,13 +205,11 @@ class TEXT(data.Dataset):
                 # Collect randomly drawn classes:
                 text_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
 
-
                 # Give random class-slot in vector:
                 ind = 0
                 count = 0
                 for i in text_classes:
                     for j in self.train_data[i]:
-
                         text_list.append(j)
                         label_list.append(ind)
                     ind += 1
@@ -235,16 +233,11 @@ class TEXT(data.Dataset):
                 episode_texts.append(text_list[index])
                 episode_labels.append(label_list[index])
 
-            if (self.cuda):
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
-            else:
-                zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(self.episode_size)]))
             
-            episode_tensor = zero_tensor.view(self.episode_size, tensor_length, self.sentence_length)
+            episode_tensor = torch.zeros(self.episode_size, tensor_length, self.sentence_length).type(torch.LongTensor)
 
             episode_list = list(zip(episode_texts, episode_labels))
 
-            #shuffle_list = list(zip(text_list, label_list))
             random.shuffle(episode_list)
             shuffled_text, shuffled_labels = zip(*episode_list)
 
@@ -253,11 +246,7 @@ class TEXT(data.Dataset):
                     if (j >= len(shuffled_text[i])):
                         break
                     episode_tensor[i][j] = shuffled_text[i][j]
-
-            if (self.cuda):
-                return episode_tensor, torch.LongTensor(shuffled_labels).cuda()
-            else:
-                return episode_tensor, torch.LongTensor(shuffled_labels)
+            return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):
         # Max batch size:
