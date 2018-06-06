@@ -54,14 +54,26 @@ class NTMMemory(nn.Module):
     def write(self, w, e, a):
         """write to memory (according to section 3.2)."""
         self.prev_mem = self.memory
+        """
+        print("\nBEFORE:")
+        print("Memory: ", self.prev_mem)
+        print("Memory Size: ", self.prev_mem.size())
+        input("OK")
+        """
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
         erase = torch.matmul(w.unsqueeze(-1), e.unsqueeze(1))
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         self.memory = self.prev_mem * (1 - erase) + add
+        """
+        print("\nAFTER:")
+        print("Memory: ", self.memory)
+        print("Memory Size: ", self.memory.size())
+        input("OK")
+        """
 
     
 
-    def address(self, k, β, g, s, γ, w_prev):
+    def address(self, k, w_prev):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -73,18 +85,47 @@ class NTMMemory(nn.Module):
         """
 
         # Content focus
-        w_r = self._similarity(k, β)
-        
-        # Location focus
-        w_g = self._interpolate(w_prev, w_r, g)
-        ŵ = self._shift(w_g, s)
-        w_t = self._sharpen(ŵ, γ)
+        w_r = self._similarityMann(k)
 
-        return w_t
+        """
+        print("Read Weights: ", w_r)
+        print("Read Weights Size: ", w_r.size())
+        print("SUM: ", torch.sum(w_r[0, :]))
+        input("OK")
+        """
+        # Location focus
+        #w_g = self._interpolate(w_prev, w_r, g)
+        """
+        print("Interpol Weights: ", w_g)
+        print("Interpol Weights Size: ", w_g.size())
+        print("SUM: ", torch.sum(w_g[0, :]))
+        input("OK")
+        """
+        #ŵ = self._shift(w_g, s)
+        """
+        print("Shifted Weights: ", ŵ)
+        print("Shifted Weights Size: ", ŵ.size())
+        print("SUM: ", torch.sum(ŵ[0, :]))
+        input("OK")
+        """
+        #w_t = self._sharpen(ŵ, γ)
+        """
+        print("Sharpened Weights: ", w_t)
+        print("Sharpened Weights Size: ", w_t.size())
+        print("SUM: ", torch.sum(w_t[0, :]))
+        input("OK")
+        """
+
+        return w_r
 
     def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)
         w = F.softmax(β * F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
+        return w
+
+    def _similarityMann(self, k):
+        k = k.view(self.batch_size, 1, -1)
+        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
         return w
 
     def _interpolate(self, w_prev, wc, g):

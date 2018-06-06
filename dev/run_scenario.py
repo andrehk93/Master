@@ -163,17 +163,17 @@ def bar_plot(lists, bar_type, name, labels, size, ylabel=""):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm_r2/'
+    name = 'headlines_lrua_standard2/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
     TRAIN = False
 
     batch_size = 256
-    scenario_size = 10
+    scenario_size = 5
 
     # Different scenario-types:
     META_SCENARIO = 0
@@ -185,16 +185,7 @@ if __name__ == '__main__':
     ONE_SHOT_SCENARIO = 3
 
     # CHOOSE SCENARIO:
-    scenario_type = META_SCENARIO
-
-    if (scenario_type == 0):
-        name = "meta/" + name
-    elif (scenario_type == 1):
-        name = "zero_shot/c" + str(class_choice) + "_" + name
-    elif (scenario_type == 2):
-        name = "k_shot/" + name
-    elif (scenario_type == 3):
-        name = "one_shot/c" + str(class_choice) + "_" + name 
+    scenario_type = ZERO_SHOT_SCENARIO
 
     classes = 3
     cuda = False
@@ -205,7 +196,7 @@ if __name__ == '__main__':
     REUTERS_DATASET = 3
     
 
-    dataset = MNIST_DATASET
+    dataset = INH_DATASET
 
     # LSTM & Q Learning
     IMAGE_SCALE = 20
@@ -219,6 +210,15 @@ if __name__ == '__main__':
     DICTIONARY_MAX_SIZE = 10000
 
     scenario_loader = load_scenario(scenario_size, batch_size, dataset, scenario_type)
+
+    if (scenario_type == 0):
+        name = "meta/" + name
+    elif (scenario_type == 1):
+        name = "zero_shot/c" + str(class_choice) + "_" + name
+    elif (scenario_type == 2):
+        name = "k_shot/" + name
+    elif (scenario_type == 3):
+        name = "one_shot/c" + str(class_choice) + "_" + name 
 
     if (TRAIN):
         name = "TRAIN/" + name

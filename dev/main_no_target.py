@@ -77,19 +77,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/reinforced_lrua_standard/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/reinforced_ntm_cm3/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_lrua_standard/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm_cm3/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_lrua_standard/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_ntm_cm3/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_lrua_standard_FINAL', type=str,
+parser.add_argument('--name', default='reinforced_ntm_cm3', type=str,
                     help='name of file')
 
 # Seed:
@@ -156,9 +156,9 @@ if __name__ == '__main__':
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
 
     # CLASS MARGIN SAMPLING:
-    MARGIN = False
+    MARGIN = True
     MARGIN_TIME = 4
-    CMS = 2
+    CMS = 3
     ##################
 
     train_transform = transforms.Compose([
@@ -184,8 +184,8 @@ if __name__ == '__main__':
         output_classes = nof_classes
 
     LSTM = False
-    NTM = False
-    LRUA = True
+    NTM = True
+    LRUA = False
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
-    """
+    
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
         batch_size=args.mini_batch_size, shuffle=True, **kwargs)
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
         batch_size=args.batch_size, shuffle=True, **kwargs)
-    
+    """
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -269,7 +269,7 @@ if __name__ == '__main__':
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
             all_margins = checkpoint['all_margins']
-            #all_choices = checkpoint['all_choices']
+            all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
     loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5)
     #all_choices = np.array(all_choices)
-    #loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=5)
+    #loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=20)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")

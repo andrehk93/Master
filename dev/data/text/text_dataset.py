@@ -149,11 +149,12 @@ class TEXT(data.Dataset):
                             if (ind == self.class_choice):
                                 if (k == 0):
                                     texts.append((self.train_data[i][j], ind))
+                                    k += 1
                                 else:
                                     appended_texts.append((self.train_data[i][j], ind))
                             else:
                                 texts.append((self.train_data[i][j], ind))
-                            k += 1
+                            
                         ind += 1
                     for txt in appended_texts:
                         texts.append(txt)
@@ -168,14 +169,15 @@ class TEXT(data.Dataset):
                         else:
                             txt_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
                         for j in txt_samples:
-                            if (ind == 0):
-                                if (k == self.class_choice):
+                            if (ind == self.class_choice):
+                                if (k == 0):
                                     texts.append((self.test_data[i][j], ind))
+                                    k += 1
                                 else:
                                     appended_texts.append((self.test_data[i][j], ind))
                             else:
                                 texts.append((self.test_data[i][j], ind))
-                            k += 1
+                            
                         ind += 1
                     for txt in appended_texts:
                         texts.append(txt)
