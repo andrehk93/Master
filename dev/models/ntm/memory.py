@@ -85,7 +85,9 @@ class NTMMemory(nn.Module):
         """
 
         # Content focus
-        w_r = self._similarityMann(k)
+        w_r = self._similarity_mann(k)
+
+        return w_r
 
         """
         print("Read Weights: ", w_r)
@@ -117,6 +119,11 @@ class NTMMemory(nn.Module):
         """
 
         return w_r
+
+    def _similarity_mann(self, k):
+        k = k.view(self.batch_size, 1, -1)
+        w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
+        return w
 
     def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)

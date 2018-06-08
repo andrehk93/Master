@@ -115,6 +115,34 @@ def update_dicts(from_dict_1, from_dict_2, to_dict_1, to_dict_2):
         to_dict_1[key].append(from_dict_1[key])
         to_dict_2[key].append(from_dict_2[key])
 
+def print_time(avg_time, eta):
+    print("\n --- TIME ---")
+    print("\nT/epoch = " + str(avg_time)[0:4] + " s")
+
+    hour = eta//3600
+    eta = eta - (3600*(hour))
+    
+    minute = eta//60
+    eta = eta - (60*(minute))
+    
+    seconds = eta
+
+    # Stringify w/padding:
+    if (minute < 10):
+        minute = "0" + str(minute)[0]
+    else:
+        minute = str(minute)[0:2]
+    if (hour < 10):
+        hour = "0" + str(hour)[0]
+    else:
+        hour = str(hour)[0:2]
+    if (seconds < 10):
+        seconds = "0" + str(seconds)[0]
+    else:
+        seconds = str(seconds)[0:4]
+
+    print("Estimated Time Left:\t" + hour + ":" + minute + ":" + seconds)
+    print("\n---------------------------------------")
 
 def print_best_stats(stats):
     # Static strings:
@@ -143,9 +171,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    #torch.manual_seed(args.seed)
-    #if args.cuda:
-        #torch.cuda.manual_seed(args.seed)
+
+    # SEEDING FOR RESULT-CONSISTENCY:
+    torch.manual_seed(args.seed)
+    if args.cuda:
+        torch.cuda.manual_seed(args.seed)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
@@ -172,16 +202,8 @@ if __name__ == '__main__':
 
     class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, train_transform)
 
-    # abcde-vectors for classes (3125 different classes):
-    multi_state = False
-    state_size = 5
-
-    if (multi_state):
-        nof_classes = int(state_size*state_size)
-        output_classes = nof_classes
-    else:
-        nof_classes = args.class_vector_size
-        output_classes = nof_classes
+    nof_classes = args.class_vector_size
+    output_classes = nof_classes
 
     LSTM = False
     NTM = True
@@ -203,15 +225,15 @@ if __name__ == '__main__':
 
     print("Loading trainingsets...")
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
+    if (MARGIN):
+        train_loader = torch.utils.data.DataLoader(
+            OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
+            batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
     
-    train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT_MARGIN(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
-    """
-    train_loader = torch.utils.data.DataLoader(
-        OMNIGLOT(root, train=True, transform=test_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    """
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -250,6 +272,7 @@ if __name__ == '__main__':
     total_loss = []
     total_reward = []
     all_margins = []
+    low_margins = []
     all_choices = []
     best = -30
 
@@ -269,6 +292,7 @@ if __name__ == '__main__':
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
             all_margins = checkpoint['all_margins']
+            low_margins = checkpoint['low_margins']
             all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
@@ -281,6 +305,7 @@ if __name__ == '__main__':
 
     #58410 epoch
     class_margin_sampler.all_margins = all_margins
+    class_margin_sampler.low_margins = low_margins
     class_margin_sampler.all_choices = all_choices
 
     ### WEIGHT OPTIMIZER ###
@@ -292,6 +317,18 @@ if __name__ == '__main__':
     episode = (args.start_epoch-1)*args.batch_size
     done = False
     start_time = time.time()
+
+    avg_time = 0
+    eta = 0
+    hour = 0
+    minute = 0
+    seconds = 0
+
+    time_interval = []
+    interval = 50
+
+    multi_state = False
+    state_size = 3
 
     # Constants:
     SAVE = 10
@@ -308,6 +345,20 @@ if __name__ == '__main__':
                 best_index = np.argmax(total_reward)
             
                 print_best_stats([best, total_prediction_accuracy[best_index], total_accuracy[best_index], total_requests[best_index]])
+            
+            # Collect time estimates:
+            if (epoch % interval == 0):
+                if (len(time_interval) < 2):
+                    time_interval.append(time.time())
+                else:
+                    time_interval[-2] = time_interval[-1]
+                    time_interval[-1] = time.time()
+
+            # Print Estimated time left:
+            if (len(time_interval) > 1):
+                avg_time = (time_interval[-1] - time_interval[-2])/interval
+                eta = (args.epochs + 1 - epoch) * avg_time
+                print_time(avg_time, eta)
 
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion,\
@@ -344,6 +395,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best
                 }, filename="best.pth.tar")
@@ -362,6 +414,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best
                 })
@@ -380,6 +433,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best
                 }, filename="backup.pth.tar")
@@ -398,13 +452,18 @@ if __name__ == '__main__':
 
     
     # Plotting training accuracy:
+    
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
-    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5)
-    #all_choices = np.array(all_choices)
-    #loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=20)
-
+    
+    # Margin plots:
+    if (MARGIN):
+        loss_plot.plot([all_margins], ["Avg. Highest Sample Margin"], "highest_sample_margin", args.name + "/", "Avg. Highest Sample Margin", avg=5)
+        loss_plot.plot([low_margins], ["Avg. Lowest Sample Margin"], "lowest_sample_margin", args.name + "/", "Avg. Lowest Sample Margin", avg=5)
+        all_choices = np.array(all_choices)
+        loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=20)
+    
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
 
@@ -448,6 +507,8 @@ if __name__ == '__main__':
             stats, request_test_dict, accuracy_test_dict, prediction_accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
             if not MNIST_TEST:
                 train_stats, train_reqs, train_accs, prediction_accuracy_train_dict = test.validate(q_network, epoch, optimizer, test_train_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+            else:
+                prediction_accuracy_train_dict = train_pred_dict
 
             update_dicts(request_test_dict, accuracy_test_dict, req_dict, acc_dict)
             update_dicts(request_test_dict, accuracy_test_dict, test_req_dict, test_acc_dict)
@@ -505,6 +566,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best
                 }, filename="testpoint.pth.tar")
@@ -524,8 +586,6 @@ if __name__ == '__main__':
                     'test_pred_dict': test_pred_dict,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
-                    'all_margins': class_margin_sampler.all_margins,
-                    'all_choices': class_margin_sampler.all_choices,
                     'best': best
                 }, filename="testpoint_mnist.pth.tar")
 

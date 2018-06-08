@@ -22,6 +22,7 @@ class ClassMarginSampler():
         self.sentence_length = sentence_length
         self.tensor_length = tensor_length
         self.all_margins = []
+        self.low_margins = []
         self.all_choices = []
 
     def sample_images(self, image_batch, label_batch, q_network, batch_size, image_size=20):
@@ -95,6 +96,7 @@ class ClassMarginSampler():
 
         # Storing the max margin:
         self.all_margins.append(torch.mean(margins.t().max(1)[0]))
+        self.low_margins.append(torch.mean(margins.t().min(1)[0]))
         self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
 
         episode_batch_final = torch.FloatTensor(int(self.c*10), batch_size, image_size, image_size)
@@ -135,7 +137,6 @@ class ClassMarginSampler():
         return episode_batch_final, label_batch_final
 
     def sample_text(self, text_batch, label_batch, q_network, batch_size):
-        text_batch = text_batch.squeeze()
         # Size should be: (Images, Batch_size, PIXEL_X, PIXEL_Y)
         state = []
         for b in range(batch_size):
@@ -154,7 +155,7 @@ class ClassMarginSampler():
         # We want to iterate over all images m_c --> [0, 119]:
         for m_c in range(len(text_batch[0])):
 
-            text_class_batch = text_batch[:, m_c]
+            text_class_batch = text_batch[:, m_c].squeeze()
             label_class_batch = label_batch[:, m_c]
 
             # So we dont have to transform ALL images (AKA also the ones were not gonna use):
@@ -201,9 +202,10 @@ class ClassMarginSampler():
 
         # Storing the max margin:
         self.all_margins.append(torch.mean(margins.t().max(1)[0]))
+        self.low_margins.append(torch.mean(margins.t().min(1)[0]))
         self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
 
-        episode_batch_final = torch.zeros(batch_size, int(self.c*10), self.tensor_length, -1).type(torch.LongTensor)
+        episode_batch_final = torch.zeros(batch_size, int(self.c*10), self.tensor_length, self.sentence_length).type(torch.LongTensor)
         #episode_batch_final = torch.LongTensor(batch_size, int(self.c*10), self.tensor_length)
         label_batch_final  = torch.LongTensor(batch_size, int(self.c*10))
 
@@ -213,7 +215,7 @@ class ClassMarginSampler():
             texts = []
             for c in m_c:
                 for i in range(c*10, c*10 + 10):
-                    texts.append((text_batch[b][i], c))
+                    texts.append(([text_batch[b][i]], label_batch[b][i]))
 
             class_indexes = np.random.choice(len(texts), int(self.c*10), replace=False)
 
@@ -231,9 +233,12 @@ class ClassMarginSampler():
 
 
                 pseudo_label = labels[label]
+                for j in range(self.tensor_length):
+                    if (j >= len(text)):
+                        break
+                    episode_batch_final[b][c_i][j] = text[j]
 
-                episode_batch_final[b][t] = text
-                label_batch_final[b][t] = pseudo_label
+                label_batch_final[b][c_i] = pseudo_label
                 t += 1
             b += 1
         return episode_batch_final, label_batch_final

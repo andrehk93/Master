@@ -37,11 +37,11 @@ class TextMargin(data.Dataset):
         self.scenario_size = scenario_size
         self.margin_time = margin_time
         self.CMS = CMS
+        self.print = True
         self.q_network = q_network
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
-        self.printed = False
         if (self.classify):
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
@@ -88,7 +88,10 @@ class TextMargin(data.Dataset):
 
         episode_tensor = torch.zeros(len(text_list), tensor_length, self.sentence_length).type(torch.LongTensor)
 
+        # Iterating over all texts collected:
         for i in range(len(text_list)):
+
+            # Iterating over all SENTENCES:
             for j in range(tensor_length):
                 if (j >= len(text_list[i])):
                     break

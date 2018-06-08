@@ -45,7 +45,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=60000, metavar='N',
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -99,6 +99,35 @@ def update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict):
         acc_dict[key].append(accuracy_train_dict[key])
         req_dict[key].append(request_train_dict[key])
 
+def print_time(avg_time, eta):
+    print("\n --- TIME ---")
+    print("\nT/epoch = " + str(avg_time)[0:4] + " s")
+
+    hour = eta//3600
+    eta = eta - (3600*(hour))
+    
+    minute = eta//60
+    eta = eta - (60*(minute))
+    
+    seconds = eta
+
+    # Stringify w/padding:
+    if (minute < 10):
+        minute = "0" + str(minute)[0]
+    else:
+        minute = str(minute)[0:2]
+    if (hour < 10):
+        hour = "0" + str(hour)[0]
+    else:
+        hour = str(hour)[0:2]
+    if (seconds < 10):
+        seconds = "0" + str(seconds)[0]
+    else:
+        seconds = str(seconds)[0:4]
+
+    print("Estimated Time Left:\t" + hour + ":" + minute + ":" + seconds)
+    print("\n---------------------------------------")
+
 def print_best_stats(stats):
     # Static strings:
     stat_string = "\n\t\tBest Training Stats"
@@ -135,17 +164,19 @@ if __name__ == '__main__':
     ### PARAMETERS ###
 
     # CLASS MARGIN SAMPLING:
-    MARGIN = False
+    MARGIN = True
     MARGIN_TIME = 4
-    CMS = 1
+    CMS = 2
 
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 128
+
+    # NEEDS TO REMAKE DATASET IF CHANGE:
     SENTENCE_LENGTH = 12
     NUMBER_OF_SENTENCES = 1
     DICTIONARY_MAX_SIZE = 10000
 
-    class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, None, episode_size=args.episode_size, sentence_length=NUMBER_OF_SENTENCES, tensor_length=SENTENCE_LENGTH)
+    class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, None, episode_size=args.episode_size, sentence_length=SENTENCE_LENGTH, tensor_length=NUMBER_OF_SENTENCES)
 
     # TRUE = REMOVE STOPWORDS:
     STOPWORDS = True
@@ -177,14 +208,14 @@ if __name__ == '__main__':
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
 
     # MARGIN SAMPLING:
-    """
-    train_loader = torch.utils.data.DataLoader(
-        TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
+    if (MARGIN):
+        train_loader = torch.utils.data.DataLoader(
+            TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH, margin_time=MARGIN_TIME, CMS=CMS, q_network=q_network),
                 batch_size=args.batch_size, shuffle=False, **kwargs)
 
     # NO MARGIN:
-    """
-    train_loader = torch.utils.data.DataLoader(
+    else:
+        train_loader = torch.utils.data.DataLoader(
         TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.batch_size, shuffle=True, **kwargs)
     
@@ -216,6 +247,7 @@ if __name__ == '__main__':
     total_loss = []
     total_reward = []
     all_margins = []
+    low_margins = []
     all_choices = []
     best = -30
     start_time = time.time()
@@ -237,7 +269,8 @@ if __name__ == '__main__':
             total_reward = checkpoint['tot_reward']
             start_time -= checkpoint['time']
             all_margins = checkpoint['all_margins']
-            #all_choices = checkpoint['all_choices']
+            low_margins = checkpoint['low_margins']
+            all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -247,6 +280,7 @@ if __name__ == '__main__':
 
     print("Current best: ", best)
     class_margin_sampler.all_margins = all_margins
+    class_margin_sampler.low_margins = low_margins
     class_margin_sampler.all_choices = all_choices
 
     ### WEIGHT OPTIMIZER & CRITERION FOR LOSS ###
@@ -257,6 +291,15 @@ if __name__ == '__main__':
     epoch = 0
     episode = (args.start_epoch-1)*args.batch_size
     done = False
+
+    avg_time = 0
+    eta = 0
+    hour = 0
+    minute = 0
+    seconds = 0
+
+    time_interval = []
+    interval = 50
     
     # Constants for checkpoint saving:
     SAVE = 10
@@ -273,6 +316,20 @@ if __name__ == '__main__':
                 best_index = np.argmax(total_reward)
             
                 print_best_stats([best, total_prediction_accuracy[best_index], total_accuracy[best_index], total_requests[best_index]])
+
+            # Collect time estimates:
+            if (epoch % interval == 0):
+                if (len(time_interval) < 2):
+                    time_interval.append(time.time())
+                else:
+                    time_interval[-2] = time_interval[-1]
+                    time_interval[-1] = time.time()
+
+            # Print Estimated time left:
+            if (len(time_interval) > 1):
+                avg_time = (time_interval[-1] - time_interval[-2])/interval
+                eta = (args.epochs + 1 - epoch) * avg_time
+                print_time(avg_time, eta)
 
             stats, request_train_dict, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES, class_margin_sampler, MARGIN)
             
@@ -307,6 +364,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
@@ -326,6 +384,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
@@ -345,6 +404,7 @@ if __name__ == '__main__':
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
                     'all_margins': class_margin_sampler.all_margins,
+                    'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
                     'best': best,
                     'time': time.time() - start_time
@@ -367,9 +427,12 @@ if __name__ == '__main__':
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
-    loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
-    #all_choices = np.array(all_choices)
-    #loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=5)
+    
+    if (MARGIN):
+        loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
+        loss_plot.plot([low_margins], ["Avg. Lowest Sample Margin"], "lowest_sample_margin", args.name + "/", "Avg. Lowest Sample Margin", avg=5)
+        all_choices = np.array(all_choices)
+        loss_plot.plot([all_choices[:, c] for c in range(args.class_vector_size + 1)], ["Class " + str(c) if c < args.class_vector_size else "Request" for c in range(args.class_vector_size + 1)], "sample_q", args.name + "/", "Avg. Highest Q Value", avg=5)
 
     print("\n\n--- Training Done ---\n")
     val = input("\nProceed to testing? \n[Y/N]: ")
@@ -469,6 +532,7 @@ if __name__ == '__main__':
             'tot_loss': total_loss,
             'tot_reward': total_reward,
             'all_margins': class_margin_sampler.all_margins,
+            'low_margins': class_margin_sampler.low_margins,
             'all_choices': class_margin_sampler.all_choices,
             'best': best
         }, filename="testpoint.pth.tar")

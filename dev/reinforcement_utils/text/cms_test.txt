@@ -1,0 +1,419 @@
+  2208
+    65
+ 10001
+[torch.LongTensor of size 3]
+
+0
+
+ 10001
+     2
+  1165
+[torch.LongTensor of size 3]
+
+0
+
+  109
+  469
+ 2381
+[torch.LongTensor of size 3]
+
+0
+
+  438
+   21
+ 1600
+[torch.LongTensor of size 3]
+
+0
+
+   13
+ 1597
+  351
+[torch.LongTensor of size 3]
+
+0
+
+ 4297
+   42
+  832
+[torch.LongTensor of size 3]
+
+0
+
+ 3095
+   16
+  122
+[torch.LongTensor of size 3]
+
+0
+
+ 10001
+   189
+  2226
+[torch.LongTensor of size 3]
+
+0
+
+  162
+    6
+ 5855
+[torch.LongTensor of size 3]
+
+0
+
+  1776
+ 10001
+    16
+[torch.LongTensor of size 3]
+
+0
+
+ 2060
+ 9003
+  217
+[torch.LongTensor of size 3]
+
+1
+
+ 1411
+ 4186
+    4
+[torch.LongTensor of size 3]
+
+1
+
+  965
+ 8875
+   60
+[torch.LongTensor of size 3]
+
+1
+
+   80
+ 2629
+   69
+[torch.LongTensor of size 3]
+
+1
+
+ 5516
+ 9508
+  953
+[torch.LongTensor of size 3]
+
+1
+
+ 5784
+ 5280
+ 3111
+[torch.LongTensor of size 3]
+
+1
+
+ 10001
+  9608
+  9608
+[torch.LongTensor of size 3]
+
+1
+
+  968
+ 2554
+ 2130
+[torch.LongTensor of size 3]
+
+1
+
+   90
+ 1895
+   69
+[torch.LongTensor of size 3]
+
+1
+
+   69
+ 1573
+ 6526
+[torch.LongTensor of size 3]
+
+1
+
+ 2237
+  868
+   15
+[torch.LongTensor of size 3]
+
+2
+
+ 10001
+  2177
+   853
+[torch.LongTensor of size 3]
+
+2
+
+ 2237
+  868
+ 1553
+[torch.LongTensor of size 3]
+
+2
+
+  9865
+  1811
+ 10001
+[torch.LongTensor of size 3]
+
+2
+
+   24
+ 9822
+ 3090
+[torch.LongTensor of size 3]
+
+2
+
+ 449
+ 132
+ 121
+[torch.LongTensor of size 3]
+
+2
+
+ 4313
+ 6886
+ 2705
+[torch.LongTensor of size 3]
+
+2
+
+ 1239
+ 1437
+ 4757
+[torch.LongTensor of size 3]
+
+2
+
+ 2237
+  868
+  708
+[torch.LongTensor of size 3]
+
+2
+
+ 7971
+ 1937
+ 1034
+[torch.LongTensor of size 3]
+
+2
+
+  162
+ 3613
+  357
+[torch.LongTensor of size 3]
+
+3
+
+  56
+ 683
+ 401
+[torch.LongTensor of size 3]
+
+3
+
+  230
+ 7347
+ 7241
+[torch.LongTensor of size 3]
+
+3
+
+  213
+    4
+ 5453
+[torch.LongTensor of size 3]
+
+3
+
+ 516
+ 782
+ 767
+[torch.LongTensor of size 3]
+
+3
+
+ 213
+ 683
+ 360
+[torch.LongTensor of size 3]
+
+3
+
+  339
+  683
+ 1573
+[torch.LongTensor of size 3]
+
+3
+
+  339
+ 4196
+  495
+[torch.LongTensor of size 3]
+
+3
+
+  516
+  683
+ 6511
+[torch.LongTensor of size 3]
+
+3
+
+ 10001
+   331
+  3291
+[torch.LongTensor of size 3]
+
+3
+
+ 1594
+   37
+ 7871
+[torch.LongTensor of size 3]
+
+4
+
+ 7518
+  654
+    7
+[torch.LongTensor of size 3]
+
+4
+
+  1591
+ 10001
+  2226
+[torch.LongTensor of size 3]
+
+4
+
+ 10001
+ 10001
+ 10001
+[torch.LongTensor of size 3]
+
+4
+
+ 4880
+ 1752
+   67
+[torch.LongTensor of size 3]
+
+4
+
+ 306
+ 281
+ 296
+[torch.LongTensor of size 3]
+
+4
+
+ 10001
+   551
+  1841
+[torch.LongTensor of size 3]
+
+4
+
+ 2366
+  389
+   67
+[torch.LongTensor of size 3]
+
+4
+
+ 8499
+ 2030
+  296
+[torch.LongTensor of size 3]
+
+4
+
+ 10001
+ 10001
+    52
+[torch.LongTensor of size 3]
+
+4
+
+  1187
+   987
+ 10001
+[torch.LongTensor of size 3]
+
+5
+
+  8533
+ 10001
+   987
+[torch.LongTensor of size 3]
+
+5
+
+   16
+ 1411
+ 2482
+[torch.LongTensor of size 3]
+
+5
+
+ 1187
+  615
+  103
+[torch.LongTensor of size 3]
+
+5
+
+  1470
+ 10001
+  1470
+[torch.LongTensor of size 3]
+
+5
+
+ 10001
+ 10001
+ 10001
+[torch.LongTensor of size 3]
+
+5
+
+ 10001
+  8509
+ 10001
+[torch.LongTensor of size 3]
+
+5
+
+   987
+ 10001
+ 10001
+[torch.LongTensor of size 3]
+
+5
+
+ 1607
+  281
+ 1744
+[torch.LongTensor of size 3]
+
+5
+
+   511
+ 10001
+  4779
+[torch.LongTensor of size 3]
+
+5

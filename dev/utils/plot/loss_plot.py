@@ -32,6 +32,8 @@ def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0):
 	plt.grid(True)
 	if ("stats" in filename):
 		plt.ylim((0, 100))
+	if ("margin" in filename):
+		plt.ylim((0, 4))
 	directory = "results/plots/"
 	if not os.path.exists(directory + folder):
 		os.makedirs(directory + folder)

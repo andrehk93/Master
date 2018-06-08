@@ -52,7 +52,6 @@ class NTMHeadBase(nn.Module):
         return w
 
     def _address_memory_mann(self, k, w_prev):
-
         # Handle Activations
         k = k.clone()
 
@@ -92,6 +91,7 @@ class NTMReadHead(NTMHeadBase):
         k = self.fc_read(embeddings)
         #k, β, g, s, γ = _split_cols(o, self.read_lengths)
         #k = _split_cols(o, self.read_lengths)
+
 
         # Read from memory
         #w_r = self._address_memory(k, β, g, s, γ, w_prev)
@@ -135,6 +135,7 @@ class NTMWriteHead(NTMHeadBase):
         e = F.sigmoid(e)
 
         # Write to memory
+        #w = self._address_memory(k, β, g, s, γ, w_prev)
         w = self._address_memory_mann(k, w_prev)
         self.memory.write(w, e, a)
 
