@@ -45,7 +45,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
+parser.add_argument('--epochs', type=int, default=60000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_cm2_FINAL/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_cm1s/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_cm2_FINAL/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_cm1/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_cm2_FINAL/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_cm1/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm_cm2_FINAL', type=str,
+parser.add_argument('--name', default='headlines_lstm_cm1', type=str,
                     help='name of file')
 
 # Seed:
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     # CLASS MARGIN SAMPLING:
     MARGIN = True
     MARGIN_TIME = 4
-    CMS = 2
+    CMS = 1
 
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 128
@@ -269,7 +269,7 @@ if __name__ == '__main__':
             total_reward = checkpoint['tot_reward']
             start_time -= checkpoint['time']
             all_margins = checkpoint['all_margins']
-            low_margins = checkpoint['low_margins']
+            #low_margins = checkpoint['low_margins']
             all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
@@ -425,8 +425,8 @@ if __name__ == '__main__':
 
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
-    loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
-    loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
+    loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss", episode_size=args.episode_size)
+    loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
     
     if (MARGIN):
         loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)

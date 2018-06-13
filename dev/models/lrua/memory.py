@@ -7,6 +7,48 @@ from torch import nn
 from torch.nn import init
 import numpy as np
 import numpy
+import matplotlib.pyplot as plt
+import os
+
+def plot_memory_matrix(w, t):
+    w_to_plot = w
+
+    imgs = []
+    x_dim = 8
+    y_dim = 16
+
+    memory_x = 1
+    memory_y = 1
+    memory_slots = memory_x*memory_y
+
+    name = "TRAIN_lrua/"
+    memory_vector = "w_r/"
+    
+    path = "results/memories/" + name + memory_vector
+    filename = path + "t_000" + str(t)
+
+    if (not os.path.exists(path)):
+        os.makedirs(path)
+
+    fig=plt.figure(figsize=(8, 8))
+    fig.suptitle('T = ' + str(t+1), fontsize=14, fontweight='bold')
+
+
+    for z in range(1, memory_slots + 1):
+        img = []
+        for x in range(x_dim):
+            img.append([])
+            for y in range(y_dim):
+                img[x].append(float(w_to_plot[z-1][(x*y_dim) + y]))
+        fig.add_subplot(memory_x, memory_y, z)
+        plt.imshow(img, cmap="gray")
+
+
+    plt.savefig(filename)
+
+    plt.close()
+
+    #input("NEXT")
 
 
 def _convolve(w, s):
@@ -64,16 +106,19 @@ class NTMMemory(nn.Module):
             add = torch.ger(w[b], a[b])
             self.memory[b] = self.prev_mem[b] * (1 - erase) + add
 
-    def lrua_write(self, w, k):
+    def lrua_write(self, w, k, head_nr=-1, t=0):
         """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
         self.prev_mem = self.memory
         self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
         lrua = torch.matmul(w.unsqueeze(-1), k.unsqueeze(1))
         self.memory = self.prev_mem + lrua
+        
+        #if (head_nr == 0):
+        #    plot_memory_matrix(self.memory[0], t)
 
 
 
-    def address(self, k, β, g, n, gamma, w_prev, access):
+    def address(self, k, β, g, n, gamma, w_prev, access, head_nr=-1, t=0):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -85,7 +130,7 @@ class NTMMemory(nn.Module):
         # Get the cosine similarity probability:
         w_r = self._similarity(k)
 
-        # Need only read weights for reading... (SPEEDUP)
+        # Need only read weights for reading:
         if (access == 1):
             return w_r
 
@@ -94,18 +139,29 @@ class NTMMemory(nn.Module):
         w_r_prev = w_prev[:, 1]
         w_lu_prev = w_prev[:, 2]
 
-        # Get the write weights:
+        # Calc. the write weights:
         w_w = self._interpolate(w_r_prev, w_lu_prev, g)
 
-        # Get the usage weights:
+        # Calc. the usage weights:
         w_u = gamma*w_u_prev + w_r + w_w
 
-        # Equation (6) from MANN:
+        # Creating the Least Recently Used Vector, by Equation (6) from MANN:
         n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
         w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
 
         # Zero out all least-used slots (from previous step):
-        w_w = w_w*(Variable(torch.ones(w_lu_prev.size()[:])) - w_lu_prev)
+        erase_vector = Variable(torch.ones(w_lu_prev.size()[:]).type(torch.LongTensor)) - w_lu_prev.type(torch.LongTensor)
+        zeroed_memory = self.memory.data.clone()
+        for b in range(len(erase_vector)):
+            for m in range(len(erase_vector[b])):
+                if (erase_vector.data[b][m] == 0):
+                    zeroed_memory[b][m] = torch.zeros(self.M)
+
+        self.memory = Variable(zeroed_memory)
+
+        # Plotting memory:
+        if (head_nr == 0):
+            plot_memory_matrix(w_r, t)
 
         return w_u, w_r, w_w, w_lu
 

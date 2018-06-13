@@ -4,6 +4,45 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch import nn
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+def plot_memory_matrix(w, t):
+    w_to_plot = w
+
+    imgs = []
+    x_dim = 5
+    y_dim = 8
+
+    memory_x = 1
+    memory_y = 1
+    memory_slots = memory_x*memory_y
+
+    name = "MNIST_ntm_single/"
+    memory_vector = "memory_slot/"
+    
+    path = "results/memories/" + name + memory_vector
+    filename = path + "t_000" + str(t)
+
+    if (not os.path.exists(path)):
+        os.makedirs(path)
+
+    fig=plt.figure(figsize=(8, 8))
+    fig.suptitle('T = ' + str(t+1), fontsize=14, fontweight='bold')
+
+
+    for z in range(1, memory_slots + 1):
+        img = []
+        for x in range(x_dim):
+            img.append([])
+            for y in range(y_dim):
+                img[x].append(float(w_to_plot[z-1][(x*y_dim) + y]))
+        fig.add_subplot(memory_x, memory_y, z)
+        plt.imshow(img, cmap="gray")
+
+    
+    plt.savefig(filename)
+    plt.close()
 
 
 def _convolve(w, s):
@@ -51,7 +90,7 @@ class NTMMemory(nn.Module):
         """Read from memory (according to section 3.1)."""
         return torch.matmul(w.unsqueeze(1), self.memory).squeeze(1)
 
-    def write(self, w, e, a):
+    def write(self, w, e, a, head_nr=-1, t=0):
         """write to memory (according to section 3.2)."""
         self.prev_mem = self.memory
         """
@@ -64,6 +103,9 @@ class NTMMemory(nn.Module):
         erase = torch.matmul(w.unsqueeze(-1), e.unsqueeze(1))
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         self.memory = self.prev_mem * (1 - erase) + add
+
+        #if (head_nr == 0):
+        #    plot_memory_matrix(self.memory[0], t)
         """
         print("\nAFTER:")
         print("Memory: ", self.memory)
@@ -73,7 +115,7 @@ class NTMMemory(nn.Module):
 
     
 
-    def address(self, k, w_prev):
+    def address(self, k, w_prev, head_nr=-1, t=0):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
         :param k: The key vector.
@@ -86,6 +128,8 @@ class NTMMemory(nn.Module):
 
         # Content focus
         w_r = self._similarity_mann(k)
+        #if (head_nr == 0):
+            #plot_memory_matrix(w_r, t)
 
         return w_r
 
@@ -118,7 +162,7 @@ class NTMMemory(nn.Module):
         input("OK")
         """
 
-        return w_t
+        #return w_t
 
     def _similarity_mann(self, k):
         k = k.view(self.batch_size, 1, -1)

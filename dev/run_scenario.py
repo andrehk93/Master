@@ -163,16 +163,16 @@ def bar_plot(lists, bar_type, name, labels, size, ylabel=""):
 
 if __name__ == '__main__':
 
-    name = 'reinforced_lstm_r2/'
+    name = 'IMAGE_lrua/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
-    LSTM = True
+    LSTM = False
     NTM = False
-    LRUA = False
+    LRUA = True
 
-    TRAIN = False
+    TRAIN = True
 
-    batch_size = 256
+    batch_size = 2
     scenario_size = 10
 
     # Different scenario-types:
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     ONE_SHOT_SCENARIO = 3
 
     # CHOOSE SCENARIO:
-    scenario_type = META_SCENARIO
+    scenario_type = K_SHOT_SCENARIO
 
     if (scenario_type == 0):
         name = "meta/" + name
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     REUTERS_DATASET = 3
     
 
-    dataset = MNIST_DATASET
+    dataset = OMNIGLOT_DATASET
 
     # LSTM & Q Learning
     IMAGE_SCALE = 20
@@ -260,7 +260,7 @@ if __name__ == '__main__':
 
     rl = rl(classes)
 
-    iterations = 10
+    iterations = 1
 
     # Scenario 1:
     requests, accuracies, total_percentages, total_prediction_accuracies, total_accuracies = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)
