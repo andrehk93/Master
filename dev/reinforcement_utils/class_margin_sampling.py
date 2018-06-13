@@ -236,9 +236,9 @@ class ClassMarginSampler():
                 for j in range(self.tensor_length):
                     if (j >= len(text)):
                         break
-                    episode_batch_final[b][c_i][j] = text[j]
+                    episode_batch_final[b][t][j] = text[j]
 
-                label_batch_final[b][c_i] = pseudo_label
+                label_batch_final[b][t] = pseudo_label
                 t += 1
             b += 1
         return episode_batch_final, label_batch_final
