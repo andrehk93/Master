@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0):
+def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0, episode_size=30):
 	avg_lists = []
 	if (batch_size == 0):
 		average = avg
@@ -33,7 +33,12 @@ def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0):
 	if ("stats" in filename):
 		plt.ylim((0, 100))
 	if ("margin" in filename):
-		plt.ylim((0, 4))
+		print("Margin plot...")
+		#plt.ylim((0, 4))
+	if ("loss" in filename.lower()):
+		plt.ylim((0, episode_size))
+	if ("reward" in filename.lower()):
+		plt.ylim((-5, episode_size))
 	directory = "results/plots/"
 	if not os.path.exists(directory + folder):
 		os.makedirs(directory + folder)

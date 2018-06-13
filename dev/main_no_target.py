@@ -186,7 +186,7 @@ if __name__ == '__main__':
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
 
     # CLASS MARGIN SAMPLING:
-    MARGIN = True
+    MARGIN = False
     MARGIN_TIME = 4
     CMS = 3
     ##################
@@ -291,9 +291,10 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
-            all_margins = checkpoint['all_margins']
-            low_margins = checkpoint['low_margins']
-            all_choices = checkpoint['all_choices']
+            if (MARGIN):
+                all_margins = checkpoint['all_margins']
+                low_margins = checkpoint['low_margins']
+                all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -454,8 +455,8 @@ if __name__ == '__main__':
     # Plotting training accuracy:
     
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
-    loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss")
-    loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward")
+    loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss", episode_size=args.episode_size)
+    loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
     
     # Margin plots:
     if (MARGIN):

@@ -170,10 +170,10 @@ if __name__ == '__main__':
     NTM = False
     LRUA = True
 
-    TRAIN = False
+    TRAIN = True
 
-    batch_size = 256
-    scenario_size = 5
+    batch_size = 2
+    scenario_size = 10
 
     # Different scenario-types:
     META_SCENARIO = 0
@@ -185,7 +185,16 @@ if __name__ == '__main__':
     ONE_SHOT_SCENARIO = 3
 
     # CHOOSE SCENARIO:
-    scenario_type = ZERO_SHOT_SCENARIO
+    scenario_type = K_SHOT_SCENARIO
+
+    if (scenario_type == 0):
+        name = "meta/" + name
+    elif (scenario_type == 1):
+        name = "zero_shot/c" + str(class_choice) + "_" + name
+    elif (scenario_type == 2):
+        name = "k_shot/" + name
+    elif (scenario_type == 3):
+        name = "one_shot/c" + str(class_choice) + "_" + name 
 
     classes = 3
     cuda = False
@@ -196,7 +205,7 @@ if __name__ == '__main__':
     REUTERS_DATASET = 3
     
 
-    dataset = INH_DATASET
+    dataset = OMNIGLOT_DATASET
 
     # LSTM & Q Learning
     IMAGE_SCALE = 20
@@ -211,14 +220,6 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size, dataset, scenario_type)
 
-    if (scenario_type == 0):
-        name = "meta/" + name
-    elif (scenario_type == 1):
-        name = "zero_shot/c" + str(class_choice) + "_" + name
-    elif (scenario_type == 2):
-        name = "k_shot/" + name
-    elif (scenario_type == 3):
-        name = "one_shot/c" + str(class_choice) + "_" + name 
 
     if (TRAIN):
         name = "TRAIN/" + name
@@ -260,7 +261,7 @@ if __name__ == '__main__':
 
     rl = rl(classes)
 
-    iterations = 10
+    iterations = 1
 
     # Scenario 1:
     requests, accuracies, total_percentages, total_prediction_accuracies, total_accuracies = scenario.run(q_network, scenario_loader, batch_size, rl, classes, cuda)

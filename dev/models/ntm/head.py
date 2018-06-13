@@ -51,11 +51,11 @@ class NTMHeadBase(nn.Module):
 
         return w
 
-    def _address_memory_mann(self, k, w_prev):
+    def _address_memory_mann(self, k, w_prev, head_nr=-1, t=0):
         # Handle Activations
         k = k.clone()
 
-        w = self.memory.address(k, w_prev)
+        w = self.memory.address(k, w_prev, head_nr=head_nr, t=t)
 
         return w
 
@@ -122,7 +122,7 @@ class NTMWriteHead(NTMHeadBase):
     def is_read_head(self):
         return False
 
-    def forward(self, embeddings, w_prev):
+    def forward(self, embeddings, w_prev, head_nr=-1, t=0):
         """NTMWriteHead forward function.
         :param embeddings: input representation of the controller.
         :param w_prev: previous step state
@@ -136,7 +136,7 @@ class NTMWriteHead(NTMHeadBase):
 
         # Write to memory
         #w = self._address_memory(k, β, g, s, γ, w_prev)
-        w = self._address_memory_mann(k, w_prev)
-        self.memory.write(w, e, a)
+        w = self._address_memory_mann(k, w_prev, head_nr=head_nr, t=t)
+        self.memory.write(w, e, a, head_nr=head_nr, t=t)
 
         return w
