@@ -96,11 +96,11 @@ parser.add_argument('--LSTM', action='store_true', default=False,
 
 # NTM:
 parser.add_argument('--NTM', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables NTM as chosen Q-network')
 
 # LRUA:
 parser.add_argument('--LRUA', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables LRUA as chosen Q-network')
 
 
 # Saves checkpoint to disk
@@ -180,6 +180,7 @@ if __name__ == '__main__':
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
     assert args.LSTM or args.NTM or args.LRUA, "You need to chose a network architecture! type python main_text.py -h for help."
+    assert args.margin_time <= 20, "The margin time cannot concede the number of images per class."
 
     # Setting network:
     LSTM = args.LSTM

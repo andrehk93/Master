@@ -36,11 +36,11 @@ from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=32, metavar='N',
+parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=32, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
@@ -52,7 +52,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=100000, metavar='N',
+parser.add_argument('--epochs', type=int, default=200, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -105,11 +105,11 @@ parser.add_argument('--LSTM', action='store_true', default=False,
 
 # NTM:
 parser.add_argument('--NTM', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables NTM as chosen Q-network')
 
 # LRUA:
 parser.add_argument('--LRUA', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables LRUA as chosen Q-network')
 
 
 # Saves checkpoint to disk

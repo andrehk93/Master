@@ -220,6 +220,7 @@ if __name__ == '__main__':
 
     scenario_loader = load_scenario(scenario_size, batch_size, dataset, scenario_type)
 
+
     if (TRAIN):
         name = "TRAIN/" + name
     else:

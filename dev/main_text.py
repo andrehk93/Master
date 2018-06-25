@@ -98,11 +98,11 @@ parser.add_argument('--LSTM', action='store_true', default=False,
 
 # NTM:
 parser.add_argument('--NTM', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables NTM as chosen Q-network')
 
 # LRUA:
 parser.add_argument('--LRUA', action='store_true', default=False,
-                    help='Enables LSTM as chosen Q-network')
+                    help='Enables LRUA as chosen Q-network')
 
 
 # Saves checkpoint to disk
@@ -194,7 +194,6 @@ if __name__ == '__main__':
     CMS = args.margin_size
 
     ### PARAMETERS ###
-
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 128
 
@@ -219,7 +218,6 @@ if __name__ == '__main__':
 
     # Different Models:
     classes = args.class_vector_size
-
 
     if LSTM:
         q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
