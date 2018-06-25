@@ -51,13 +51,6 @@ class NTMHeadBase(nn.Module):
 
         return w
 
-    def _address_memory_mann(self, k, w_prev, head_nr=-1, t=0):
-        # Handle Activations
-        k = k.clone()
-
-        w = self.memory.address(k, w_prev, head_nr=head_nr, t=t)
-
-        return w
 
 
 class NTMReadHead(NTMHeadBase):
@@ -65,8 +58,7 @@ class NTMReadHead(NTMHeadBase):
         super(NTMReadHead, self).__init__(memory, controller_size)
 
         # Corresponding to k, β, g, s, γ sizes from the paper
-        #self.read_lengths = [self.M, 1, 1, 3, 1]
-        self.read_lengths = [self.M]
+        self.read_lengths = [self.M, 1, 1, 3, 1]
         self.fc_read = nn.Linear(controller_size, sum(self.read_lengths))
         self.reset_parameters()
 
@@ -88,12 +80,10 @@ class NTMReadHead(NTMHeadBase):
         :param w_prev: previous step state
         """
         o = self.fc_read(embeddings)
-        #k, β, g, s, γ = _split_cols(o, self.read_lengths)
-        k = self.fc_read(embeddings)
+        k, β, g, s, γ = _split_cols(o, self.read_lengths)
 
         # Read from memory
-        #w_r = self._address_memory(k, β, g, s, γ, w_prev)
-        w_r = self._address_memory_mann(k, w_prev)
+        w_r = self._address_memory(k, β, g, s, γ, w_prev)
         r = self.memory.read(w_r)
 
         return r, w_r
@@ -104,8 +94,7 @@ class NTMWriteHead(NTMHeadBase):
         super(NTMWriteHead, self).__init__(memory, controller_size)
 
         # Corresponding to k, β, g, s, γ, e, a sizes from the paper
-        #self.write_lengths = [self.M, 1, 1, 3, 1, self.M, self.M]
-        self.write_lengths = [self.M, self.M, self.M]
+        self.write_lengths = [self.M, 1, 1, 3, 1, self.M, self.M]
         self.fc_write = nn.Linear(controller_size, sum(self.write_lengths))
         self.reset_parameters()
 
@@ -120,21 +109,19 @@ class NTMWriteHead(NTMHeadBase):
     def is_read_head(self):
         return False
 
-    def forward(self, embeddings, w_prev, head_nr=-1, t=0):
+    def forward(self, embeddings, w_prev):
         """NTMWriteHead forward function.
         :param embeddings: input representation of the controller.
         :param w_prev: previous step state
         """
         o = self.fc_write(embeddings)
-        #k, β, g, s, γ, e, a = _split_cols(o, self.write_lengths)
-        k, e, a = _split_cols(o, self.write_lengths)
+        k, β, g, s, γ, e, a = _split_cols(o, self.write_lengths)
 
         # e should be in [0, 1]
         e = F.sigmoid(e)
 
         # Write to memory
-        #w = self._address_memory(k, β, g, s, γ, w_prev)
-        w = self._address_memory_mann(k, w_prev, head_nr=head_nr, t=t)
-        self.memory.write(w, e, a, head_nr=head_nr, t=t)
+        w = self._address_memory(k, β, g, s, γ, w_prev)
+        self.memory.write(w, e, a)
 
         return w

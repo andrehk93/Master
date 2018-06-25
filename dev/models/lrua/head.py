@@ -39,7 +39,7 @@ class NTMHeadBase(nn.Module):
     def is_read_head(self):
         return NotImplementedError
 
-    def _address_memory(self, k, β, g, n, w_prev, access, head_nr=-1, t=0):
+    def _address_memory(self, k, β, g, n, w_prev, access):
         # Handle Activations
         k = k.clone()
         β = F.softplus(β)
@@ -53,7 +53,7 @@ class NTMHeadBase(nn.Module):
 
         # WRITE:
         else:
-            w_u, w_r, w_w, w_lu = self.memory.address(k, β, g, n, gamma, w_prev, access, head_nr=head_nr, t=t)
+            w_u, w_r, w_w, w_lu = self.memory.address(k, β, g, n, gamma, w_prev, access)
             return w_u, w_r, w_w, w_lu
 
 
@@ -87,12 +87,9 @@ class NTMReadHead(NTMHeadBase):
         k, β, g = _split_cols(o, self.read_lengths)
 
         # Read from memory
-        #w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev, 1)
         w_r = self._address_memory(k, β, g, n, w_prev, 1)
         r = self.memory.read(w_r)
 
-        #w = torch.cat((w_u, w_r, w_lu), dim=0).view(w_u.size()[0], 3, w_u.size()[1])
-        
         return r, w_r
 
 
@@ -116,7 +113,7 @@ class NTMWriteHead(NTMHeadBase):
     def is_read_head(self):
         return False
 
-    def forward(self, embeddings, w_prev, n, head_nr=-1, t=0):
+    def forward(self, embeddings, w_prev, n):
         """NTMWriteHead forward function.
         :param embeddings: input representation of the controller.
         :param w_prev: previous step state
@@ -125,10 +122,10 @@ class NTMWriteHead(NTMHeadBase):
         k, β, g = _split_cols(o, self.write_lengths)
 
         # Address memory
-        w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev, 0, head_nr=head_nr, t=t)
+        w_u, w_r, w_w, w_lu = self._address_memory(k, β, g, n, w_prev, 0)
 
         # With LRUA we use the weight-vector w_w for writing to memory:
-        self.memory.lrua_write(w_w, k, head_nr=head_nr, t=t)
+        self.memory.lrua_write(w_w, k)
 
         w = torch.cat((w_u, w_r, w_lu), dim=1).view(w_u.size()[0], 3, w_u.size()[1])
 

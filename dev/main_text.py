@@ -34,55 +34,75 @@ parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM
 
 # Batch size:
 parser.add_argument('--batch-size', type=int, default=32, metavar='N',
-                    help='input batch size for training (default: 50)')
+                    help='Input batch size for training')
 
 # Batch size:
 parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
-                    help='input batch size for training (default: 50)')
+                    help='Input batch size for testing')
 
 # Episode size:
 parser.add_argument('--episode-size', type=int, default=30, metavar='N',
-                    help='input episode size for training (default: 30)')
+                    help='Input episode size for training')
 
 # Epochs:
 parser.add_argument('--epochs', type=int, default=60000, metavar='N',
-                    help='number of epochs to train (default: 2000)')
+                    help='Number of epochs to train')
 
 # Starting Epoch:
 parser.add_argument('--start-epoch', type=int, default=1, metavar='N',
-                    help='starting epoch (default: 1)')
+                    help='Starting epoch')
 
 # Nof Classes:
 parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
-                    help='Number of classes per episode (default: 3)')
+                    help='Number of classes per episode')
 
 # CUDA:
 parser.add_argument('--no-cuda', action='store_true', default=True,
-                    help='enables CUDA training')
+                    help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm_cm1s/checkpoint.pth.tar', type=str,
-                    help='path to latest checkpoint (default: none)')
+parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm/checkpoint.pth.tar', type=str,
+                    help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm_cm1/best.pth.tar', type=str,
-                    help='path to best checkpoint (default: none)')
+parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm/best.pth.tar', type=str,
+                    help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm_cm1/testpoint.pth.tar', type=str,
-                    help='path to best checkpoint (default: none)')
+parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm/testpoint.pth.tar', type=str,
+                    help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm_cm1', type=str,
-                    help='name of file')
+parser.add_argument('--name', default='headlines_lstm', type=str,
+                    help='Name of file')
 
 # Seed:
 parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
+                    help='random seed for predictable RNG behaviour')
 
-# Logging interval:
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
-                    help='how many batches to wait before logging training status')
+# Margin:
+parser.add_argument('--margin-sampling', action='store_true', default=False,
+                    help='Enables margin sampling for selecting clases to train on')
+
+# Margin size:
+parser.add_argument('--margin-size', type=int, default=2, metavar='S',
+                    help='Multiplier for number of classes in pool of classes during margin sampling')
+
+# Margin time:
+parser.add_argument('--margin-time', type=int, default=4, metavar='S',
+                    help='Number of samples per class during margin sampling')
+
+# LSTM:
+parser.add_argument('--LSTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# NTM:
+parser.add_argument('--NTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# LRUA:
+parser.add_argument('--LRUA', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
 
 
 # Saves checkpoint to disk
@@ -161,17 +181,24 @@ if __name__ == '__main__':
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
-    ### PARAMETERS ###
+    assert args.LSTM or args.NTM or args.LRUA, "You need to chose a network architecture! type python main_text.py -h for help."
+
+    # Setting network:
+    LSTM = args.LSTM
+    NTM = args.NTM
+    LRUA = args.LRUA
 
     # CLASS MARGIN SAMPLING:
-    MARGIN = True
-    MARGIN_TIME = 4
-    CMS = 1
+    MARGIN = args.margin_sampling
+    MARGIN_TIME = args.margin_time
+    CMS = args.margin_size
+
+    ### PARAMETERS ###
 
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 128
 
-    # NEEDS TO REMAKE DATASET IF CHANGE:
+    # Need to remake dataset if change ANY of these:
     SENTENCE_LENGTH = 12
     NUMBER_OF_SENTENCES = 1
     DICTIONARY_MAX_SIZE = 10000
@@ -184,16 +211,14 @@ if __name__ == '__main__':
     # Different text-datasets:
     reuters = 'reuters'
     headlines = 'headlines'
+
+    # Dataset of choice:
     dataset = 'data/text/' + headlines
     ##################
 
 
     # Different Models:
     classes = args.class_vector_size
-
-    LSTM = True
-    NTM = False
-    LRUA = False
 
 
     if LSTM:
@@ -225,7 +250,7 @@ if __name__ == '__main__':
                 batch_size=args.test_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
 
-    # Modules:
+    # Loading the RL part (rewards, states, etc.):
     rl = rl(classes)
 
     if args.cuda:
@@ -269,7 +294,7 @@ if __name__ == '__main__':
             total_reward = checkpoint['tot_reward']
             start_time -= checkpoint['time']
             all_margins = checkpoint['all_margins']
-            #low_margins = checkpoint['low_margins']
+            low_margins = checkpoint['low_margins']
             all_choices = checkpoint['all_choices']
             best = checkpoint['best']
             q_network.load_state_dict(checkpoint['state_dict'])
@@ -278,7 +303,7 @@ if __name__ == '__main__':
         else:
             print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
 
-    print("Current best: ", best)
+    print("Current best reward gained: ", best)
     class_margin_sampler.all_margins = all_margins
     class_margin_sampler.low_margins = low_margins
     class_margin_sampler.all_choices = all_choices
@@ -344,7 +369,7 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 50 == 0):
+            if (epoch % 2 == 0):
                 test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
 
 

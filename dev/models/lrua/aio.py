@@ -12,7 +12,7 @@ from .memory import NTMMemory
 class EncapsulatedNTM(nn.Module):
 
     def __init__(self, num_inputs, num_outputs, num_classes,
-                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M, output_classes=3, embedding=False, dict_size=5000, embedding_size=128):
+                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M, embedding=False, dict_size=5000, embedding_size=128):
         """Initialize an EncapsulatedNTM.
         :param num_inputs: External number of inputs.
         :param num_outputs: External number of outputs.
@@ -35,7 +35,6 @@ class EncapsulatedNTM(nn.Module):
         self.num_write_heads = num_write_heads
         self.N = N
         self.M = M
-        self.output_classes = output_classes
         self.embedding = embedding
         self.dict_size = dict_size
 
@@ -51,7 +50,7 @@ class EncapsulatedNTM(nn.Module):
             heads += [
                 NTMWriteHead(memory, controller_size)
             ]
-        self.ntm = NTM(num_inputs, output_classes, controller, memory, heads, embedding=embedding)
+        self.ntm = NTM(num_inputs, num_outputs, controller, memory, heads, embedding=embedding)
         self.memory = memory
 
     def init_sequence(self, batch_size):

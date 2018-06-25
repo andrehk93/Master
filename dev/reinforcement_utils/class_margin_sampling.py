@@ -27,7 +27,7 @@ class ClassMarginSampler():
 
     def sample_images(self, image_batch, label_batch, q_network, batch_size, image_size=20):
 
-        # Size should be: (Images, Batch_size, PIXEL_X, PIXEL_Y)
+        # Size should be: (episode_size, batch_size, PIXEL_X, PIXEL_Y)
         state = []
         for b in range(batch_size):
             state.append([0 for j in range(self.c)])
@@ -137,7 +137,7 @@ class ClassMarginSampler():
         return episode_batch_final, label_batch_final
 
     def sample_text(self, text_batch, label_batch, q_network, batch_size):
-        # Size should be: (Images, Batch_size, PIXEL_X, PIXEL_Y)
+        # Size should be: (episode_size, Batch_size, SEN_LEN, WORDS)
         state = []
         for b in range(batch_size):
             state.append([0 for j in range(self.c)])

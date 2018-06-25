@@ -31,15 +31,6 @@ from reinforcement_utils.images import train, test
 from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 
 
-### IMPORTANT NOTICE ###
-"""
-If train on 3 classes (or more):
-    omniglot.py, line 64: img_classes = np.random.choice(3, self.classes, replace=False)
-
-If train on whole dataset:
-    omniglot.py, line 64: img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-"""
-
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -77,28 +68,48 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_lrua/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_ntm/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_lrua/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_lrua/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_ntm/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='IMAGE_lrua', type=str,
+parser.add_argument('--name', default='reinforced_ntm_LAST', type=str, metavar="S",
                     help='name of file')
 
 # Seed:
-parser.add_argument('--seed', type=int, default=1, metavar='S',
+parser.add_argument('--seed', type=int, default=1, metavar='N',
                     help='random seed (default: 1)')
 
-# Logging interval:
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
-                    help='how many batches to wait before logging training status')
+# Margin:
+parser.add_argument('--margin-sampling', action='store_true', default=False,
+                    help='Enables margin sampling for selecting clases to train on')
+
+# Margin size:
+parser.add_argument('--margin-size', type=int, default=2, metavar='N',
+                    help='Multiplier for number of classes in pool of classes during margin sampling')
+
+# Margin time:
+parser.add_argument('--margin-time', type=int, default=4, metavar='N',
+                    help='Number of samples per class during margin sampling')
+
+# LSTM:
+parser.add_argument('--LSTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# NTM:
+parser.add_argument('--NTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# LRUA:
+parser.add_argument('--LRUA', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
 
 
 # Saves checkpoint to disk
@@ -179,17 +190,23 @@ if __name__ == '__main__':
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
+    assert args.LSTM or args.NTM or args.LRUA, "You need to chose a network architecture! type python main_text.py -h for help."
+
+    # Setting network:
+    LSTM = args.LSTM
+    NTM = args.NTM
+    LRUA = args.LRUA
+
+    # CLASS MARGIN SAMPLING:
+    MARGIN = args.margin_sampling
+    MARGIN_TIME = args.margin_time
+    CMS = args.margin_size
+
     ### PARAMETERS ###
 
     # IMAGE HANDLING:
     IMAGE_SCALE = 20
     IMAGE_SIZE = IMAGE_SCALE*IMAGE_SCALE
-
-    # CLASS MARGIN SAMPLING:
-    MARGIN = False
-    MARGIN_TIME = 4
-    CMS = 2
-    ##################
 
     train_transform = transforms.Compose([
         transforms.Resize((IMAGE_SCALE, IMAGE_SCALE)),
@@ -203,21 +220,17 @@ if __name__ == '__main__':
     class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, train_transform)
 
     nof_classes = args.class_vector_size
-    output_classes = nof_classes
-
-    LSTM = False
-    NTM = False
-    LRUA = True
 
     if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE)
     elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE)
     elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes)
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE)
 
     root = 'data/images/omniglot'
 
+    # If we want to evaluate on a external dataset (MNIST is provided here):
     MNIST_TEST = False
 
     if (MNIST_TEST):
@@ -252,7 +265,7 @@ if __name__ == '__main__':
     print("Done loading datasets!")
 
     # Modules:
-    rl = rl(output_classes)
+    rl = rl(nof_classes)
 
     if args.cuda:
         print("\n---Activating GPU Training---\n")
@@ -335,6 +348,9 @@ if __name__ == '__main__':
     SAVE = 10
     BACKUP = 50
 
+    if (MARGIN):
+        print("\n- Margin sampling activated with \nCMS =", CMS, "\nT =", MARGIN_TIME)
+
     while not done:
         ### TRAINING AND TESTING LOOP ###
         for epoch in range(args.start_epoch, args.epochs + 1):
@@ -376,7 +392,7 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 50 == 0):
+            if (epoch % 2 == 0):
                 test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
 
 

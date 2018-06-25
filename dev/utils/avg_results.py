@@ -1,18 +1,19 @@
+
 import os
 import torch
 from operator import add
 
-from utils.plot import percent_scatterplot as scatterplot
-from utils import tablewriter
+from plot import percent_scatterplot as scatterplot
+import tablewriter
 
-directory = "results/plots/"
+directory = "../results/plots/"
 model = "FINAL_reinforced_lstm"
 name = "avg_results" + "_" + model
 
 if not os.path.exists(directory + name):
         os.makedirs(directory + name)
 
-checkpoints = ["reinforced_lstm2", "reinforced_lstm3"]
+checkpoints = ["reinforced_lstm3", "reinforced_lstm3"]
 
 #Scatterplots:
 total_acc_dict = {}
@@ -34,7 +35,7 @@ total_test_stats = []
 
 # Iterating over all wanted checkpoints:
 for c_point in checkpoints:
-    checkpoint = torch.load("pretrained/" + c_point + "/testpoint.pth.tar")
+    checkpoint = torch.load("../pretrained/" + c_point + "/testpoint.pth.tar")
     print("=> loaded checkpoint '{}' (epoch {})"
           .format(c_point, checkpoint['epoch']))
 
@@ -72,29 +73,29 @@ for c_point in checkpoints:
     # For K-shot tables:
     test_acc_dict = checkpoint['test_acc_dict']
     test_req_dict = checkpoint['test_req_dict']
-    #test_pred_dict = checkpoint['test_pred_dict']
+    test_pred_dict = checkpoint['test_pred_dict']
 
     train_acc_dict = checkpoint['train_acc_dict']
     train_req_dict = checkpoint['train_req_dict']
-    #train_pred_dict = checkpoint['train_pred_dict']
+    train_pred_dict = checkpoint['train_pred_dict']
 
     for key in test_acc_dict.keys():
         if (key not in total_test_acc_dict):
             total_test_acc_dict[key] = test_acc_dict[key]
             total_test_req_dict[key] = test_req_dict[key]
-            #total_test_pred_dict[key] = test_pred_dict[key]
+            total_test_pred_dict[key] = test_pred_dict[key]
 
             total_train_acc_dict[key] = train_acc_dict[key]
             total_train_req_dict[key] = train_req_dict[key]
-            #total_train_pred_dict[key] = train_pred_dict[key]
+            total_train_pred_dict[key] = train_pred_dict[key]
         else:
             total_test_acc_dict[key] = list(map(add, total_test_acc_dict[key], test_acc_dict[key]))
             total_test_req_dict[key] = list(map(add, total_test_req_dict[key], test_req_dict[key]))
-            #total_test_pred_dict[key] = list(map(add, total_test_pred_dict[key], test_pred_dict[key]))
+            total_test_pred_dict[key] = list(map(add, total_test_pred_dict[key], test_pred_dict[key]))
 
             total_train_acc_dict[key] = list(map(add, total_train_acc_dict[key], train_acc_dict[key]))
             total_train_req_dict[key] = list(map(add, total_train_req_dict[key], train_req_dict[key]))
-            #total_train_pred_dict[key] = list(map(add, total_train_pred_dict[key], train_pred_dict[key]))
+            total_train_pred_dict[key] = list(map(add, total_train_pred_dict[key], train_pred_dict[key]))
 
 
 # Averaging accuracies:
@@ -134,12 +135,11 @@ for key in total_test_acc_dict.keys():
         total_test_req_dict[key][r] = float(total_test_req_dict[key][r]/len(checkpoints))
     for r in range(len(total_train_req_dict[key])):
         total_train_req_dict[key][r] = float(total_train_req_dict[key][r]/len(checkpoints))
-    """
     for p in range(len(total_test_pred_dict[key])):
         total_test_pred_dict[key][r] = float(total_test_pred_dict[key][r]/len(checkpoints))
     for p in range(len(total_train_pred_dict[key])):
         total_train_pred_dict[key][r] = float(total_train_pred_dict[key][r]/len(checkpoints))
-    """
+
 total_test_pred_dict = {1: [0], 2: [0], 5: [0], 10: [0]}
 total_train_pred_dict = {1: [0], 2: [0], 5: [0], 10: [0]}
 tablewriter.print_k_shot_tables(total_test_pred_dict, total_test_acc_dict, total_test_req_dict, "test", name + "/")

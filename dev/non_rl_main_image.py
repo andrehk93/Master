@@ -16,45 +16,30 @@ from torch.utils.data import DataLoader
 
 ### Datasets and UTILS ###
 from utils.images import imageLoader as loader
-#from utils.plot import loss_plot, percent_scatterplot as scatterplot
+from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils import transforms, tablewriter
-#from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
+from data.images.omniglot.omniglot_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 from data.images.mnist.MNIST import MNIST
 
 # RL:
 from models import reinforcement_models
-from reinforcement_utils.images import train_nonsequence as train, test_nonsequence as test
 
-
-
-### IMPORTANT NOTICE ###
-"""
-If train on 3 classes (or more):
-    omniglot.py, line 64: img_classes = np.random.choice(3, self.classes, replace=False)
-
-If train on whole dataset:
-    omniglot.py, line 64: img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-"""
 
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
-
-# Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=16, metavar='N',
-                    help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
 parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to test on at a time (default: 1)')
 
 # Episode size:
-parser.add_argument('--episode-size', type=int, default=30, metavar='N',
+parser.add_argument('--episode-size', type=int, default=50, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
@@ -66,7 +51,7 @@ parser.add_argument('--start-epoch', type=int, default=1, metavar='N',
                     help='starting epoch (default: 1)')
 
 # Nof Classes:
-parser.add_argument('--class-vector-size', type=int, default=3, metavar='N',
+parser.add_argument('--class-vector-size', type=int, default=5, metavar='N',
                     help='Number of classes per episode (default: 3)')
 
 # CUDA:
@@ -74,28 +59,48 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/baseline_lrua/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/deterministic_lstm_5/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/baseline_lrua/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/deterministic_lstm_5/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/baseline_lrua/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/deterministic_lstm_5/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='baseline_lrua', type=str,
+parser.add_argument('--name', default='deterministic_lstm_5', type=str,
                     help='name of file')
 
 # Seed:
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
-# Logging interval:
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
-                    help='how many batches to wait before logging training status')
+# Margin:
+parser.add_argument('--margin-sampling', action='store_true', default=False,
+                    help='Enables margin sampling for selecting clases to train on')
+
+# Margin size:
+parser.add_argument('--margin-size', type=int, default=2, metavar='N',
+                    help='Multiplier for number of classes in pool of classes during margin sampling')
+
+# Margin time:
+parser.add_argument('--margin-time', type=int, default=4, metavar='N',
+                    help='Number of samples per class during margin sampling')
+
+# LSTM:
+parser.add_argument('--LSTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# NTM:
+parser.add_argument('--NTM', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
+
+# LRUA:
+parser.add_argument('--LRUA', action='store_true', default=False,
+                    help='Enables LSTM as chosen Q-network')
 
 
 # Saves checkpoint to disk
@@ -110,6 +115,35 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
 def update_dicts(accuracy_train_dict, acc_dict):
     for key in acc_dict.keys():
         acc_dict[key].append(accuracy_train_dict[key])
+
+def print_time(avg_time, eta):
+    print("\n --- TIME ---")
+    print("\nT/epoch = " + str(avg_time)[0:4] + " s")
+
+    hour = eta//3600
+    eta = eta - (3600*(hour))
+    
+    minute = eta//60
+    eta = eta - (60*(minute))
+    
+    seconds = eta
+
+    # Stringify w/padding:
+    if (minute < 10):
+        minute = "0" + str(minute)[0]
+    else:
+        minute = str(minute)[0:2]
+    if (hour < 10):
+        hour = "0" + str(hour)[0]
+    else:
+        hour = str(hour)[0:2]
+    if (seconds < 10):
+        seconds = "0" + str(seconds)[0]
+    else:
+        seconds = str(seconds)[0:4]
+
+    print("Estimated Time Left:\t" + hour + ":" + minute + ":" + seconds)
+    print("\n---------------------------------------")
 
 
 def print_best_stats(stats):
@@ -140,10 +174,31 @@ if __name__ == '__main__':
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
     #torch.manual_seed(args.seed)
-    #if args.cuda:
-        #torch.cuda.manual_seed(args.seed)
+    if args.cuda:
+        torch.cuda.manual_seed(args.seed)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+
+    assert args.LSTM or args.NTM or args.LRUA, "You need to chose a network architecture! type python main_text.py -h for help."
+
+    # Setting network:
+    LSTM = args.LSTM
+    NTM = args.NTM
+    LRUA = args.LRUA
+
+    # Since we need to write to memory between each timestep, we can't train sequenced:
+    if (LRUA or NTM):
+        from reinforcement_utils.images import test_non_sequence as test, train_non_sequence as train
+
+    # But we can do it with the LSTM:
+    else:
+        from reinforcement_utils.images import train_sequence as train, test_sequence as test
+
+
+    # CLASS MARGIN SAMPLING:
+    MARGIN = args.margin_sampling
+    MARGIN_TIME = args.margin_time
+    CMS = args.margin_size
 
     ### PARAMETERS ###
 
@@ -163,26 +218,23 @@ if __name__ == '__main__':
     ])
 
     # abcde-vectors for classes (3125 different classes):
-    multi_state = False
+    multi_class = True
     state_size = 5
 
-    if (multi_state):
+    if (multi_class):
         nof_classes = int(state_size*state_size)
         output_classes = nof_classes
     else:
         nof_classes = args.class_vector_size
         output_classes = nof_classes
 
-    LSTM = False
-    NTM = False
-    LRUA = True
 
     if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes, baseline=True)
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, output_classes, IMAGE_SIZE, non_rl=True)
     elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes, baseline=True)
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, output_classes, IMAGE_SIZE, non_rl=True)
     elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, nof_classes, IMAGE_SIZE, output_classes=output_classes, baseline=True)
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, output_classes, IMAGE_SIZE, non_rl=True)
 
     root = 'data/images/omniglot'
 
@@ -192,7 +244,7 @@ if __name__ == '__main__':
     omniglot_loader = loader.OmniglotLoader(root, classify=False, partition=0.8, classes=True)
     train_loader = torch.utils.data.DataLoader(
         OMNIGLOT(root, train=True, transform=train_transform, download=True, omniglot_loader=omniglot_loader, classes=args.class_vector_size, episode_size=args.episode_size),
-        batch_size=args.mini_batch_size, shuffle=True, **kwargs)
+        batch_size=args.batch_size, shuffle=True, **kwargs)
     print("Loading testset...")
     if (not MNIST_TEST):
         test_loader = torch.utils.data.DataLoader(
@@ -223,7 +275,7 @@ if __name__ == '__main__':
     acc_dict = {1: [], 2: [], 5: [], 10: []}
     total_accuracy = []
     total_loss = []
-    best = -30
+    best = 0.0
 
 
     ### LOADING PREVIOUS NETWORK ###
@@ -243,7 +295,7 @@ if __name__ == '__main__':
         else:
             print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
 
-    print("Current best: ", best)
+    print("Current best accuracy: ", best, "%")
 
     ### WEIGHT OPTIMIZER ###
     optimizer = optim.Adam(q_network.parameters(), lr=0.001)
@@ -255,6 +307,15 @@ if __name__ == '__main__':
     done = False
     start_time = time.time()
 
+    avg_time = 0
+    eta = 0
+    hour = 0
+    minute = 0
+    seconds = 0
+
+    time_interval = []
+    interval = 50
+
     # Constants:
     SAVE = 10
     BACKUP = 50
@@ -264,15 +325,29 @@ if __name__ == '__main__':
         for epoch in range(args.start_epoch, args.epochs + 1):
 
             ### TRAINING ###
-            print("\n\n--- Training epoch " + str(epoch) + " ---\n\n")
+            print("\n\n--- ", args.name, ": Training epoch " + str(epoch) + " ---\n\n")
 
             if (len(total_accuracy) > 0):
                 best_index = np.argmax(total_accuracy)
             
                 print_best_stats([best, total_accuracy[best_index]])
 
+            # Collect time estimates:
+            if (epoch % interval == 0):
+                if (len(time_interval) < 2):
+                    time_interval.append(time.time())
+                else:
+                    time_interval[-2] = time_interval[-1]
+                    time_interval[-1] = time.time()
 
-            stats, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, episode, criterion, batch_size=args.batch_size)
+            # Print Estimated time left:
+            if (len(time_interval) > 1):
+                avg_time = (time_interval[-1] - time_interval[-2])/interval
+                eta = (args.epochs + 1 - epoch) * avg_time
+                print_time(avg_time, eta)
+
+
+            stats, accuracy_train_dict = train.train(q_network, epoch, optimizer, train_loader, args, episode, criterion, batch_size=args.batch_size, multi_class=multi_class)
             
             episode += args.batch_size
 
@@ -283,7 +358,8 @@ if __name__ == '__main__':
             total_loss.append(stats[1])
 
             if (epoch % 50 == 0):
-                test.validate(q_network, epoch, optimizer, test_loader, args, episode, criterion, batch_size=args.test_batch_size)
+                print("\n--- Validation Statistics ---\n")
+                test.validate(q_network, epoch, optimizer, test_loader, args, episode, criterion, batch_size=args.test_batch_size, multi_class=multi_class)
 
 
             ### SAVING THE BEST ALWAYS ###
@@ -375,9 +451,9 @@ if __name__ == '__main__':
         for epoch in range(args.epochs + 1, args.epochs + 1 + test_epochs):
 
             # Validate the model:
-            stats, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, episode, criterion, batch_size=args.test_batch_size)
+            stats, accuracy_test_dict = test.validate(q_network, epoch, optimizer, test_loader, args, episode, criterion, batch_size=args.test_batch_size, multi_class=multi_class)
             if not MNIST_TEST:
-                train_stats, train_accs = test.validate(q_network, epoch, optimizer, test_train_loader, args, episode, criterion, batch_size=args.test_batch_size)
+                train_stats, train_accs = test.validate(q_network, epoch, optimizer, test_train_loader, args, episode, criterion, batch_size=args.test_batch_size, multi_class=multi_class)
 
             update_dicts(accuracy_test_dict, acc_dict)
             update_dicts(accuracy_test_dict, test_acc_dict)

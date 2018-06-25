@@ -5,9 +5,9 @@ import shutil
 # Writes a table to file:
 def write_stats(requests, accuracy, penalty, folder, test=False):
     if (test):
-        filename = "results/plots/" + str(folder) + "test_table_file.txt"
+        filename = "../results/plots/" + str(folder) + "test_table_file.txt"
     else:
-        filename = "results/plots/" + str(folder) + "table_file.txt"
+        filename = "../results/plots/" + str(folder) + "table_file.txt"
     dimensions = [55, 31, 31]
     headers = ["Method", "Accuracy (%)", "Requests (%)"]
     method = "RL Prediction"

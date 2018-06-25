@@ -21,7 +21,6 @@ class NTM(nn.Module):
         super(NTM, self).__init__()
 
         # Save arguments
-        self.t = 0
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.controller = controller
@@ -53,8 +52,6 @@ class NTM(nn.Module):
         init_r = [r.clone().repeat(batch_size, 1) for r in self.init_r]
         controller_state = self.controller.create_new_state(batch_size)
         heads_state = [head.create_new_state(batch_size) for head in self.heads]
-
-        self.t = 0
 
         return init_r, controller_state, heads_state
 
@@ -93,11 +90,10 @@ class NTM(nn.Module):
             else:
                 # When getting future Q-values, we need only read, NOT WRITE:
                 if (not read_only):
-                    head_state = head(controller_outp, prev_head_state, self.num_read_heads, head_nr=write_head_nr, t=self.t)
+                    head_state = head(controller_outp, prev_head_state, self.num_read_heads)
                     write_head_nr += 1
             heads_states += [head_state]
 
-        self.t += 1
 
         # Generate Output and collect predictions:
         ntm_out = torch.cat([controller_outp] + reads, dim=1)

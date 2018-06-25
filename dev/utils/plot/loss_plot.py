@@ -36,9 +36,9 @@ def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0, episode_s
 		print("Margin plot...")
 		#plt.ylim((0, 4))
 	if ("loss" in filename.lower()):
-		plt.ylim((0, episode_size))
+		plt.ylim((0, 24))
 	if ("reward" in filename.lower()):
-		plt.ylim((-5, episode_size))
+		plt.ylim((-5, 23))
 	directory = "results/plots/"
 	if not os.path.exists(directory + folder):
 		os.makedirs(directory + folder)

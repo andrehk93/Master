@@ -12,14 +12,13 @@ class ReinforcedRNN(nn.Module):
 	hidden_layers = 1
 	hidden_nodes = 200
 
-	def __init__(self, batch_size, cuda, classes, input_size, output_classes=3, embedding=False, dict_size=5000, baseline=False):
+	def __init__(self, batch_size, cuda, classes, input_size, non_rl=False, embedding=False, dict_size=5000):
 
 		super(ReinforcedRNN, self).__init__()
-		self.baseline = baseline
-		if (self.baseline):
-			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, OUTPUT_CLASSES=output_classes, EMBEDDING=embedding, DICT_SIZE=dict_size)
+		if (non_rl):
+			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
 		else:
-			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, OUTPUT_CLASSES=output_classes + 1, EMBEDDING=embedding, DICT_SIZE=dict_size + 2)
+			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
 
 		self.batch_size = batch_size
 		self.gpu = cuda
@@ -38,6 +37,11 @@ class ReinforcedRNN(nn.Module):
 class ReinforcedNTM(nn.Module):
 
 	# PARAMETERS:
+	"""
+	M: Memory slot size
+	N: Nof. Memory slots
+	Controller_size: Size of LSTM controller
+	"""
 	M = 40
 	N = 128
 	num_read_heads = 4
@@ -45,16 +49,15 @@ class ReinforcedNTM(nn.Module):
 	controller_size = 200
 	controller_layers = 1
 
-	def __init__(self, batch_size, cuda, classes, input_size, output_classes=3, embedding=False, dict_size=5000, baseline=False):
+	def __init__(self, batch_size, cuda, classes, input_size, non_rl=False, embedding=False, dict_size=5000):
 
 		super(ReinforcedNTM, self).__init__()
-		self.baseline = baseline
-		if (self.baseline):
+		if (non_rl):
 			self.q_network = NTM(input_size + classes, classes, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
+            	self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
 		else:
 			self.q_network = NTM(input_size + classes, classes + 1, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes + 1, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
+            	self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
 
 
 		self.batch_size = batch_size
@@ -75,6 +78,11 @@ class ReinforcedNTM(nn.Module):
 class ReinforcedLRUA(nn.Module):
 
 	# PARAMETERS:
+	"""
+	M: Memory slot size
+	N: Nof. Memory slots
+	Controller_size: Size of LSTM controller
+	"""
 	M = 40
 	N = 128
 	num_read_heads = 4
@@ -83,16 +91,15 @@ class ReinforcedLRUA(nn.Module):
 	controller_layers = 1
 
 
-	def __init__(self, batch_size, cuda, classes, input_size, output_classes=3, embedding=False, dict_size=5000, baseline=False):
+	def __init__(self, batch_size, cuda, classes, input_size, non_rl=False, embedding=False, dict_size=5000):
 
 		super(ReinforcedLRUA, self).__init__()
-		self.baseline = baseline
-		if self.baseline:
+		if (non_rl):
 			self.q_network = LRUA(input_size + classes, classes, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes, embedding=embedding, dict_size=dict_size, embedding_size=input_size)
+            	self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
 		else:
 			self.q_network = LRUA(input_size + classes, classes + 1, classes,
-                self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, output_classes=output_classes + 1, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
+            	self.controller_size, self.controller_layers, self.num_read_heads, self.num_write_heads, self.N, self.M, embedding=embedding, dict_size=dict_size + 2, embedding_size=input_size)
 
 
 		self.batch_size = batch_size

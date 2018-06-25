@@ -2,13 +2,13 @@ import torch
 from torch.autograd import Variable
 import numpy as np
 
-def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch_size=32, multi_class=False):
+def validate(model, epoch, optimizer, test_loader, args, episode, criterion, batch_size=32, multi_class=False):
 
     # Initialize training:
-    model.train()
+    model.eval()
 
     # Collect all episode images w/labels:
-    image_batch, label_batch = train_loader.__iter__().__next__()
+    image_batch, label_batch = test_loader.__iter__().__next__()
 
     image_batch_sequence = torch.cat([images for images in image_batch])
     label_batch_sequence = torch.cat([labels for labels in label_batch]).type(torch.LongTensor)
@@ -21,13 +21,11 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
         label_batch_sequence = Variable(label_batch_sequence.view(-1, batch_size))
 
     # Episode Statistics:
-    episode_loss = 0.0
-    episode_optimized = 0.0
     episode_correct = 0.0
     episode_predict = 0.0
-    episode_optimized = 0.0
-    episode_iter = 0.0
-    total_loss = 0.0
+
+    # Record stats:
+    accuracy_dict = {1: [], 2: [], 5: [], 10: []}
 
     # Create initial state:
     initial_state_batch = []
@@ -39,58 +37,48 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
         else:
             initial_state_batch.append([0 for i in range(args.class_vector_size)])
 
-    state_batch = []
     label_to_string = None
-    for j in range(args.episode_size - 1):
-        if (multi_class):
-            string_labels, label_to_string = get_multiclass_representations(batch_size, args.class_vector_size, label_batch_sequence[j], label_to_string=label_to_string)
-            state_batch.append(string_labels)
-        else:
-            state_batch.append(get_singleclass_representations(batch_size, args.class_vector_size, label_batch_sequence[j]))
     
-    if (args.cuda):
-        initial_state_batch = torch.Tensor(initial_state_batch).cuda()
-        state_batch = torch.Tensor(state_batch).cuda()
+    if (multi_class):
+        if (args.cuda):
+            initial_state_batch = torch.Tensor(initial_state_batch).view(batch_size, -1).cuda()
+        else:
+            initial_state_batch = torch.Tensor(initial_state_batch).view(batch_size, -1)
     else:
-        initial_state_batch = torch.Tensor(initial_state_batch).view(1, batch_size, args.class_vector_size, args.class_vector_size)
-        state_batch = torch.Tensor(state_batch) 
+        if (args.cuda):
+            initial_state_batch = torch.Tensor(initial_state_batch).view(batch_size, args.class_vector_size).cuda()
+        else:
+            initial_state_batch = torch.Tensor(initial_state_batch).view(batch_size, args.class_vector_size)
 
-
-    # Creating states:
-    episode_pre_states = torch.cat((initial_state_batch, state_batch)).view(args.episode_size, batch_size, -1)
-    episode_states = torch.cat((episode_pre_states, image_batch_sequence), 2)
-
+    state_batch = initial_state_batch
     
     # Initialize model between each episode:
     hidden = model.reset_hidden(batch_size)
 
-    predictions, hidden = model(Variable(episode_states), hidden, seq=args.episode_size)
-
-    if (args.cuda):
-        loss = Variable(torch.zeros(1).type(torch.Tensor)).cuda()
-    else:
-        loss = Variable(torch.zeros(1).type(torch.Tensor))
-
-    for e in range(args.episode_size):
-        pred_lab = Variable(torch.LongTensor(batch_size, args.class_vector_size))
-        for b in range(batch_size):
-            preds = Variable(torch.LongTensor(label_to_string[b][label_batch_sequence[e][b].data[0]]))
-            loss += criterion(predictions[e][b].view(args.class_vector_size, args.class_vector_size), preds)
-
-        
-
-    optimizer.zero_grad()
-
-    loss.backward()
-
-    optimizer.step()
-
-    accuracy_dict = {1: [], 2: [], 5: [], 10: []}
-
     for t in range(args.episode_size):
+
+        # Collect timestep-specific sample- and label-batches:
+        timestep_sample_batch, timestep_label_batch = image_batch_sequence[t], label_batch_sequence[t]
+
+        # Concatenate with state:
+        timestep_state_batch = torch.cat((state_batch, timestep_sample_batch), dim=1).view(batch_size, -1)
+
+        # Get model predictions:
+        predictions, hidden = model(Variable(timestep_state_batch), hidden)
+
+        # Get next state:
+        state_batch = []
+        if (multi_class):
+            string_labels, label_to_string = get_multiclass_representations(batch_size, args.class_vector_size, timestep_label_batch, label_to_string=label_to_string)
+            state_batch.append(string_labels)
+        else:
+            state_batch.append(get_singleclass_representations(batch_size, args.class_vector_size, timestep_label_batch))
+
+        state_batch = torch.Tensor([state_batch]).view(batch_size, -1)
+
         for b in range(batch_size):
 
-            true_label = label_batch_sequence[t][b].data[0]
+            true_label = timestep_label_batch[b].data[0]
 
             # Logging label occurences:
             if (true_label not in label_dict[b]):
@@ -100,11 +88,11 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
 
         for b in range(batch_size):
 
-            true_label = label_batch_sequence[t][b].data[0]
-            string_label = label_to_string[b][label_batch_sequence[t][b].data[0]]
+            true_label = timestep_label_batch[b].data[0]
+            string_label = label_to_string[b][timestep_label_batch[b].data[0]]
             predicted_label = []
             for c in range(args.class_vector_size):
-                predicted_label.append(predictions[t][b].data[c*args.class_vector_size : (c+1)*args.class_vector_size].view(1, -1).max(1)[1])
+                predicted_label.append(predictions[b].data[c*args.class_vector_size : (c+1)*args.class_vector_size].view(1, -1).max(1)[1])
 
 
             # Logging accuracy:
@@ -117,8 +105,7 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
                     accuracy_dict[label_dict[b][true_label]].append(0)
             episode_predict += 1.0
 
-    # More status update:
-    total_loss = loss.data[0]
+    
 
     for key in accuracy_dict.keys():
         accuracy_dict[key] = float(sum(accuracy_dict[key])/len(accuracy_dict[key]))
@@ -136,12 +123,10 @@ def train(model, epoch, optimizer, train_loader, args, episode, criterion, batch
     print("\n+------------------STATISTICS----------------------+")
     total_accuracy = float((100.0 * episode_correct) / episode_predict)
     print("Batch Average Accuracy = " + str(total_accuracy)[:5] +  " %")
-    total_loss = float(total_loss)
-    print("Batch Average Loss = " + str(total_loss)[:5])
     print("+--------------------------------------------------+\n")
 
 
-    return [total_accuracy, total_loss], accuracy_dict
+    return [total_accuracy], accuracy_dict
 
 
 def get_multiclass_representations(batch_size, classes, timestep_label_batch, label_to_string=None):

@@ -163,12 +163,12 @@ def bar_plot(lists, bar_type, name, labels, size, ylabel=""):
 
 if __name__ == '__main__':
 
-    name = 'IMAGE_lrua/'
+    name = 'headlines_ntm/'
     checkpoint = 'pretrained/' + name + 'best.pth.tar'
 
     LSTM = False
-    NTM = False
-    LRUA = True
+    NTM = True
+    LRUA = False
 
     TRAIN = True
 
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     REUTERS_DATASET = 3
     
 
-    dataset = OMNIGLOT_DATASET
+    dataset = INH_DATASET
 
     # LSTM & Q Learning
     IMAGE_SCALE = 20

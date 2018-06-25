@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import operator
 
-model_name = "TRAIN_lrua/"
-weight_vector = "w_r/"
+model_name = "TEXT_ntm/"
+weight_vector = "memory_slot/"
 path = "../../results/memories/" + model_name + weight_vector
 print(path)
 

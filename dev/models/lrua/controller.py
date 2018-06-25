@@ -43,12 +43,16 @@ class LSTMController(nn.Module):
             x = x.unsqueeze(0)
             outp, state = self.lstm(x, prev_state)
         else:
+            # Getting the word-vectors:
             x = self.embedding_layer(x)
             lstm_input = []
             
+            # Appending the class one-hot vector to each word-vector:
             for i in range(x.size()[1]):
                 embedding_with_memory = torch.cat([x[:, i]] + prev_reads, dim=1)
                 lstm_input.append(torch.cat((class_vector, embedding_with_memory), dim=1))
+
+            # Sending everything to LSTM:
             lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[1], x.size()[0], -1)
 
             outp, state = self.lstm(lstm_input, prev_state)
