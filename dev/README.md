@@ -30,7 +30,7 @@ Implemented partially from https://github.com/loudinthecloud/pytorch-ntm, with a
 3. LRUA Model
 Simply an augmented version of the NTM model, similar to the LRUA in http://proceedings.mlr.press/v48/santoro16.pdf. The only difference is that the number of read heads is identical to the number of write heads, and that every memory location is either written to the least used location, or simply the first location, in memory.
 
-### Training a model:
+# Training a model:
 When running either "main_image.py", "main_text.py" or "non_rl_main_image.py", be sure to also supply which model you want to train. Each argument can be done like this:
 
 python main_image.py --LSTM --margin-sampling --margin-size 3 --name "LSTM_margin_3"
@@ -48,8 +48,8 @@ usage: main_image.py [-h] [--batch-size N] [--mini-batch-size N]
                      [--seed N] [--margin-sampling] [--margin-size N]
                      [--margin-time N] [--LSTM] [--NTM] [--LRUA]
 
-PyTorch Reinforcement Learning For Images:
-
+### PyTorch Reinforcement Learning For Images:
+```
 optional arguments:
   -h, --help            show this help message and exit
   --batch-size N        input batch size for training (default: 50) (default:
@@ -87,7 +87,7 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
-
+```
 ## main_text.py -h
 
 usage: main_text.py [-h] [--batch-size N] [--test-batch-size N]
@@ -100,8 +100,8 @@ usage: main_text.py [-h] [--batch-size N] [--test-batch-size N]
                     [--margin-size S] [--margin-time S] [--LSTM] [--NTM]
                     [--LRUA]
 
-PyTorch Reinforcement Learning For Text:
-
+### PyTorch Reinforcement Learning For Text:
+```
 optional arguments:
   -h, --help            show this help message and exit
   --batch-size N        Input batch size for training (default: 32)
@@ -132,7 +132,7 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
-  
+  ```
   ## non_rl_main_image.py -h
   
   usage: non_rl_main_image.py [-h] [--batch-size N] [--test-batch-size N]
@@ -145,8 +145,8 @@ optional arguments:
                             [--margin-size N] [--margin-time N] [--LSTM]
                             [--NTM] [--LRUA]
 
-PyTorch Deterministic Meta-Learning:
-
+### PyTorch Deterministic Meta-Learning:
+```
 optional arguments:
   -h, --help            show this help message and exit
   --batch-size N        input batch size for training (default: 50) (default:
@@ -182,3 +182,4 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
+```
