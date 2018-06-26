@@ -31,6 +31,8 @@ Implemented partially from https://github.com/loudinthecloud/pytorch-ntm, with a
 Simply an augmented version of the NTM model, similar to the LRUA in http://proceedings.mlr.press/v48/santoro16.pdf. The only difference is that the number of read heads is identical to the number of write heads, and that every memory location is either written to the least used location, or simply the first location, in memory.
 
 # Training a model:
+First of all, any changes to the specific model architecture (LSTM size, NTM memory sizes, etc.) can be done in "models/reinforcement_models.py". Needless to say, changing architecture and then loading an earlier checkpoint of a model will not work.
+
 When running either "main_image.py", "main_text.py" or "non_rl_main_image.py", be sure to also supply which model you want to train. Each argument can be done like this:
 
 python main_image.py --LSTM --margin-sampling --margin-size 3 --name "LSTM_margin_3"
