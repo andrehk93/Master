@@ -49,26 +49,25 @@ usage: main_image.py [-h] [--batch-size N] [--mini-batch-size N]
                      [--load-test-checkpoint LOAD_TEST_CHECKPOINT] [--name S]
                      [--seed N] [--margin-sampling] [--margin-size N]
                      [--margin-time N] [--LSTM] [--NTM] [--LRUA]
+                     [--mnist-test]
 
 ### PyTorch Reinforcement Learning For Images:
 ```
 optional arguments:
   -h, --help            show this help message and exit
   --batch-size N        input batch size for training (default: 50) (default:
-                        50)
-  --mini-batch-size N   How many episodes to train on at a time (default: 1)
-                        (default: 50)
+                        32)
   --test-batch-size N   How many episodes to test on at a time (default: 1)
                         (default: 32)
   --episode-size N      input episode size for training (default: 30)
                         (default: 30)
-  --epochs N            number of epochs to train (default: 2000) (default:
-                        200)
+  --epochs N            number of epochs to train (default: 10000) (default:
+                        100000)
   --start-epoch N       starting epoch (default: 1) (default: 1)
   --class-vector-size N
                         Number of classes per episode (default: 3) (default:
                         3)
-  --no-cuda             enables CUDA training (default: True)
+  --no-cuda             Disables CUDA training, NOT supported in this project (default: True)
   --load-checkpoint LOAD_CHECKPOINT
                         path to latest checkpoint (default: none) (default:
                         pretrained/IMAGE_ntm/checkpoint.pth.tar)
@@ -89,6 +88,8 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
+  --mnist-test          Enables testing on the MNIST dataset, instead of the OMNIGLOT
+                        dataset (default: False)
 ```
 ## main_text.py -h
 
