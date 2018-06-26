@@ -41,9 +41,9 @@ This will result in a LSTM network, with margin sampling of CMS=3, with the name
 
 ## main_image.py -h
 
-usage: main_image.py [-h] [--batch-size N] [--mini-batch-size N]
-                     [--test-batch-size N] [--episode-size N] [--epochs N]
-                     [--start-epoch N] [--class-vector-size N] [--no-cuda]
+usage: main_image.py [-h] [--batch-size N] [--test-batch-size N]
+                     [--episode-size N] [--epochs N] [--start-epoch N]
+                     [--class-vector-size N] [--no-cuda]
                      [--load-checkpoint LOAD_CHECKPOINT]
                      [--load-best-checkpoint LOAD_BEST_CHECKPOINT]
                      [--load-test-checkpoint LOAD_TEST_CHECKPOINT] [--name S]
@@ -55,30 +55,25 @@ usage: main_image.py [-h] [--batch-size N] [--mini-batch-size N]
 ```
 optional arguments:
   -h, --help            show this help message and exit
-  --batch-size N        input batch size for training (default: 50) (default:
-                        32)
-  --test-batch-size N   How many episodes to test on at a time (default: 1)
-                        (default: 32)
+  --batch-size N        input batch size for training (default: 50)
+  --test-batch-size N   How many episodes to test on at a time (default: 32)
   --episode-size N      input episode size for training (default: 30)
-                        (default: 30)
-  --epochs N            number of epochs to train (default: 10000) (default:
-                        100000)
-  --start-epoch N       starting epoch (default: 1) (default: 1)
+  --epochs N            number of epochs to train (default: 100000)
+  --start-epoch N       starting epoch (default: 1)
   --class-vector-size N
-                        Number of classes per episode (default: 3) (default:
-                        3)
-  --no-cuda             Disables CUDA training, NOT supported in this project (default: True)
+                        Number of classes per episode (default: 3)
+  --no-cuda             enables CUDA training (default: True)
   --load-checkpoint LOAD_CHECKPOINT
-                        path to latest checkpoint (default: none) (default:
+                        path to latest checkpoint (default:
                         pretrained/IMAGE_ntm/checkpoint.pth.tar)
   --load-best-checkpoint LOAD_BEST_CHECKPOINT
-                        path to best checkpoint (default: none) (default:
+                        path to best checkpoint (default:
                         pretrained/reinforced_ntm/best.pth.tar)
   --load-test-checkpoint LOAD_TEST_CHECKPOINT
-                        path to best checkpoint (default: none) (default:
+                        path to best checkpoint (default:
                         pretrained/reinforced_ntm/testpoint.pth.tar)
   --name S              name of file (default: reinforced_ntm_LAST)
-  --seed N              random seed (default: 1) (default: 1)
+  --seed N              random seed (default: 1)
   --margin-sampling     Enables margin sampling for selecting clases to train
                         on (default: False)
   --margin-size N       Multiplier for number of classes in pool of classes
@@ -88,8 +83,8 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
-  --mnist-test          Enables testing on the MNIST dataset, instead of the OMNIGLOT
-                        dataset (default: False)
+  --mnist-test          Enables testing on the MNIST dataset, instead of the
+                        OMNIGLOT dataset (default: False)
 ```
 ## main_text.py -h
 
@@ -165,30 +160,25 @@ optional arguments:
 ```
 optional arguments:
   -h, --help            show this help message and exit
-  --batch-size N        input batch size for training (default: 50) (default:
-                        32)
-  --test-batch-size N   How many episodes to test on at a time (default: 1)
-                        (default: 32)
-  --episode-size N      input episode size for training (default: 30)
-                        (default: 50)
-  --epochs N            number of epochs to train (default: 2000) (default:
-                        100000)
-  --start-epoch N       starting epoch (default: 1) (default: 1)
+  --batch-size N        input batch size for training (default: 32)
+  --test-batch-size N   How many episodes to test on at a time (default: 32)
+  --episode-size N      input episode size for training (default: 50)
+  --epochs N            number of epochs to train (default: 100000)
+  --start-epoch N       starting epoch (default: 1)
   --class-vector-size N
-                        Number of classes per episode (default: 3) (default:
-                        5)
+                        Number of classes per episode (default: 5)
   --no-cuda             enables CUDA training (default: True)
   --load-checkpoint LOAD_CHECKPOINT
-                        path to latest checkpoint (default: none) (default:
+                        path to latest checkpoint (default:
                         pretrained/deterministic_lstm_5/checkpoint.pth.tar)
   --load-best-checkpoint LOAD_BEST_CHECKPOINT
-                        path to best checkpoint (default: none) (default:
+                        path to best checkpoint (default:
                         pretrained/deterministic_lstm_5/best.pth.tar)
   --load-test-checkpoint LOAD_TEST_CHECKPOINT
-                        path to best checkpoint (default: none) (default:
+                        path to best checkpoint (default:
                         pretrained/deterministic_lstm_5/testpoint.pth.tar)
   --name NAME           name of file (default: deterministic_lstm_5)
-  --seed S              random seed (default: 1) (default: 1)
+  --seed S              random seed (default: 1)
   --margin-sampling     Enables margin sampling for selecting clases to train
                         on (default: False)
   --margin-size N       Multiplier for number of classes in pool of classes
