@@ -7,7 +7,7 @@ Go to https://github.com/brendenlake/omniglot/tree/master/python and download th
 To use the model/methods that utilize the OMNIGLOT dataset, please use "main_image.py" to train your model. The models can also be trained as in "http://proceedings.mlr.press/v48/santoro16.pdf", using "non_rl_main_image.py" and the OMNIGLOT dataset.
 
 ### For the INH dataset:
-Go to https://www.kaggle.com/therohk/india-headlines-news-dataset, and download the dataset (You will need to sign in/sign up to Kaggle.com in order to do this). Unzip the file, and place the resulting .csv file called "india-news-headlines.csv" into "data/text/headlines/". Then run the script in the same folder called "csv_to_folders.py". This script will create folders for each headline category, and put each headline into it's corresponding category. This will take some time, as the dataset is over 2.7 million rows long.
+Go to https://www.kaggle.com/therohk/india-headlines-news-dataset, and download the dataset (You will need to sign in/sign up to Kaggle.com in order to do this). Unzip the file, and place the resulting .csv file called "india-news-headlines.csv" into "data/text/headlines/". Then run the script in the same folder called "csv_to_folders.py". This script will create folders for each headline category, and put each headline into it's corresponding category. This will take some time, as the dataset is over 2.7 million rows long. NOTE: The script may fail at the end, but this is due to some compromises made, and is not of concern, all files and folders have been made at this point!
 
 To use the model/methods that utilize the INH dataset, please use "main_text.py" to train your model. 
 
