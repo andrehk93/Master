@@ -98,7 +98,9 @@ usage: main_text.py [-h] [--batch-size N] [--test-batch-size N]
                     [--load-test-checkpoint LOAD_TEST_CHECKPOINT]
                     [--name NAME] [--seed S] [--margin-sampling]
                     [--margin-size S] [--margin-time S] [--LSTM] [--NTM]
-                    [--LRUA]
+                    [--LRUA] [--INH] [--REUTERS] [--embedding-size S]
+                    [--sentence-length S] [--nof-sentences S]
+                    [--dictionary-size S]
 
 ### PyTorch Reinforcement Learning For Text:
 ```
@@ -132,6 +134,17 @@ optional arguments:
   --LSTM                Enables LSTM as chosen Q-network (default: False)
   --NTM                 Enables NTM as chosen Q-network (default: False)
   --LRUA                Enables LRUA as chosen Q-network (default: False)
+  --INH                 Enables INH as chosen dataset (default: False)
+  --REUTERS             Enables REUTERS as chosen dataset (default: False)
+  --embedding-size S    Size of word-embedding layer (default: 128)
+  --sentence-length S   Number of words in a sentence. NOTE: Changing this
+                        will force you to recompile the datasets (default: 12)
+  --nof-sentences S     Number of sentences collected from a sample. NOTE:
+                        Changing this will force you to recompile the datasets
+                        (default: 1)
+  --dictionary-size S   Dictionary max size, with 0 and N + 1 as reserved
+                        tokens. NOTE: Changing this will force you to
+                        recompile the datasets (default: 10000)
   ```
   ## non_rl_main_image.py -h
   
