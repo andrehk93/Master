@@ -16,7 +16,7 @@ class OmniglotLoader():
 	training_file = 'training.pt'
 	test_file = 'test.pt'
 
-	def __init__(self, root, classify=True, partition=0.8, classes=False):
+	def __init__(self, root, classify=False, partition=0.8, classes=False):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
 		if (self.classify):
@@ -86,6 +86,9 @@ def read_image_file(path, training_set=None, test_set=None, label_start=0, parti
 		for f in files:
 			if (f.endswith(".png")):
 			# Reading image file:
+				if (len(files) < 20):
+					print("Length: ", len(files))
+					break
 				#image = imread(os.path.join(root, f), flatten=True)
 				image = np.array(Image.open(os.path.join(root, f)))
 				if (root not in label_dict):

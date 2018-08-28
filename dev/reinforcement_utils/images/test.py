@@ -70,7 +70,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
 
         
         for i in range(batch_size):
-            true_label = episode_labels[i]
+            true_label = int(episode_labels[i].numpy())
 
             # Logging statistics:
             if (true_label not in label_dict[i]):
@@ -145,7 +145,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
     print("Batch Average Reward = " + str(total_reward)[:5])
     print("+--------------------------------------------------+\n")
 
-    return [total_prediction_accuracy, total_requests, total_reward], request_dict, accuracy_dict, prediction_accuracy_dict
+    return [total_prediction_accuracy, total_requests, total_reward, total_accuracy], request_dict, accuracy_dict, prediction_accuracy_dict
 
 
 def get_multiclass_representations(batch_size, classes):
@@ -171,7 +171,7 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
     request = 0.0
     correct = 0.0
     for i in range(batch_size):
-        true_label = episode_labels[i]
+        true_label = int(episode_labels[i].numpy())
 
         # Statistics:
         reward = rewards[i]

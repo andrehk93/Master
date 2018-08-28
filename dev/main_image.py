@@ -52,7 +52,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=200, metavar='N',
+parser.add_argument('--epochs', type=int, default=100000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -68,19 +68,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_ntm/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_lruas/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/reinforced_ntm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_lrua/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/reinforced_ntm/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_lrua/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='reinforced_ntm_LAST', type=str, metavar="S",
+parser.add_argument('--name', default='IMAGE_lrua', type=str, metavar="S",
                     help='name of file')
 
 # Seed:
@@ -280,10 +280,14 @@ if __name__ == '__main__':
     req_dict = {1: [], 2: [], 5: [], 10: []}
     acc_dict = {1: [], 2: [], 5: [], 10: []}
     total_requests = []
+    total_test_requests = []
     total_accuracy = []
+    total_test_accuracy = []
     total_prediction_accuracy= []
+    total_test_prediction_accuracy = []
     total_loss = []
     total_reward = []
+    total_test_reward = []
     all_margins = []
     low_margins = []
     all_choices = []
@@ -304,6 +308,13 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
+
+            # Test stats:
+            total_test_requests = checkpoint['tot_test_requests']
+            total_test_accuracy = checkpoint['tot_test_accuracy']
+            total_test_prediction_accuracy = checkpoint['tot_test_pred_acc']
+            total_test_reward = checkpoint['tot_test_reward']
+
             if (MARGIN):
                 all_margins = checkpoint['all_margins']
                 low_margins = checkpoint['low_margins']
@@ -393,7 +404,11 @@ if __name__ == '__main__':
             total_reward.append(stats[4])
 
             if (epoch % 2 == 0):
-                test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+                test_stats, test_reqs, test_accs, test_preds = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
+                total_test_prediction_accuracy.append(test_stats[0])
+                total_test_requests.append(test_stats[1])
+                total_test_reward.append(test_stats[2])
+                total_test_accuracy.append(test_stats[3])
 
 
             ### SAVING THE BEST ALWAYS ###
@@ -411,6 +426,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -430,6 +449,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -449,6 +472,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -471,8 +498,10 @@ if __name__ == '__main__':
     # Plotting training accuracy:
     
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
+    loss_plot.plot([total_test_accuracy, total_test_prediction_accuracy, total_test_requests], ["Test Accuracy Percentage", "Test Prediction Accuracy",  "Test Requests Percentage"], "total_testing_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss", episode_size=args.episode_size)
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
+    loss_plot.plot([total_test_reward], ["Test Average Reward"], "total_test_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
     
     # Margin plots:
     if (MARGIN):
@@ -572,6 +601,10 @@ if __name__ == '__main__':
                     'tot_accuracy': total_accuracy,
                     'tot_requests': total_requests,
                     'tot_pred_acc': total_prediction_accuracy,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'training_stats': training_stats,
                     'test_stats': test_stats,
                     'test_acc_dict': test_acc_dict,
@@ -620,6 +653,7 @@ if __name__ == '__main__':
         test_acc_dict = checkpoint['test_acc_dict']
         test_req_dict = checkpoint['test_req_dict']
         test_pred_dict = checkpoint['test_pred_dict']
+
         if not MNIST_TEST:
             train_acc_dict = checkpoint['train_acc_dict']
             train_req_dict = checkpoint['train_req_dict']
