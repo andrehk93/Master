@@ -212,7 +212,7 @@ if __name__ == '__main__':
     headlines = 'headlines'
 
     # Dataset of choice:
-    dataset = 'data/text/' + headlines
+    dataset = 'data/text/' + reuters
     ##################
 
 

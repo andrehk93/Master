@@ -86,7 +86,7 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 	for (root, dirs, files) in os.walk(path):
 		if (len(files) >= 10):
 			for f in files:
-				if (progress % 10000 == 0):
+				if (progress % 100000 == 0):
 					print("Reading file [" + str(progress) + "]")
 				if (f != ".DS_Store" and "unknown" != root.split("\\")[-1].strip()):
 					# Reading text file:
