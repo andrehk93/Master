@@ -272,7 +272,6 @@ class OMNIGLOT(data.Dataset):
         print("Writing datasets to file...")
 
         try:
-            os.makedirs(os.path.join(self.root, self.raw_folder))
             os.makedirs(os.path.join(self.root, self.processed_folder))
         except OSError as e:
             if e.errno == errno.EEXIST:

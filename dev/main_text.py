@@ -265,6 +265,10 @@ if __name__ == '__main__':
     req_dict = {1: [], 2: [], 5: [], 10: []}
     acc_dict = {1: [], 2: [], 5: [], 10: []}
     total_requests = []
+    total_test_requests = []
+    total_test_accuracy = []
+    total_test_prediction_accuracy = []
+    total_test_reward = []
     total_accuracy = []
     total_prediction_accuracy= []
     total_loss = []
@@ -290,6 +294,13 @@ if __name__ == '__main__':
             total_prediction_accuracy = checkpoint['tot_pred_acc']
             total_loss = checkpoint['tot_loss']
             total_reward = checkpoint['tot_reward']
+
+            # Test stats:
+            total_test_requests = checkpoint['tot_test_requests']
+            total_test_accuracy = checkpoint['tot_test_accuracy']
+            total_test_prediction_accuracy = checkpoint['tot_test_pred_acc']
+            total_test_reward = checkpoint['tot_test_reward']
+
             start_time -= checkpoint['time']
             all_margins = checkpoint['all_margins']
             low_margins = checkpoint['low_margins']
@@ -367,8 +378,12 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 2 == 0):
-                test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+            if (epoch % 10 == 0):
+                test_stats = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+                total_test_prediction_accuracy.append(test_stats[0])
+                total_test_requests.append(test_stats[1])
+                total_test_accuracy.append(test_stats[2])
+                total_test_reward.append(test_stats[3])
 
 
             ### SAVING THE BEST ALWAYS ###
@@ -386,6 +401,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -406,6 +425,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -426,6 +449,10 @@ if __name__ == '__main__':
                     'tot_pred_acc': total_prediction_accuracy,
                     'tot_loss': total_loss,
                     'tot_reward': total_reward,
+                    'tot_test_accuracy': total_test_accuracy,
+                    'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+                    'tot_test_requests': total_test_requests,
+                    'tot_test_reward': total_test_reward,
                     'all_margins': class_margin_sampler.all_margins,
                     'low_margins': class_margin_sampler.low_margins,
                     'all_choices': class_margin_sampler.all_choices,
@@ -448,8 +475,10 @@ if __name__ == '__main__':
 
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
+    loss_plot.plot([total_test_accuracy, total_test_prediction_accuracy, total_test_requests], ["Test Accuracy Percentage", "Test Prediction Accuracy",  "Test Requests Percentage"], "total_testing_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss", episode_size=args.episode_size)
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
+    loss_plot.plot([total_test_reward], ["Test Average Reward"], "total_test_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
     
     if (MARGIN):
         loss_plot.plot([all_margins], ["Avg. Sample Margin"], "sample_margin", args.name + "/", "Avg. Sample Margin", avg=5, batch_size=args.batch_size)
@@ -544,6 +573,10 @@ if __name__ == '__main__':
             'tot_accuracy': total_accuracy,
             'tot_requests': total_requests,
             'tot_pred_acc': total_prediction_accuracy,
+            'tot_test_accuracy': total_test_accuracy,
+            'tot_test_prediction_accuracy': total_test_prediction_accuracy,
+            'tot_test_requests': total_test_requests,
+            'tot_test_reward': total_test_reward,
             'training_stats': training_stats,
             'test_stats': test_stats,
             'test_acc_dict': test_acc_dict,
