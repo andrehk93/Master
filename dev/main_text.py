@@ -298,7 +298,7 @@ if __name__ == '__main__':
             # Test stats:
             total_test_requests = checkpoint['tot_test_requests']
             total_test_accuracy = checkpoint['tot_test_accuracy']
-            total_test_prediction_accuracy = checkpoint['tot_test_pred_acc']
+            total_test_prediction_accuracy = checkpoint['tot_test_prediction_accuracy']
             total_test_reward = checkpoint['tot_test_reward']
 
             start_time -= checkpoint['time']

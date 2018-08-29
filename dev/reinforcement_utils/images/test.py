@@ -70,7 +70,7 @@ def validate(model, epoch, optimizer, test_loader, args, reinforcement_learner, 
 
         
         for i in range(batch_size):
-            true_label = int(episode_labels[i].numpy())
+            true_label = episode_labels[i].item()
 
             # Logging statistics:
             if (true_label not in label_dict[i]):
@@ -171,7 +171,7 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
     request = 0.0
     correct = 0.0
     for i in range(batch_size):
-        true_label = int(episode_labels[i].numpy())
+        true_label = episode_labels[i].item()
 
         # Statistics:
         reward = rewards[i]

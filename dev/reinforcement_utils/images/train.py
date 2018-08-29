@@ -96,7 +96,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         #one_hot_labels = []
         for i in range(args.batch_size):
 
-            true_label = int(episode_labels[i].numpy())
+            true_label = episode_labels[i].item()
 
             # Creating one hot labels:
             #one_hot_labels.append([1 if j == true_label else 0 for j in range(args.class_vector_size)])
@@ -251,7 +251,7 @@ def get_multiclass_representations(batch_size, classes):
 def get_singleclass_representations(batch_size, classes, episode_labels):
     one_hot_labels = []
     for b in range(batch_size):
-        true_label = int(episode_labels.squeeze()[b].numpy())
+        true_label = episode_labels.squeeze()[b].item()
         one_hot_labels.append([1 if j == true_label else 0 for j in range(classes)])
 
     return one_hot_labels
@@ -264,7 +264,7 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
     request = 0.0
     correct = 0.0
     for i in range(batch_size):
-        true_label = int(episode_labels[i].numpy())
+        true_label = episode_labels[i].item()
 
         # Statistics:
         reward = rewards[i]

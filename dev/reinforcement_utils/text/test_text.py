@@ -58,7 +58,7 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         # Create possible next states and update stats:
         one_hot_labels = []
         for i in range(text_batch.size()[0]):
-            true_label = int(episode_labels[i].numpy())
+            true_label = episode_labels[i].item()
 
             # Creating one hot labels:
             one_hot_labels.append([1 if j == true_label else 0 for j in range(args.class_vector_size)])
@@ -140,7 +140,7 @@ def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, lab
     request = 0.0
     correct = 0.0
     for i in range(batch_size):
-        true_label = int(episode_labels[i].numpy())
+        true_label = episode_labels[i].item()
 
         # Statistics:
         reward = rewards[i]
