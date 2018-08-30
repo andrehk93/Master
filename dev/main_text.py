@@ -45,7 +45,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='Input episode size for training')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=60000, metavar='N',
+parser.add_argument('--epochs', type=int, default=20000, metavar='N',
                     help='Number of epochs to train')
 
 # Starting Epoch:
@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/headlines_lstm/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/NTM_text/checkpoint.pth.tar', type=str,
                     help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/headlines_lstm/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/NTM_text/best.pth.tar', type=str,
                     help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/headlines_lstm/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/NTM_text/testpoint.pth.tar', type=str,
                     help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='headlines_lstm', type=str,
+parser.add_argument('--name', default='NTM_text', type=str,
                     help='Name of file')
 
 # Seed:
@@ -298,7 +298,7 @@ if __name__ == '__main__':
             # Test stats:
             total_test_requests = checkpoint['tot_test_requests']
             total_test_accuracy = checkpoint['tot_test_accuracy']
-            total_test_prediction_accuracy = checkpoint['tot_test_pred_acc']
+            total_test_prediction_accuracy = checkpoint['tot_test_prediction_accuracy']
             total_test_reward = checkpoint['tot_test_reward']
 
             start_time -= checkpoint['time']
