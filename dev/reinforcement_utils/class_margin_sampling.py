@@ -226,6 +226,7 @@ class ClassMarginSampler():
 
             for c_i in class_indexes:
                 text, label = texts[c_i]
+                label = label.item()
 
                 if (label not in labels):
                     labels[label] = int(inds[ind])
