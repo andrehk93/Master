@@ -72,9 +72,11 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
         # Selecting an action to perform (Epsilon Greedy):
         
         if (args.cuda):
-            q_values, hidden = q_network(Variable(episode_texts, volatile=True).type(torch.LongTensor).cuda(), hidden, class_vector=state, seq=text_batch.size()[0])
+            with no_grad():
+                q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor).cuda(), hidden, class_vector=state, seq=text_batch.size()[0])
         else:
-            q_values, hidden = q_network(Variable(episode_texts, volatile=True).type(torch.LongTensor), hidden, class_vector=state, seq=text_batch.size()[0])
+            with no_grad():
+                q_values, hidden = q_network(Variable(episode_texts).type(torch.LongTensor), hidden, class_vector=state, seq=text_batch.size()[0])
 
         # Choosing the largest Q-values:
         q_network_actions = q_values.data.max(1)[1].view(text_batch.size()[0])

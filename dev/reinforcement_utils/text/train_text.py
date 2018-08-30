@@ -160,7 +160,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         mse_loss = criterion(current_q_values, discounted_target_value)
 
         # Stats:
-        total_loss += mse_loss.data[0]
+        total_loss += mse_loss.data.item()
 
         # Accumulate timestep loss:
         loss += mse_loss

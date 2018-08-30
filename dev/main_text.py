@@ -379,7 +379,7 @@ if __name__ == '__main__':
             total_reward.append(stats[4])
 
             if (epoch % 10 == 0):
-                test_stats = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
+                test_stats, _, _, _ = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, NUMBER_OF_SENTENCES)
                 total_test_prediction_accuracy.append(test_stats[0])
                 total_test_requests.append(test_stats[1])
                 total_test_accuracy.append(test_stats[2])
@@ -475,7 +475,7 @@ if __name__ == '__main__':
 
     # Plotting training accuracy:
     loss_plot.plot([total_accuracy, total_prediction_accuracy, total_requests], ["Training Accuracy Percentage", "Training Prediction Accuracy",  "Training Requests Percentage"], "training_stats", args.name + "/", "Percentage")
-    loss_plot.plot([total_test_accuracy, total_test_prediction_accuracy, total_test_requests], ["Test Accuracy Percentage", "Test Prediction Accuracy",  "Test Requests Percentage"], "total_testing_stats", args.name + "/", "Percentage")
+    loss_plot.plot([total_test_prediction_accuracy[:, 2], total_test_prediction_accuracy[:, 0], total_test_prediction_accuracy[:, 1]], ["Test Accuracy Percentage", "Test Prediction Accuracy",  "Test Requests Percentage"], "total_testing_stats", args.name + "/", "Percentage")
     loss_plot.plot([total_loss], ["Training Loss"], "training_loss", args.name + "/", "Average Loss", episode_size=args.episode_size)
     loss_plot.plot([total_reward], ["Training Average Reward"], "training_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
     loss_plot.plot([total_test_reward], ["Test Average Reward"], "total_test_reward", args.name + "/", "Average Reward", episode_size=args.episode_size)
