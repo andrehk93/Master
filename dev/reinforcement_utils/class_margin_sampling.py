@@ -1,14 +1,10 @@
-import torch.utils.data as data
 from PIL import Image
 import random
-import os
-import operator
-import os.path
-import errno
 import torch
 from torch.autograd import Variable
 import numpy as np
 from utils import transforms
+import copy
 
 
 class ClassMarginSampler():
@@ -41,6 +37,8 @@ class ClassMarginSampler():
         margins = torch.zeros(self.cms, batch_size)
         choices = np.zeros(self.c + 1)
 
+        validation_data = copy.deepcopy(image_batch)
+
         rotations = [np.random.choice(4, batch_size, replace=True) for i in range(self.cms)]
 
         # We want to iterate over all images m_c --> [0, 119]:
@@ -67,7 +65,8 @@ class ClassMarginSampler():
             
             # Need to add image to the state vector:
             state = torch.cat((state, margin_image_batch.view(batch_size, -1)), 1).view(batch_size, -1)
-            margin, hidden = q_network(Variable(state, volatile=True), hidden)
+            with torch.no_grad():
+                margin, hidden = q_network(Variable(state), hidden)
 
             # Create new state:
             state = []
@@ -104,6 +103,8 @@ class ClassMarginSampler():
 
         # Iterate over classes to select (meaning batch):
         b = 0
+        acc = 0
+        tot = 0
         for m_c in margin_class_batch.t():
             images = []
             for c in m_c:
@@ -131,9 +132,17 @@ class ClassMarginSampler():
 
                 episode_batch_final[t][b] = img
                 label_batch_final[t][b] = pseudo_label
+                print(validation_data[c_i + (b*len(images))].size())
+                input("OK")
+                if (torch.all(torch.eq(episode_batch_final[t][b], validation_data[c_i + (b*len(images))]))):
+                    if (label_batch_final[t][b].item() == label_batch[c_i][b]):
+                        acc += 1
+                tot += 1
                 t += 1
             b += 1
-
+        print("TOTAL: ", tot)
+        print("ACC: ", (100.0*acc)/tot, "%")
+        input("SEEMS GOOD")
         return episode_batch_final, label_batch_final
 
     def sample_text(self, text_batch, label_batch, q_network, batch_size):
@@ -151,6 +160,7 @@ class ClassMarginSampler():
         margins = torch.zeros(self.cms, batch_size)
         choices = np.zeros(self.c + 1)
 
+        validation_data = copy.deepcopy(text_batch)
 
         # We want to iterate over all images m_c --> [0, 119]:
         for m_c in range(len(text_batch[0])):
@@ -170,10 +180,11 @@ class ClassMarginSampler():
 
             # Get class prediction value:
             # Tensoring the state:
-            state = Variable(torch.FloatTensor(state), volatile=True)
-            
+            state = Variable(torch.FloatTensor(state))
+
             # Need to add text to the state vector:
-            margin, hidden = q_network(Variable(text_class_batch, volatile=True), hidden, class_vector=state, seq=text_class_batch.size()[1])
+            with torch.no_grad():
+                margin, hidden = q_network(Variable(text_class_batch), hidden, class_vector=state, seq=text_class_batch.size()[1])
 
             # Create new state:
             state = []
@@ -211,6 +222,8 @@ class ClassMarginSampler():
 
         # Iterate over classes to select (meaning batch):
         b = 0
+        tot = 0
+        acc = 0
         for m_c in margin_class_batch.t():
             texts = []
             for c in m_c:
@@ -239,9 +252,16 @@ class ClassMarginSampler():
                         break
                     episode_batch_final[b][t][j] = text[j]
 
-                label_batch_final[b][t] = pseudo_label
+                label_batch_final[b][t] = label
+                if (torch.all(torch.eq(episode_batch_final[b][t], validation_data[b][c_i]))):
+                    if (label_batch_final[b][t].item() == label_batch[b][c_i]):
+                        acc += 1
+                tot += 1
                 t += 1
             b += 1
+        print("TOTAL: ", tot)
+        print("ACC: ", (100.0*acc)/tot, "%")
+        input("SEEMS GOOD")
         return episode_batch_final, label_batch_final
 
 

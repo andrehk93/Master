@@ -167,11 +167,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
                 next_state = torch.cat((next_state_start.view(args.batch_size, -1), next_flat_images), 1)
 
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
-            target_value = q_network(Variable(next_state, volatile=True), hidden, read_only=True)[0].max(1)[0]
-
-
-            # Make it un-volatile again (So we actually can backpropagate):
-            target_value.volatile = False
+            target_value = q_network(Variable(next_state), hidden, read_only=True)[0].max(1)[0].detach()
 
             # Discounting the next state + reward collected in this state:
             discounted_target_value = (GAMMA*target_value) + rewards

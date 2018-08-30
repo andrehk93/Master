@@ -133,18 +133,15 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             next_episode_texts = text_batch[:, i_e + 1].squeeze()
 
             if (args.cuda):
-                next_state = Variable(torch.FloatTensor(next_state_start), volatile=True).cuda()
+                next_state = Variable(torch.FloatTensor(next_state_start)).cuda()
             else:
-                next_state = Variable(torch.FloatTensor(next_state_start), volatile=True)
+                next_state = Variable(torch.FloatTensor(next_state_start))
 
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
             if (args.cuda):
-                target_value = q_network(Variable(next_episode_texts, volatile=True).cuda(), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
+                target_value = q_network(Variable(next_episode_texts).cuda(), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0].detach()
             else:
-                target_value = q_network(Variable(next_episode_texts, volatile=True), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0]
-
-            # Make it un-volatile again (So we actually can backpropagate):
-            target_value.volatile = False
+                target_value = q_network(Variable(next_episode_texts), hidden, class_vector=next_state, read_only=True, seq=next_episode_texts.size()[1])[0].max(1)[0].detach()
 
             # Discounting the next state + reward collected in this state:
             discounted_target_value = (GAMMA*target_value) + rewards
@@ -160,7 +157,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         mse_loss = criterion(current_q_values, discounted_target_value)
 
         # Stats:
-        total_loss += mse_loss.data[0]
+        total_loss += mse_loss.data.item()
 
         # Accumulate timestep loss:
         loss += mse_loss
