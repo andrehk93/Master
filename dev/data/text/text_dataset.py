@@ -17,6 +17,7 @@ class TEXT(data.Dataset):
     training_file = 'training.pt'
     test_file = 'test.pt'
     dictionary_file = 'dictionary.pt'
+    word_vector_file = 'word_vectors.pt'
 
     '''
     The items are (filename,category). The index of all the categories can be found in self.idx_classes
@@ -49,6 +50,7 @@ class TEXT(data.Dataset):
             self.training_set = data_loader.get_training_set()
             self.test_set = data_loader.get_test_set()
             self.dictionary = data_loader.get_dictionary()
+            self.weight_vector = data_loader.get_word_vectors()
             self.write_datasets()
 
         if not self._check_exists():
@@ -63,6 +65,10 @@ class TEXT(data.Dataset):
                 os.path.join(self.root, self.processed_folder, self.test_file))
         
         self.dictionary = torch.load(os.path.join(self.root, self.processed_folder, self.dictionary_file))
+
+        print("face index: ", self.dictionary.dictionary.word2idx["face"])
+        input("ok")
+
 
     def __getitem__(self, index):
 
@@ -209,10 +215,10 @@ class TEXT(data.Dataset):
 
                 # Give random class-slot in vector:
                 ind = 0
-                count = 0
                 for i in text_classes:
-                    for j in self.train_data[i]:
-                        text_list.append(j)
+                    text_samples = np.random.choice(len(self.train_data[i]), 20, replace=False)
+                    for j in text_samples:
+                        text_list.append(self.train_data[i][j])
                         label_list.append(ind)
                     ind += 1
             else:
@@ -222,8 +228,9 @@ class TEXT(data.Dataset):
                 # Give random class-slot in vector:
                 ind = 0
                 for i in text_classes:
-                    for j in self.test_data[i]:
-                        text_list.append(j)
+                    text_samples = np.random.choice(len(self.test_data[i]), 20, replace=False)
+                    for j in text_samples:
+                        text_list.append(self.test_data[i][j])
                         label_list.append(ind)
                     ind += 1
 
@@ -282,5 +289,7 @@ class TEXT(data.Dataset):
             torch.save(self.test_set, f)
         with open(os.path.join(self.root, self.processed_folder, self.dictionary_file), 'wb') as f:
             torch.save(self.dictionary, f)
+        with open(os.path.join(self.root, self.processed_folder, self.word_vector_file), 'wb') as f:
+            torch.save(self.weight_vector, f)
 
         print("Data successfully written...")

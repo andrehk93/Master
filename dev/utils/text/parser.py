@@ -38,7 +38,7 @@ class Dictionary(object):
     def add_word(self, word):
         # NEED TO SAVE MAX INDEX FOR "UNKNOWN" WORDS, AND 0 INDEX FOR PADDING:
         if word not in self.word2idx:
-            self.word2idx[word] = len(self.idx2word) + 1
+            self.word2idx[word] = len(self.idx2word)
             self.idx2word.append(word)
             self.oov_index += 1
 
@@ -130,7 +130,7 @@ def create_word_vectors(words, sen_len, corpus):
                 text.append(sentence)
                 sentence = torch.LongTensor(np.zeros(sen_len))
                 count = 0
-            sentence[count] = corpus.dictionary.word2idx[word]
+            sentence[count] = corpus.dictionary.word2idx[word] + 1
             count += 1
 
         # Out of Vocabulary, but still "counts":

@@ -132,8 +132,10 @@ class ClassMarginSampler():
 
                 episode_batch_final[t][b] = img
                 label_batch_final[t][b] = pseudo_label
+                
                 t += 1
             b += 1
+
         return episode_batch_final, label_batch_final
 
     def sample_text(self, text_batch, label_batch, q_network, batch_size):
@@ -243,11 +245,13 @@ class ClassMarginSampler():
                         break
                     episode_batch_final[b][t][j] = text[j]
 
-                label_batch_final[b][t] = pseudo_label
+                label_batch_final[b][t] = label
+                if (torch.all(torch.eq(episode_batch_final[b][t], validation_data[b][c_i]))):
+                    if (label_batch_final[b][t].item() == label_batch[b][c_i]):
+                        acc += 1
+                tot += 1
                 t += 1
             b += 1
-    
-
         return episode_batch_final, label_batch_final
 
 

@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 
 ### CLASSES ###
 from utils.plot import loss_plot, percent_scatterplot as scatterplot
-from utils.text import textLoader as loader
+from utils.text import textLoader as loader, glove as gloveLoader
 from utils import transforms, tablewriter
 
 # RL and DATASETS:
@@ -45,7 +45,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='Input episode size for training')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=20000, metavar='N',
+parser.add_argument('--epochs', type=int, default=100000, metavar='N',
                     help='Number of epochs to train')
 
 # Starting Epoch:
@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/NTM_text/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/LSTM_text_glove/checkpoint.pth.tar', type=str,
                     help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/NTM_text/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_text_glove/best.pth.tar', type=str,
                     help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/NTM_text/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_text_glove/testpoint.pth.tar', type=str,
                     help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='NTM_text', type=str,
+parser.add_argument('--name', default='LSTM_text_glove', type=str,
                     help='Name of file')
 
 # Seed:
@@ -195,12 +195,12 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
     # TEXT AND MODEL DETAILS:
-    EMBEDDING_SIZE = 128
+    EMBEDDING_SIZE = 100
 
     # Need to remake dataset if change ANY of these:
     SENTENCE_LENGTH = 12
     NUMBER_OF_SENTENCES = 1
-    DICTIONARY_MAX_SIZE = 10000
+    DICTIONARY_MAX_SIZE = 400000
 
     class_margin_sampler = ClassMarginSampler(int(CMS*args.class_vector_size), args.class_vector_size, MARGIN_TIME, None, episode_size=args.episode_size, sentence_length=SENTENCE_LENGTH, tensor_length=NUMBER_OF_SENTENCES)
 
@@ -219,15 +219,10 @@ if __name__ == '__main__':
     # Different Models:
     classes = args.class_vector_size
 
-    if LSTM:
-        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
-    elif NTM:
-        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
-    elif LRUA:
-        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
+    glove_loader = gloveLoader.GloveLoader("")
 
     print("Loading datasets...")
-    text_loader = loader.TextLoader(dataset, classify=False, partition=0.8, classes=True,\
+    text_loader = loader.TextLoader(glove_loader, dataset, classify=False, partition=0.8, classes=True,\
                                         dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
 
     # MARGIN SAMPLING:
@@ -247,6 +242,15 @@ if __name__ == '__main__':
         TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size, episode_size=args.episode_size, tensor_length=NUMBER_OF_SENTENCES, sentence_length=SENTENCE_LENGTH),
                 batch_size=args.test_batch_size, shuffle=True, **kwargs)
     print("Done loading datasets!")
+
+
+    if LSTM:
+        q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, weights_matrix=text_loader.weights_matrix, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
+    elif NTM:
+        q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
+    elif LRUA:
+        q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
+
 
     # Loading the RL part (rewards, states, etc.):
     rl = rl(classes)
@@ -281,36 +285,37 @@ if __name__ == '__main__':
 
 
     ### LOADING PREVIOUS NETWORK ###
-    if args.load_checkpoint:
-        if os.path.isfile(args.load_checkpoint):
-            print("=> loading checkpoint '{}'".format(args.load_checkpoint))
-            checkpoint = torch.load(args.load_checkpoint)
-            args.start_epoch = checkpoint['epoch']
-            episode = checkpoint['episode']
-            req_dict = checkpoint['requests']
-            acc_dict = checkpoint['accuracy']
-            total_requests = checkpoint['tot_requests']
-            total_accuracy = checkpoint['tot_accuracy']
-            total_prediction_accuracy = checkpoint['tot_pred_acc']
-            total_loss = checkpoint['tot_loss']
-            total_reward = checkpoint['tot_reward']
+    if os.path.isfile(args.load_checkpoint):
+        print("=> loading checkpoint '{}'".format(args.load_checkpoint))
+        checkpoint = torch.load(args.load_checkpoint)
+        args.start_epoch = checkpoint['epoch']
+        episode = checkpoint['episode']
+        req_dict = checkpoint['requests']
+        acc_dict = checkpoint['accuracy']
+        total_requests = checkpoint['tot_requests']
+        total_accuracy = checkpoint['tot_accuracy']
+        total_prediction_accuracy = checkpoint['tot_pred_acc']
+        total_loss = checkpoint['tot_loss']
+        total_reward = checkpoint['tot_reward']
 
-            # Test stats:
-            total_test_requests = checkpoint['tot_test_requests']
-            total_test_accuracy = checkpoint['tot_test_accuracy']
-            total_test_prediction_accuracy = checkpoint['tot_test_prediction_accuracy']
-            total_test_reward = checkpoint['tot_test_reward']
+        # Test stats:
+        total_test_requests = checkpoint['tot_test_requests']
+        total_test_accuracy = checkpoint['tot_test_accuracy']
+        total_test_prediction_accuracy = checkpoint['tot_test_prediction_accuracy']
+        total_test_reward = checkpoint['tot_test_reward']
 
-            start_time -= checkpoint['time']
-            all_margins = checkpoint['all_margins']
-            low_margins = checkpoint['low_margins']
-            all_choices = checkpoint['all_choices']
-            best = checkpoint['best']
-            q_network.load_state_dict(checkpoint['state_dict'])
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.load_checkpoint, checkpoint['epoch']))
-        else:
-            print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
+        start_time -= checkpoint['time']
+        all_margins = checkpoint['all_margins']
+        low_margins = checkpoint['low_margins']
+        all_choices = checkpoint['all_choices']
+        best = checkpoint['best']
+        q_network.load_state_dict(checkpoint['state_dict'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format(args.load_checkpoint, checkpoint['epoch']))
+    else:
+        print("=> no checkpoint found at '{}'".format(args.load_checkpoint))
+
+
 
     print("Current best reward gained: ", best)
     class_margin_sampler.all_margins = all_margins

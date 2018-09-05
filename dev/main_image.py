@@ -36,11 +36,11 @@ from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Batch size:
-parser.add_argument('--batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 50)')
 
 # Mini-batch size:
-parser.add_argument('--mini-batch-size', type=int, default=50, metavar='N',
+parser.add_argument('--mini-batch-size', type=int, default=32, metavar='N',
                     help='How many episodes to train on at a time (default: 1)')
 
 # Mini-batch size:
@@ -52,7 +52,7 @@ parser.add_argument('--episode-size', type=int, default=30, metavar='N',
                     help='input episode size for training (default: 30)')
 
 # Epochs:
-parser.add_argument('--epochs', type=int, default=100000, metavar='N',
+parser.add_argument('--epochs', type=int, default=50000, metavar='N',
                     help='number of epochs to train (default: 2000)')
 
 # Starting Epoch:
@@ -68,19 +68,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_lruas/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_ntm_cms_3/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_lrua/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_ntm_cms_3/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_lrua/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_ntm_cms_3/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='IMAGE_lrua', type=str, metavar="S",
+parser.add_argument('--name', default='IMAGE_ntm_cms_3', type=str, metavar="S",
                     help='name of file')
 
 # Seed:
@@ -92,7 +92,7 @@ parser.add_argument('--margin-sampling', action='store_true', default=False,
                     help='Enables margin sampling for selecting clases to train on')
 
 # Margin size:
-parser.add_argument('--margin-size', type=int, default=2, metavar='N',
+parser.add_argument('--margin-size', type=int, default=3, metavar='N',
                     help='Multiplier for number of classes in pool of classes during margin sampling')
 
 # Margin time:
@@ -403,7 +403,7 @@ if __name__ == '__main__':
             total_loss.append(stats[3])
             total_reward.append(stats[4])
 
-            if (epoch % 2 == 0):
+            if (epoch % 10 == 0):
                 test_stats, test_reqs, test_accs, test_preds = test.validate(q_network, epoch, optimizer, test_loader, args, rl, episode, criterion, multi_state=multi_state, state_size=state_size, batch_size=args.test_batch_size)
                 total_test_prediction_accuracy.append(test_stats[0])
                 total_test_requests.append(test_stats[1])

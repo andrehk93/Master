@@ -12,16 +12,19 @@ class ReinforcedRNN(nn.Module):
 	hidden_layers = 1
 	hidden_nodes = 200
 
-	def __init__(self, batch_size, cuda, classes, input_size, non_rl=False, embedding=False, dict_size=5000):
+	def __init__(self, batch_size, cuda, classes, input_size, weights_matrix=None, non_rl=False, embedding=False, dict_size=5000):
 
 		super(ReinforcedRNN, self).__init__()
 		if (non_rl):
-			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
+			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, weights_matrix=weights_matrix, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
 		else:
-			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
+			self.q_network = ReinforcedLSTM(input_size, self.hidden_nodes, self.hidden_layers, classes, batch_size, cuda, weights_matrix=weights_matrix, EMBEDDING=embedding, DICT_SIZE=dict_size + 2, NON_RL=non_rl)
 
 		self.batch_size = batch_size
 		self.gpu = cuda
+
+	def create_embedding_layer(self, non_trainable=False):
+		self.q_network.create_embedding_layer(non_trainable)
 	
 	def reset_hidden(self, batch_size=0):
 		if (batch_size == 0):

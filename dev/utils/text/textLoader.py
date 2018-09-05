@@ -12,8 +12,9 @@ class TextLoader():
 	processed_folder = 'processed'
 	training_file = 'training.pt'
 	test_file = 'test.pt'
+	word_vector_file = 'word_vectors.pt'
 
-	def __init__(self, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16, stopwords=True):
+	def __init__(self, glove_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16, stopwords=True):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
 		self.stopwords = stopwords
@@ -24,6 +25,7 @@ class TextLoader():
 		self.classes = classes
 		self.dictionary_max_size = dictionary_max_size
 		self.sentence_length = sentence_length
+		self.glove_loader = glove_loader
 		self.load()
 
 
@@ -34,6 +36,8 @@ class TextLoader():
 	def load(self):
 
 		if self._check_exists():
+			self.weights_matrix = torch.load(os.path.join(self.root, self.processed_folder, self.word_vector_file))
+			print("Loaded weight_vector...")
 			return
 
 		# Make dirs
@@ -47,7 +51,7 @@ class TextLoader():
 
 		# process and save as torch files
 		print('Processing raw dataset...')
-		(training_set, test_set, label_stop), word_dictionary = read_text_file(os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
+		(training_set, test_set, label_stop), word_dictionary, weights_matrix = read_text_file(self.glove_loader, os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
 															classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length, stopwords=self.stopwords)
 		self.training_set = (
 			training_set[0],
@@ -58,6 +62,10 @@ class TextLoader():
 			torch.LongTensor(test_set[1])
 		)
 		self.dictionary = word_dictionary
+
+		self.weights_matrix = weights_matrix
+
+
 
 		print('Done!')
 
@@ -70,13 +78,31 @@ class TextLoader():
 	def get_dictionary(self):
 		return self.dictionary
 
+	def get_word_vectors(self):
+		return self.weights_matrix
+
 # Need to ensure a uniformly distributed training/test-set:
-def read_text_file(path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True):
+def read_text_file(glove_loader, path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True):
 	
 	# Create a dictionary first:
 	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
+	glove = {w: glove_loader.word_vectors[glove_loader.dictionary.word2idx[w]] for w in glove_loader.dictionary.idx2word}
 
-	print("Created dictionary of size: ", len(word_dictionary.dictionary.word2idx))
+	# + 2 because (0 => padding (in case sentence not containing enough words), max + 1 => OOV token:
+	matrix_len = len(word_dictionary.dictionary.idx2word) + 2
+	weights_matrix = np.zeros((matrix_len, 100))
+	words_found = 0
+
+	weights_matrix[0] = np.random.normal(scale=0.6, size=(100, ))
+	for i, word in enumerate(word_dictionary.dictionary.idx2word):
+	    try: 
+	        weights_matrix[i+1] = glove[word]
+	        words_found += 1
+	    except KeyError:
+	        weights_matrix[i+1] = np.random.normal(scale=0.6, size=(100, ))
+
+	print("Created dictionary of size: ", len(weights_matrix))
+	print("Percentage words found in GloVe: ", (100.0*words_found)/len(weights_matrix))
 
 	# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
@@ -84,7 +110,7 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 	label = label_start
 	progress = 0
 	for (root, dirs, files) in os.walk(path):
-		if (len(files) >= 10):
+		if (len(files) >= 20):
 			for f in files:
 				if (progress % 100000 == 0):
 					print("Reading file [" + str(progress) + "]")
@@ -109,7 +135,7 @@ def read_text_file(path, training_set=None, test_set=None, label_start=0, partit
 
 				progress += 1
 
-	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes), word_dictionary
+	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes), word_dictionary, weights_matrix
 
 def create_datasets(text_dictionary, training_set=None, test_set=None, partition=0.8, shuffle=True, classes=False):
 	# Splitting the dataset into two parts with completely different EXAMPLES, but same CLASSES:

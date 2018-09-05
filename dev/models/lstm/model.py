@@ -5,7 +5,7 @@ import os
 
 
 class ReinforcedLSTM(nn.Module):
-    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, EMBEDDING=False, DICT_SIZE=5000, NON_RL=False):
+    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, weights_matrix=None, EMBEDDING=False, DICT_SIZE=5000, NON_RL=False):
         super(ReinforcedLSTM, self).__init__()
 
         # Parameters
@@ -16,12 +16,13 @@ class ReinforcedLSTM(nn.Module):
         self.hidden_layers = HIDDEN_LAYERS
         self.input_classes = INPUT_CLASSES
         self.gpu = CUDA
+        self.weights_matrix = torch.Tensor(weights_matrix)
 
         print("Model Input Size: ", str(self.input_size + self.input_classes))
         print("Model Output Size: ", str(self.input_classes + 1))
 
         if (EMBEDDING):
-            self.embedding_layer = nn.Embedding(self.dict_size, self.input_size)
+            self.embedding_layer, num_embeddings, embedding_dim = self.create_embedding_layer(non_trainable=True)
 
         # Architecture
         self.lstm = nn.LSTM(self.input_size + self.input_classes, self.hidden_nodes)
@@ -29,6 +30,16 @@ class ReinforcedLSTM(nn.Module):
             self.hidden2probs = nn.Linear(self.hidden_nodes, self.input_classes)
         else:
             self.hidden2probs = nn.Linear(self.hidden_nodes, self.input_classes + 1)
+
+    def create_embedding_layer(self, non_trainable=False):
+        num_embeddings, embedding_dim = self.weights_matrix.size()
+        emb_layer = nn.Embedding(num_embeddings, embedding_dim)
+        emb_layer.load_state_dict({'weight': self.weights_matrix})
+        if non_trainable:
+            emb_layer.weight.requires_grad = False
+        print("face: ", emb_layer(torch.LongTensor([670])))
+        input("OK?")
+        return emb_layer, num_embeddings, embedding_dim
 
 
     def init_hidden(self, batch_size):
@@ -43,6 +54,7 @@ class ReinforcedLSTM(nn.Module):
     # Not sure if necessary:
     def reset_hidden(self, batch_size):
         hidden = self.init_hidden(batch_size)
+        
         return (hidden[0].detach(), hidden[1].detach())
 
         
@@ -58,10 +70,23 @@ class ReinforcedLSTM(nn.Module):
                 return False
 
             lstm_input = []
-            for i in range(x.size()[1]):
-                lstm_input.append(torch.cat((class_vector, x[:, i]), 1))
-            lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[1], x.size()[0], -1)
-            lstm_out, next_hidden = self.lstm(lstm_input, hidden)
+
+            
+            if (len(x.size()) == 3):
+                x = x.unsqueeze(1)
+
+            for i in range(x.size()[len(x.size()) - 2]):
+                for j in range(x.size()[1]):
+                    lstm_input.append(torch.cat((class_vector, x[:, j, i]), 1))
+            if (x.size()[1] == 1):
+                lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[2], x.size()[0], -1)
+                lstm_out, next_hidden = self.lstm(lstm_input, hidden)
+            else:
+                next_hidden = hidden
+                lstm_input = torch.cat([lstm_input[i] for i in range(len(lstm_input))]).view(x.size()[1], x.size()[2], x.size()[0], -1)
+                for sentence in range(seq):
+                    lstm_out, next_hidden = self.lstm(lstm_input[sentence], next_hidden)
+            
 
             x = self.hidden2probs(lstm_out[-1])
 
