@@ -5,9 +5,9 @@ import shutil
 # Writes a table to file:
 def write_stats(requests, accuracy, penalty, folder, test=False):
     if (test):
-        filename = "../results/plots/" + str(folder) + "test_table_file.txt"
+        filename = "./results/plots/" + str(folder) + "test_table_file.txt"
     else:
-        filename = "../results/plots/" + str(folder) + "table_file.txt"
+        filename = "./results/plots/" + str(folder) + "table_file.txt"
     dimensions = [55, 31, 31]
     headers = ["Method", "Accuracy (%)", "Requests (%)"]
     method = "RL Prediction"
@@ -68,8 +68,8 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
 
     # Writes a table to file:
 def write_baseline_stats(accuracy, folder, test=False):
-    filename = "results/plots/" + str(folder) + "table_file.txt"
-    stat_filename = "results/plots/" + str(folder) + "stat_file.txt"
+    filename = "./results/plots/" + str(folder) + "table_file.txt"
+    stat_filename = "./results/plots/" + str(folder) + "stat_file.txt"
     dimensions = [50, 20, 20]
     headers = ["Method", "Accuracy (%)"]
     method = "Supervised"

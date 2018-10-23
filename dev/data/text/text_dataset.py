@@ -66,9 +66,6 @@ class TEXT(data.Dataset):
         
         self.dictionary = torch.load(os.path.join(self.root, self.processed_folder, self.dictionary_file))
 
-        print("face index: ", self.dictionary.dictionary.word2idx["face"])
-        input("ok")
-
 
     def __getitem__(self, index):
 

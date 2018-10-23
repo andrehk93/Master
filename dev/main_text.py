@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/LSTM_text_glove/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/LSTM_INH_c3_b32/checkpoint.pth.tar', type=str,
                     help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_text_glove/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_INH_c3_b32/best.pth.tar', type=str,
                     help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_text_glove/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_INH_c3_b32/testpoint.pth.tar', type=str,
                     help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='LSTM_text_glove', type=str,
+parser.add_argument('--name', default='LSTM_INH_c3_b32', type=str,
                     help='Name of file')
 
 # Seed:
@@ -139,7 +139,7 @@ def print_time(avg_time, eta):
     if (hour < 10):
         hour = "0" + str(hour)[0]
     else:
-        hour = str(hour)[0:2]
+        hour = str(hour)
     if (seconds < 10):
         seconds = "0" + str(seconds)[0]
     else:
@@ -195,7 +195,7 @@ if __name__ == '__main__':
 
     ### PARAMETERS ###
     # TEXT AND MODEL DETAILS:
-    EMBEDDING_SIZE = 100
+    EMBEDDING_SIZE = 200
 
     # Need to remake dataset if change ANY of these:
     SENTENCE_LENGTH = 12
@@ -212,18 +212,19 @@ if __name__ == '__main__':
     headlines = 'headlines'
 
     # Dataset of choice:
-    dataset = 'data/text/' + reuters
+    dataset = 'data/text/' + headlines
     ##################
 
 
     # Different Models:
     classes = args.class_vector_size
 
-    glove_loader = gloveLoader.GloveLoader("")
+    glove_loader = gloveLoader.GloveLoader("", EMBEDDING_SIZE)
 
     print("Loading datasets...")
-    text_loader = loader.TextLoader(glove_loader, dataset, classify=False, partition=0.8, classes=True,\
-                                        dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH, stopwords=STOPWORDS)
+    text_loader = loader.TextLoader(glove_loader, dataset, classify=False, partition=0.8, classes=True,
+                                    dictionary_max_size=DICTIONARY_MAX_SIZE, sentence_length=SENTENCE_LENGTH,
+                                    stopwords=STOPWORDS, embedding_size=EMBEDDING_SIZE)
 
     # MARGIN SAMPLING:
     if (MARGIN):

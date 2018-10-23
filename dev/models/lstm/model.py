@@ -16,7 +16,8 @@ class ReinforcedLSTM(nn.Module):
         self.hidden_layers = HIDDEN_LAYERS
         self.input_classes = INPUT_CLASSES
         self.gpu = CUDA
-        self.weights_matrix = torch.Tensor(weights_matrix)
+        if (EMBEDDING):
+            self.weights_matrix = torch.Tensor(weights_matrix)
 
         print("Model Input Size: ", str(self.input_size + self.input_classes))
         print("Model Output Size: ", str(self.input_classes + 1))
@@ -37,8 +38,6 @@ class ReinforcedLSTM(nn.Module):
         emb_layer.load_state_dict({'weight': self.weights_matrix})
         if non_trainable:
             emb_layer.weight.requires_grad = False
-        print("face: ", emb_layer(torch.LongTensor([670])))
-        input("OK?")
         return emb_layer, num_embeddings, embedding_dim
 
 

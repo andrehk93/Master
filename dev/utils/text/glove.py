@@ -1,8 +1,6 @@
 import numpy as np
 import os
 import os.path
-import random
-import errno
 import torch
 
 class Dictionary(object):
@@ -13,30 +11,31 @@ class Dictionary(object):
 	def add_word(self, word):
 		# NEED TO SAVE MAX INDEX FOR "UNKNOWN" WORDS, AND 0 INDEX FOR PADDING:
 		if word not in self.word2idx:
+			if (word == "face"):
+				print("face index is: ", len(self.idx2word))
 			self.word2idx[word] = len(self.idx2word)
 			self.idx2word.append(word)
 
 	def __len__(self):
-		return len(self.idx2word)
+		return len(self.idx2word) + 1
 
 class GloveLoader():
 
 	directory = "data/text/glove"
-	filename = "glove.6B.100d.txt"
+	file = "glove.6B."
 	dictionary_filename = "glove_dict.pt"
 	word_vector_filename = "glove_vectors.pt"
 
-	def __init__(self, root):
+	def __init__(self, root, dim):
+		self.filename = self.file + str(dim) + "d.txt"
 		self.root = os.path.expanduser(root)
-		self.dictionary = Dictionary();
+		self.dictionary = Dictionary()
 		self.word_vectors = []
 		if (not os.path.exists(os.path.join(root, self.directory, self.dictionary_filename))):
 			self.loadGloveWordVectors(root)
 		else:
-			self.dictionary = torch.load(
-                os.path.join(self.root, self.directory, self.dictionary_filename))
-			self.word_vectors = torch.load(
-                os.path.join(self.root, self.directory, self.word_vector_filename))
+			self.dictionary = torch.load(os.path.join(self.root, self.directory, self.dictionary_filename))
+			self.word_vectors = torch.load(os.path.join(self.root, self.directory, self.word_vector_filename))
 		assert(self.dictionary.idx2word[0] == "the" and self.dictionary.word2idx["the"] == 0)
 
 

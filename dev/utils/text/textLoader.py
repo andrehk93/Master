@@ -14,10 +14,11 @@ class TextLoader():
 	test_file = 'test.pt'
 	word_vector_file = 'word_vectors.pt'
 
-	def __init__(self, glove_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16, stopwords=True):
+	def __init__(self, glove_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000, sentence_length=16, stopwords=True, embedding_size=200):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
 		self.stopwords = stopwords
+		self.embedding_size = embedding_size
 		if (self.classify):
 			self.training_file = "classify_" + self.training_file
 			self.test_file = "classify_" + self.test_file
@@ -52,7 +53,7 @@ class TextLoader():
 		# process and save as torch files
 		print('Processing raw dataset...')
 		(training_set, test_set, label_stop), word_dictionary, weights_matrix = read_text_file(self.glove_loader, os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, \
-															classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length, stopwords=self.stopwords)
+															classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length, stopwords=self.stopwords, embedding_size=self.embedding_size)
 		self.training_set = (
 			training_set[0],
 			torch.LongTensor(training_set[1])
@@ -82,7 +83,7 @@ class TextLoader():
 		return self.weights_matrix
 
 # Need to ensure a uniformly distributed training/test-set:
-def read_text_file(glove_loader, path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True):
+def read_text_file(glove_loader, path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False, dict_max_size=5000, sentence_length=16, stopwords=True, embedding_size=200):
 	
 	# Create a dictionary first:
 	word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
@@ -90,16 +91,16 @@ def read_text_file(glove_loader, path, training_set=None, test_set=None, label_s
 
 	# + 2 because (0 => padding (in case sentence not containing enough words), max + 1 => OOV token:
 	matrix_len = len(word_dictionary.dictionary.idx2word) + 2
-	weights_matrix = np.zeros((matrix_len, 100))
+	weights_matrix = np.zeros((matrix_len, embedding_size))
 	words_found = 0
 
-	weights_matrix[0] = np.random.normal(scale=0.6, size=(100, ))
+	weights_matrix[0] = np.random.normal(scale=0.6, size=(embedding_size, ))
 	for i, word in enumerate(word_dictionary.dictionary.idx2word):
-	    try: 
+	    try:
 	        weights_matrix[i+1] = glove[word]
 	        words_found += 1
 	    except KeyError:
-	        weights_matrix[i+1] = np.random.normal(scale=0.6, size=(100, ))
+	        weights_matrix[i+1] = np.random.normal(scale=0.6, size=(embedding_size, ))
 
 	print("Created dictionary of size: ", len(weights_matrix))
 	print("Percentage words found in GloVe: ", (100.0*words_found)/len(weights_matrix))
@@ -153,7 +154,7 @@ def create_datasets(text_dictionary, training_set=None, test_set=None, partition
 		for label in text_dictionary.keys():
 			txts = text_dictionary[label]
 			if shuffle:
-				random.shuffle(txt)
+				random.shuffle(txts)
 			split = int(partition*len(txts))
 
 			#Train set:
@@ -163,7 +164,7 @@ def create_datasets(text_dictionary, training_set=None, test_set=None, partition
 			#Test set:
 			for i in txts[split:]:
 				test_text.append(i)
-			for i in range(len(txt)-split):
+			for i in range(len(txts)-split):
 				test_labels.append(int(label))
 
 	# Splitting the dataset into two disjoint parts with completely different CLASSES:

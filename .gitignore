@@ -5,6 +5,7 @@ __pycache__/
 *.csv
 *.pt
 *.txt
+*.idea
 
 # Folders:
 processed/
