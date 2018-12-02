@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 ### Datasets and UTILS ###
 from utils.images import imageLoader as loader
 from utils.plot import loss_plot, percent_scatterplot as scatterplot
-from utils import transforms, tablewriter
+from utils import transforms, tablewriter, resultwriter
 from data.images.omniglot.omniglot_class_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 from data.images.mnist.MNIST import MNIST
@@ -68,19 +68,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_LRUA_c5/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/IMAGE_test/checkpoint.pth.tar', type=str,
                     help='path to latest checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_LRUA_c5/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/IMAGE_test/best.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_LRUA_c5/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/IMAGE_test/testpoint.pth.tar', type=str,
                     help='path to best checkpoint (default: none)')
 
 # Network Name:
-parser.add_argument('--name', default='IMAGE_LRUA_c5', type=str, metavar="S",
+parser.add_argument('--name', default='IMAGE_test', type=str, metavar="S",
                     help='name of file')
 
 # Seed:
@@ -394,6 +394,7 @@ if __name__ == '__main__':
             
             episode += args.batch_size
 
+            resultwriter.write_to_result_file(args.name, stats)
             update_dicts(request_train_dict, accuracy_train_dict, req_dict, acc_dict)
 
             # STATS:

@@ -61,19 +61,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/LSTM_INH_c3_b32/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/checkpoint.pth.tar', type=str,
                     help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_INH_c3_b32/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/best.pth.tar', type=str,
                     help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_INH_c3_b32/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/testpoint.pth.tar', type=str,
                     help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='LSTM_INH_c3_b32', type=str,
+parser.add_argument('--name', default='LSTM_INH_c3_b32_grad', type=str,
                     help='Name of file')
 
 # Seed:

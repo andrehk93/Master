@@ -37,7 +37,7 @@ class ReinforcedLSTM(nn.Module):
         emb_layer = nn.Embedding(num_embeddings, embedding_dim)
         emb_layer.load_state_dict({'weight': self.weights_matrix})
         if non_trainable:
-            emb_layer.weight.requires_grad = False
+            emb_layer.weight.requires_grad = True
         return emb_layer, num_embeddings, embedding_dim
 
 
