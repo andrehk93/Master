@@ -1,5 +1,22 @@
 # Development for Masters Project 2018
 
+## Server Support + API
+### Server
+The project now includes a server that can be started from dev/server/server.py. This is a FLASK server, written in Python. It only returns results from files written by the main_image.py algorithm (support for main_text.py coming).
+
+#### Requirements
+```
+flask: pip install flask
+flask-cors: pip install flask-cors
+```
+#### Starting
+```
+python server.py
+```
+
+### API
+In order to get the updates from the server, either a custom API can be applied, or my own API from https://github.com/andrehk93/react-api can be used. See own instructions on how to use this.
+
 ## Important
 ### For Training on the OMNIGLOT Dataset:
 Go to https://github.com/brendenlake/omniglot/tree/master/python and download the OMNIGLOT dataset (images_background.zip & images_evaluation.zip). Unzip both files and put BOTH folders in a folder you call "raw", which you put in data/omniglot/, and the scripts will do the rest.
