@@ -96,16 +96,17 @@ def read_text_file(glove_loader, path, training_set=None, test_set=None, label_s
 
 	weights_matrix[0] = np.random.normal(scale=0.6, size=(embedding_size, ))
 	for i, word in enumerate(word_dictionary.dictionary.idx2word):
-	    try:
-	        weights_matrix[i+1] = glove[word]
-	        words_found += 1
-	    except KeyError:
-	        weights_matrix[i+1] = np.random.normal(scale=0.6, size=(embedding_size, ))
+        try:
+            weights_matrix[i+1] = glove[word]
+            words_found += 1
+        except KeyError:
+            weights_matrix[i+1] = np.random.normal(scale=0.6, size=(embedding_size, ))
 
-	print("Created dictionary of size: ", len(weights_matrix))
-	print("Percentage words found in GloVe: ", (100.0*words_found)/len(weights_matrix))
 
-	# Create the dataset-vectors based on this dictionary:
+    print("Created dictionary of size: ", len(weights_matrix))
+    print("Percentage words found in GloVe: ", (100.0*words_found)/len(weights_matrix))
+
+# Create the dataset-vectors based on this dictionary:
 	uniform_distr = {}
 	label_dict = {}
 	label = label_start
