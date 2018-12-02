@@ -5,7 +5,7 @@ import numpy as np
 
 static_folder = "../results/tables/"
 static_name = "IMAGE_test"
-n = 10
+n = 20
 
 def write_to_memory(current_length):
     file = open("./store/memory.txt", "w")
@@ -36,6 +36,8 @@ def process(arr):
 
 def get_best(arr):
     processed_array = np.asarray(arr, dtype=np.float32)
+    print("processed: ", processed_array)
+    print("BEST: ", np.argmax(processed_array))
     return int(np.argmax(processed_array))
 
 def get_results_from_filename(filename):
@@ -49,7 +51,7 @@ def get_results_from_filename(filename):
                 lines = f.readlines()
                 if i == 0:
                     write_to_memory(len(lines))
-                result_array.append(process(map(str.strip, lines)))
+                result_array.append(process(list(map(str.strip, lines))))
 
     return result_array
 
@@ -69,7 +71,7 @@ def get_last_results_from_filename(filename):
                         write_to_memory(len(lines))
                     else:
                         return
-                result_array.append(process(map(str.strip, lines[current_line:])))
+                result_array.append(process(list(map(str.strip, lines[current_line:]))))
 
     return result_array
 
@@ -85,7 +87,7 @@ def get_best_results_from_filename(filename):
     for dirName, subdir, fileList in os.walk(directory):
         for i, file in enumerate(fileList):
             with open(os.path.join(dirName, file)) as f:
-                result_array.append(f.readline(best_result_index).strip())
+                result_array.append(f.readlines()[best_result_index].strip())
     return result_array
 
 
