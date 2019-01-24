@@ -74,22 +74,22 @@ class TEXT(data.Dataset):
         if self.scenario:
             texts = []
             # As in Active One-Shot Learning:
-            if (self.scenario_type == 0):
-                if (self.train):
-                    txt_classes = np.random.choice(len(self.train_labels), 2, replace=False)
+            if self.scenario_type == 0:
+                if self.train:
+                    txt_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
                     ind = 0
                     for i in txt_classes:
-                        if (ind == 0):
+                        if ind == 0:
                             for j in range(self.scenario_size):
                                 texts.append((self.train_data[i][j], ind))
                         else:
                             texts.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
                         ind += 1
                 else:
-                    txt_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                    txt_classes = np.random.choice(len(self.test_labels), self.classes, replace=False)
                     ind = 0
                     for i in txt_classes:
-                        if (ind == 0):
+                        if ind == 0:
                             for j in range(self.scenario_size):
                                 texts.append((self.test_data[i][j], ind))
                         else:
@@ -204,7 +204,7 @@ class TEXT(data.Dataset):
 
             return episode_tensor, torch.LongTensor(episode_labels)
 
-
+        # Normal drawing (training):
         else:
             if self.train:
                 # Collect randomly drawn classes:
@@ -213,7 +213,7 @@ class TEXT(data.Dataset):
                 # Give random class-slot in vector:
                 ind = 0
                 for i in text_classes:
-                    text_samples = np.random.choice(len(self.train_data[i]), 20, replace=False)
+                    text_samples = np.random.choice(len(self.train_data[i]), 15, replace=False)
                     for j in text_samples:
                         text_list.append(self.train_data[i][j])
                         label_list.append(ind)
@@ -225,39 +225,39 @@ class TEXT(data.Dataset):
                 # Give random class-slot in vector:
                 ind = 0
                 for i in text_classes:
-                    text_samples = np.random.choice(len(self.test_data[i]), 20, replace=False)
+                    text_samples = np.random.choice(len(self.test_data[i]), 15, replace=False)
                     for j in text_samples:
                         text_list.append(self.test_data[i][j])
                         label_list.append(ind)
                     ind += 1
-
+            # Select the random texts from all collected texts:
             text_indexes = np.random.choice(len(text_list), self.episode_size, replace=False)
 
             episode_texts, episode_labels = [], []
-            tensor_length = self.tensor_length
             for index in text_indexes:
                 episode_texts.append(text_list[index])
                 episode_labels.append(label_list[index])
 
-            
-            episode_tensor = torch.zeros(self.episode_size, tensor_length, self.sentence_length).type(torch.LongTensor)
+            # Create empty tensor of desired size (including batch):
+            episode_tensor = torch.zeros(self.episode_size, self.tensor_length, self.sentence_length).type(torch.LongTensor)
 
+            # Zip and shuffle:
             episode_list = list(zip(episode_texts, episode_labels))
-
             random.shuffle(episode_list)
+            # Unzip:
             shuffled_text, shuffled_labels = zip(*episode_list)
 
+            # Insert all texts into final episode_tensor:
             for i in range(self.episode_size):
-                for j in range(tensor_length):
-                    if (j >= len(shuffled_text[i])):
+                for j in range(self.tensor_length):
+                    # Cut all texts that are longer than we want:
+                    if j >= len(shuffled_text[i]):
                         break
                     episode_tensor[i][j] = shuffled_text[i][j]
             return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):
-        # Max batch size:
         return 256
-
         if self.train:
             return len(self.train_data)
         else:

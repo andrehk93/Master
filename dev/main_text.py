@@ -3,8 +3,6 @@ from __future__ import print_function
 import argparse
 import time
 import os
-import shutil
-import copy
 import numpy as np
 
 ### PYTORCH STUFF ###
@@ -61,19 +59,19 @@ parser.add_argument('--no-cuda', action='store_true', default=True,
                     help='Enables CUDA training')
 
 # Checkpoint Loader:
-parser.add_argument('--load-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/checkpoint.pth.tar', type=str,
+parser.add_argument('--load-checkpoint', default='pretrained/LSTM_qa/checkpoint.pth.tar', type=str,
                     help='Path to latest checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/best.pth.tar', type=str,
+parser.add_argument('--load-best-checkpoint', default='pretrained/LSTM_qa/best.pth.tar', type=str,
                     help='Path to best checkpoint')
 
 # Checkpoint Loader:
-parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_INH_c3_b32_grad/testpoint.pth.tar', type=str,
+parser.add_argument('--load-test-checkpoint', default='pretrained/LSTM_qa/testpoint.pth.tar', type=str,
                     help='Path to post test-checkpoint')
 
 # Network Name:
-parser.add_argument('--name', default='LSTM_INH_c3_b32_grad', type=str,
+parser.add_argument('--name', default='LSTM_qa', type=str,
                     help='Name of file')
 
 # Seed:
@@ -210,9 +208,10 @@ if __name__ == '__main__':
     # Different text-datasets:
     reuters = 'reuters'
     headlines = 'headlines'
+    questions = 'questions'
 
     # Dataset of choice:
-    dataset = 'data/text/' + headlines
+    dataset = 'data/text/' + questions
     ##################
 
 
