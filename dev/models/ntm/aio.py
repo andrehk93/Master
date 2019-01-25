@@ -65,7 +65,7 @@ class EncapsulatedNTM(nn.Module):
         if x is None:
             x = Variable(torch.zeros(self.batch_size, self.num_inputs))
 
-        # For RL:
+        # For ReinforcementLearning:
         if (previous_state == None):
             o, self.previous_state = self.ntm(x, self.previous_state, class_vector=class_vector, read_only=read_only)
             return o, self.previous_state

@@ -10,7 +10,7 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
         filename = "./results/plots/" + str(folder) + "table_file.txt"
     dimensions = [55, 31, 31]
     headers = ["Method", "Accuracy (%)", "Requests (%)"]
-    method = "RL Prediction"
+    method = "ReinforcementLearning Prediction"
     if penalty == 0:
         method = "Supervised"
     else:

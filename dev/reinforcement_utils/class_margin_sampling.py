@@ -7,14 +7,14 @@ from utils import transforms
 import copy
 
 
-class ClassMarginSampler():
+class ClassMarginSampler:
 
-    def __init__(self, cms, c, m_t, transform, episode_size=30, sentence_length=1, tensor_length=18):
-        self.cms = cms
-        self.c = c
-        self.m_t = m_t
+    def __init__(self, args, transform, sentence_length=1, tensor_length=18):
+        self.cms = args.margin_sampling
+        self.c = args.margin_size
+        self.m_t = args.margin_time
+        self.episode_size = args.episode_size
         self.transform = transform
-        self.episode_size = episode_size
         self.sentence_length = sentence_length
         self.tensor_length = tensor_length
         self.all_margins = []

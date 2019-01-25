@@ -22,7 +22,7 @@ from data.images.omniglot.omniglot_class_margin import OMNIGLOT_MARGIN
 from data.images.omniglot.omniglot import OMNIGLOT
 from data.images.mnist.MNIST import MNIST
 
-# RL:
+# ReinforcementLearning:
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from models import reinforcement_models
 from reinforcement_utils.images import train, test

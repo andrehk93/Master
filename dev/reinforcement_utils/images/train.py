@@ -1,17 +1,13 @@
 import torch
 from torch.autograd import Variable
-import torch.nn.functional as F
-import random
-import matplotlib.pyplot as plt
 import numpy as np
-import math
-import copy
-
 
 #Discount:
 GAMMA = 0.5
 
-def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion, class_margin_sampler, multi_state=False, state_size=5, margin=False):
+
+def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode, criterion,
+          class_margin_sampler, margin):
 
     # For faster margin calculation:
     q_network.eval()
@@ -20,8 +16,9 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     margin_batch, margin_label_batch = train_loader.__iter__().__next__()
 
     # Get margin classes:
-    if (margin):
-        image_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch, q_network, args.batch_size)
+    if margin:
+        image_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch,
+                                                                      q_network, args.batch_size)
     else:
         image_batch = margin_batch
         label_batch = margin_label_batch
@@ -34,22 +31,14 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     episode_predict = 0.0
     episode_request = 0.0
     episode_reward = 0.0
-    episode_loss = 0.0
     total_loss = 0.0
 
     # Create initial state:
-    if (multi_state):
-        state = []
-        label_dict = []
-        for i in range(args.batch_size):
-            state.append([0 for i in range(state_size*state_size)])
-            label_dict.append({})
-    else:
-        state = []
-        label_dict = []
-        for i in range(args.batch_size):
-            state.append([0 for i in range(args.class_vector_size)])
-            label_dict.append({})
+    state = []
+    label_dict = []
+    for i in range(args.batch_size):
+        state.append([0 for i in range(args.class_vector_size)])
+        label_dict.append({})
 
     # Initialize q_network between each episode:
     hidden = q_network.reset_hidden(args.batch_size)
@@ -59,14 +48,10 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     accuracy_dict = {1: [], 2: [], 5: [], 10: []}
 
     # Placeholder for loss Variable:
-    if (args.cuda):
+    if args.cuda:
         loss = Variable(torch.zeros(1).type(torch.Tensor)).cuda()
     else:
         loss = Variable(torch.zeros(1).type(torch.Tensor))
-
-    if (multi_state):
-        class_representations = get_multiclass_representations(args.batch_size, args.class_vector_size)
-        
 
     # EPISODE LOOP:
     for i_e in range(len(label_batch)):
@@ -74,62 +59,47 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         # Collecting timestep image/label batch:
         episode_labels, episode_images = label_batch[i_e], image_batch[i_e]
 
-        if not multi_state:
-            class_representations = get_singleclass_representations(args.batch_size, args.class_vector_size, episode_labels)
-
-        episode_images = episode_images.squeeze()
-
         # Tensoring the state:
-        state = torch.FloatTensor(state)
+        if args.cuda:
+            state = Variable(torch.FloatTensor(state)).cuda()
+        else:
+            state = Variable(torch.FloatTensor(state))
+
+        # Create possible next states and update stats:
+        one_hot_labels = []
+        for i in range(args.batch_size):
+            true_label = episode_labels[i].item()
+
+            # Creating one hot labels:
+            one_hot_labels.append([1 if j == true_label else 0 for j in range(args.class_vector_size)])
+
+            # Logging statistics:
+            if true_label not in label_dict[i]:
+                label_dict[i][true_label] = 1
+            else:
+                label_dict[i][true_label] += 1
         
         # Need to add image to the state vector:
         flat_images = episode_images.squeeze().view(args.batch_size, -1)
 
         # Concatenating possible labels/zero vector with image, to create the environment state:
-        if (multi_state):
-            state = state.view(args.batch_size, -1)
-            state = torch.cat((state, flat_images), 1)
-        else:
-            state = torch.cat((state, flat_images), 1)
+        state = torch.cat((state, flat_images), 1)
         
-        # Create possible next states and update stats:
-        #one_hot_labels = []
-        for i in range(args.batch_size):
-
-            true_label = episode_labels[i].item()
-
-            # Creating one hot labels:
-            #one_hot_labels.append([1 if j == true_label else 0 for j in range(args.class_vector_size)])
-
-            # Logging statistics:
-            if (true_label not in label_dict[i]):
-                label_dict[i][true_label] = 1
-            else:
-                label_dict[i][true_label] += 1
-
         # Selecting an action to perform (Epsilon Greedy):
-        
-        if (args.cuda):
+        if args.cuda:
             q_values, hidden = q_network(Variable(state).type(torch.FloatTensor).cuda(), hidden)
         else:
             q_values, hidden = q_network(Variable(state).type(torch.FloatTensor), hidden)
 
         # Choosing the largest Q-values:
         q_network_actions = q_values.data.max(1)[1].view(args.batch_size)
-        #q_network_actions = q_values.data.view(args.batch_size)
 
         # Collect Epsilon-Greedy actions:
-        if (multi_state):
-            agent_actions = reinforcement_learner.select_multistate_actions(epoch, q_network_actions, args.batch_size, args.class_vector_size, episode_labels, class_representations)
-        else:
-            agent_actions = reinforcement_learner.select_actions(epoch, q_network_actions, args.batch_size, args.class_vector_size, episode_labels)
+        agent_actions = reinforcement_learner.select_actions(epoch, q_network_actions, args.batch_size,
+                                                             args.class_vector_size, episode_labels)
         
         # Collect rewards:
-        if (multi_state):
-            rewards = reinforcement_learner.collect_reward_multistate_batch(agent_actions, class_representations, args.batch_size, episode_labels)
-        else:
-            rewards = reinforcement_learner.collect_reward_batch(agent_actions, class_representations, args.batch_size)
-
+        rewards = reinforcement_learner.collect_reward_batch(agent_actions, one_hot_labels, args.batch_size)
 
         # Collecting average reward at time t over the batch:
         episode_reward += float(sum(rewards)/args.batch_size)
@@ -141,10 +111,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
         episode_request += stats[2]
 
         # Observe next state and images:
-        if (multi_state):
-            next_state_start = reinforcement_learner.next_multistate_batch(agent_actions, class_representations, args.batch_size, episode_labels)
-        else:
-            next_state_start = reinforcement_learner.next_state_batch(agent_actions, class_representations, args.batch_size)
+        next_state_start = reinforcement_learner.next_state_batch(agent_actions, one_hot_labels, args.batch_size)
 
 
         # Tensoring the reward:
@@ -161,10 +128,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
 
             # Create next state:
             next_state_start = torch.FloatTensor(next_state_start)
-            if (multi_state):
-                next_state = torch.cat((next_state_start.view(args.batch_size, -1), next_flat_images), 1)
-            else:
-                next_state = torch.cat((next_state_start.view(args.batch_size, -1), next_flat_images), 1)
+            next_state = torch.cat((next_state_start.view(args.batch_size, -1), next_flat_images), 1)
 
             # Get target value for next state (SHOULD NOT COMPUTE GRADIENT!):
             target_value = q_network(Variable(next_state), hidden, read_only=True)[0].max(1)[0].detach()
@@ -206,8 +170,7 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     # Step in SGD:
     optimizer.step()
 
-    ### TRAINING BATCH DONE ###
-
+    # Training batch done
     print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
     for key in accuracy_dict.keys():
@@ -232,27 +195,6 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
 
 
     return [total_prediction_accuracy, total_requests, total_accuracy, total_loss, total_reward], request_dict, accuracy_dict
-
-
-
-def get_multiclass_representations(batch_size, classes):
-    label_list = ['a', 'b', 'c', 'd', 'e']
-    bits = np.array([np.array([np.array(np.random.choice(len(label_list), len(label_list), replace=True)) for c in range(classes)]) for b in range(batch_size)])
-    one_hot_vectors = np.array([np.array([np.zeros((len(label_list), len(label_list))) for c in range(classes)]) for b in range(batch_size)])
-    for b in range(batch_size):
-        for c in range(classes):
-            one_hot_vectors[b][c][np.arange(len(label_list)), bits[b][c]] = 1
-    return one_hot_vectors
-
-def get_singleclass_representations(batch_size, classes, episode_labels):
-    one_hot_labels = []
-    for b in range(batch_size):
-        true_label = episode_labels.squeeze()[b].item()
-        one_hot_labels.append([1 if j == true_label else 0 for j in range(classes)])
-
-    return one_hot_labels
-
-
 
 
 def update_dicts(batch_size, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict):

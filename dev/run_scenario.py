@@ -150,7 +150,7 @@ def bar_plot(lists, bar_type, name, labels, size, ylabel=""):
         plt.ylabel("Class Q-value")
 
     plt.legend(loc=9)
-    plt.title("RL Scenario")
+    plt.title("ReinforcementLearning Scenario")
     plt.xlabel("Time step")
     
     plt.ylim((0, 1))

@@ -1,18 +1,11 @@
-
 import torch
 from torch.autograd import Variable
-import torch.nn.functional as F
-import random
-import matplotlib.pyplot as plt
-import numpy
-import math
-import copy
 
-
-#Discount:
+# Discount:
 GAMMA = 0.5
 
-def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learner, episode, criterion, nof_sentences):
+
+def validate(q_network, epoch, test_loader, args, reinforcement_learner, statistics, batch_size=32):
 
     # Initialize training:
     q_network.eval()
@@ -109,7 +102,7 @@ def validate(q_network, epoch, optimizer, test_loader, args, reinforcement_learn
     ### VALIDATION BATCH DONE ###
     print("\n---Validation Statistics---\n")
 
-    print("\n--- Epoch " + str(epoch) + ", Episode " + str(episode + i + 1) + " Statistics ---")
+    print("\n--- Epoch " + str(epoch) + " Statistics ---")
     print("Instance\tAccuracy\tRequests")       
     for key in accuracy_dict.keys():
         accuracy = accuracy_dict[key]

@@ -26,7 +26,7 @@ def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0, episode_s
 		plt.plot(x, avg_list, label=labels[l])
 
 	plt.legend(loc=0)
-	plt.title("RL Training Statistics")
+	plt.title("ReinforcementLearning Training Statistics")
 	plt.xlabel("Episode Batches")
 	plt.ylabel(ylabel)
 	plt.grid(True)

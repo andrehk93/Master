@@ -16,7 +16,7 @@ from utils.plot import loss_plot, percent_scatterplot as scatterplot
 from utils.text import textLoader as loader, glove as gloveLoader
 from utils import transforms, tablewriter
 
-# RL and DATASETS:
+# ReinforcementLearning and DATASETS:
 from reinforcement_utils.reinforcement import ReinforcementLearning as rl
 from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 from data.text.text_dataset import TEXT
@@ -146,6 +146,7 @@ def print_time(avg_time, eta):
     print("Estimated Time Left:\t" + hour + ":" + minute + ":" + seconds)
     print("\n---------------------------------------")
 
+
 def print_best_stats(stats):
     # Static strings:
     stat_string = "\n\t\tBest Training Stats"
@@ -161,21 +162,20 @@ def print_best_stats(stats):
     print("-"*str_length + "\n\n")
 
 
-
 if __name__ == '__main__':
 
-    ### SETTING UP RESULTS DIRECTORY ###
+    # SETTING UP RESULTS DIRECTORY ###
     result_directory = 'results/'
     if not os.path.exists(result_directory):
         os.makedirs(result_directory)
 
-    ### PARSING ARGUMENTS ###
+    # PARSING ARGUMENTS ###
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    #torch.manual_seed(args.seed)
-    #if args.cuda:
-        #torch.cuda.manual_seed(args.seed)
+    torch.manual_seed(args.seed)
+    if args.cuda:
+        torch.cuda.manual_seed(args.seed)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     MARGIN_TIME = args.margin_time
     CMS = args.margin_size
 
-    ### PARAMETERS ###
+    # PARAMETERS
     # TEXT AND MODEL DETAILS:
     EMBEDDING_SIZE = 200
 
@@ -213,7 +213,6 @@ if __name__ == '__main__':
     # Dataset of choice:
     dataset = 'data/text/' + questions
     ##################
-
 
     # Different Models:
     classes = args.class_vector_size
@@ -252,7 +251,7 @@ if __name__ == '__main__':
         q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, classes, EMBEDDING_SIZE, embedding=True, dict_size=DICTIONARY_MAX_SIZE)
 
 
-    # Loading the RL part (rewards, states, etc.):
+    # Loading the ReinforcementLearning part (rewards, states, etc.):
     rl = rl(classes)
 
     if args.cuda:

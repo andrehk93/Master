@@ -28,6 +28,7 @@ class TextLoader:
         self.dictionary_max_size = dictionary_max_size
         self.sentence_length = sentence_length
         self.glove_loader = glove_loader
+        self.weights_matrix = []
         self.load()
 
     def _check_exists(self):
