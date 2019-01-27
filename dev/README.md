@@ -29,6 +29,21 @@ NOTE: The first time you run main.py, the scripts will create word index vectors
 ### For Training on the Reuters Dataset:
 Go to http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz, and it will download the dataset immediately. Unzip the file, and from the unzipped folder, put bot the "test" and "training"-folders inside a folder called /raw inside data/reuters/. Run main_text.py and you should be good to go.
 
+## Word Vectors
+Each model can use three different types of word vectors. 
+
+1. Non pre-trained
+2. GloVe
+3. fastText (current default)
+
+In order to be able to use the pre-trained word vectors, they have to be downloaded and put in the correct directory.
+
+### GloVe
+Download from (http://nlp.stanford.edu/data/glove.6B.zip). Put in the folder data/text/glove, and make sure the filenames in utils/text/glove.py are identical to what you call the downloaded .txt file.
+
+### FastText
+Download from (https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip) and unzip to data/text/fast_text.
+
 ## Models
 Both datasets can be trained on three different models:
 
