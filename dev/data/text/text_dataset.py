@@ -10,7 +10,6 @@ import numpy as np
 from utils import transforms
 
 
-
 class TEXT(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
@@ -27,7 +26,9 @@ class TEXT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, scenario_type=0, class_choice=0):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30,
+                 tensor_length=18, sentence_length=50, cuda=False, scenario=False,
+                 scenario_size=5, scenario_type=0, class_choice=0, idx2word=[]):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -35,6 +36,7 @@ class TEXT(data.Dataset):
         self.classes = classes
         self.episode_size = episode_size
         self.classify = data_loader.classify
+        self.idx2word = idx2word
         self.scenario_size = scenario_size
         self.scenario_type = scenario_type
         self.class_choice = class_choice
@@ -65,7 +67,6 @@ class TEXT(data.Dataset):
                 os.path.join(self.root, self.processed_folder, self.test_file))
         
         self.dictionary = torch.load(os.path.join(self.root, self.processed_folder, self.dictionary_file))
-
 
     def __getitem__(self, index):
 
@@ -258,14 +259,10 @@ class TEXT(data.Dataset):
 
     def __len__(self):
         return 256
-        if self.train:
-            return len(self.train_data)
-        else:
-            return len(self.test_data)
 
     def _check_exists(self):
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \
-        os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
+            os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
 
     def write_datasets(self):
 

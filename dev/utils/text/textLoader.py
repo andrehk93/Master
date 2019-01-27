@@ -14,7 +14,7 @@ class TextLoader:
     test_file = 'test.pt'
     word_vector_file = 'word_vectors.pt'
 
-    def __init__(self, glove_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000,
+    def __init__(self, data_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000,
                  sentence_length=16, stopwords=True, embedding_size=200):
         self.root = os.path.expanduser(root)
         self.classify = classify
@@ -27,7 +27,7 @@ class TextLoader:
         self.classes = classes
         self.dictionary_max_size = dictionary_max_size
         self.sentence_length = sentence_length
-        self.glove_loader = glove_loader
+        self.data_loader = data_loader
         self.weights_matrix = []
         self.load()
 
@@ -53,7 +53,11 @@ class TextLoader:
 
         # process and save as torch files
         print('Processing raw dataset...')
-        (training_set, test_set, label_stop), word_dictionary, weights_matrix = read_text_file(self.glove_loader, os.path.join(self.root, self.raw_folder), label_start=0, partition=self.partition, classes=self.classes, dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length, stopwords=self.stopwords,embedding_size=self.embedding_size)
+        (training_set, test_set, label_stop), word_dictionary, weights_matrix = \
+            read_text_file(self.data_loader, os.path.join(self.root, self.raw_folder),
+                           label_start=0, partition=self.partition, classes=self.classes,
+                           dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length,
+                           stopwords=self.stopwords, embedding_size=self.embedding_size)
 
         self.training_set = (
             training_set[0],
@@ -83,28 +87,26 @@ class TextLoader:
 
 
 # Need to ensure a uniformly distributed training/test-set:
-def read_text_file(glove_loader, path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False,
-                   dict_max_size=5000, sentence_length=16, stopwords=True, embedding_size=200):
+def read_text_file(data_loader, path, training_set=None, test_set=None, label_start=0, partition=0.8, classes=False,
+                   dict_max_size=5000, sentence_length=16, stopwords=False, embedding_size=200):
     # Create a dictionary first:
     word_dictionary = parser.Corpus(dict_max_size, path, stopwords)
-    glove = {w: glove_loader.word_vectors[glove_loader.dictionary.word2idx[w]] for w in
-             glove_loader.dictionary.idx2word}
+    pretrained_word_vectors = data_loader.dictionary.word2idx
 
     # + 2 because (0 => padding (in case sentence not containing enough words), max + 1 => OOV token:
     matrix_len = len(word_dictionary.dictionary.idx2word) + 2
     weights_matrix = np.zeros((matrix_len, embedding_size))
     words_found = 0
 
-    weights_matrix[0] = np.random.normal(scale=0.6, size=(embedding_size,))
+    weights_matrix[0] = np.random.normal(scale=0.0, size=(embedding_size,))
+    weights_matrix[-1] = np.random.normal(scale=0.6, size=(embedding_size,))
     for i, word in enumerate(word_dictionary.dictionary.idx2word):
-        if word in glove:
-            weights_matrix[i + 1] = glove[word]
+        if word in pretrained_word_vectors:
+            weights_matrix[i + 1] = pretrained_word_vectors[word]
             words_found += 1
-        else:
-            weights_matrix[i + 1] = np.random.normal(scale=0.6, size=(embedding_size,))
 
     print("Created dictionary of size: ", len(weights_matrix))
-    print("Percentage words found in GloVe: ", (100.0 * words_found) / len(weights_matrix))
+    print("Percentage words found in Pretrained Vectors: ", (100.0 * words_found) / len(weights_matrix))
 
     # Create the dataset-vectors based on this dictionary:
     uniform_distr = {}

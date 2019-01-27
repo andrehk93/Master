@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 static_folder = "../results/tables/"
-static_name = "IMAGE_test"
+static_name = "LSTM_from_pretrained"
 n = 20
 
 def write_to_memory(current_length):
@@ -40,6 +40,7 @@ def get_best(arr):
     print("BEST: ", np.argmax(processed_array))
     return int(np.argmax(processed_array))
 
+
 def get_results_from_filename(filename):
     directory = os.path.join(static_folder, filename)
 
@@ -54,6 +55,7 @@ def get_results_from_filename(filename):
                 result_array.append(process(list(map(str.strip, lines))))
 
     return result_array
+
 
 def get_last_results_from_filename(filename):
     directory = os.path.join(static_folder, filename)

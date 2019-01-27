@@ -103,8 +103,13 @@ def parse_arguments(parser):
                         help='Enables QA as chosen dataset')
 
     """
-    Pretrained GloVe vectors:
+    Pretrained GloVe or fastText vectors:
     """
     # GloVe:
     parser.add_argument('--GLOVE', action='store_true', default=False,
                         help='Enables GloVe pre-trained word vectors')
+
+    # fastText:
+    parser.add_argument('--FAST', action='store_true', default=False,
+                        help='Enables GloVe pre-trained word vectors')
+

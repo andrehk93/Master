@@ -58,7 +58,7 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(args.seed)
 
     # Collecting correct data-set
-    dataset = 'data/'
+    dataset = 'data'
 
     # Collecting static image setup
     IMAGES = False
@@ -130,7 +130,7 @@ if __name__ == '__main__':
         training_status_handler.update_status(epoch, statistics)
 
         # Write results to file
-        resultwriter.write_to_result_file(args.name, statistics.statistics)
+        resultwriter.write_to_result_file(args.name, resultwriter.to_result_array(statistics.statistics))
 
         # Test for one epoch
         if epoch % 10 == 0:

@@ -66,8 +66,8 @@ def validate(q_network, epoch, test_loader, args, reinforcement_learner,
                 q_values, hidden = q_network(Variable(episode_samples).type(torch.LongTensor).cuda(), hidden,
                                              class_vector=state, seq=episode_samples.size()[1])
             else:
-                q_values, hidden = q_network(Variable(episode_samples).type(torch.LongTensor), hidden, class_vector=state,
-                                             seq=episode_samples.size()[1])
+                q_values, hidden = q_network(Variable(episode_samples).type(torch.LongTensor), hidden,
+                                             class_vector=state, seq=episode_samples.size()[1])
         else:
             # Need to add image to the state vector:
             flat_images = episode_samples.squeeze().view(args.test_batch_size, -1)

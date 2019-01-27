@@ -1,4 +1,5 @@
 from utils.text import textLoader as loader, glove as gloveLoader
+from data.text.fast_text.parse import FastText
 from models import reinforcement_models
 import torch
 
@@ -14,12 +15,12 @@ class TextModelSetup:
         self.EMBEDDING_SIZE = 200
 
         # Need to remake dataset if change ANY of these:
-        self.SENTENCE_LENGTH = 12
+        self.SENTENCE_LENGTH = 9
         self.NUMBER_OF_SENTENCES = 1
-        self.DICTIONARY_MAX_SIZE = 400000
+        self.DICTIONARY_MAX_SIZE = 200000
 
         # TRUE = REMOVE self.STOPWORDS:
-        self.STOPWORDS = True
+        self.STOPWORDS = False
 
         self.CMS = margin_sampling
         self.MARGIN_TIME = margin_time
@@ -30,20 +31,26 @@ class TextNetworkSetup:
     def __init__(self, setup, dataset, args):
         self.setup = setup
         self.dataset = dataset
+        self.args = args
 
-        self.glove_loader, self.text_loader = self.setup_utility_loaders(self.setup, self.dataset)
+        self.glove_loader, self.text_loader = \
+            self.setup_utility_loaders(self.setup, self.dataset)
 
         self.q_network = self.setup_network(self.setup, args)
 
-        self.train_loader, self.test_loader = self.setup_loaders(self.setup, self.dataset, self.q_network,
-                                                                 args, self.text_loader)
+        self.train_loader, self.test_loader, self.idx2word = \
+            self.setup_loaders(self.setup, self.dataset, self.q_network, args, self.text_loader)
 
     def setup_utility_loaders(self, setup, dataset):
-        print("Setting up GloVe...")
+        print("Setting up WordVectors...")
 
-        glove_loader = gloveLoader.GloveLoader("", self.setup.EMBEDDING_SIZE)
+        if self.args.GLOVE:
+            data_loader = gloveLoader.GloveLoader("", setup.EMBEDDING_SIZE)
+        else:
+            data_loader = FastText("")
+            setup.EMBEDDING_SIZE = 300
 
-        text_loader = loader.TextLoader(glove_loader, dataset, classify=False, partition=0.8, classes=True,
+        text_loader = loader.TextLoader(data_loader, dataset, classify=False, partition=0.8, classes=True,
                                         dictionary_max_size=setup.DICTIONARY_MAX_SIZE,
                                         sentence_length=setup.SENTENCE_LENGTH,
                                         stopwords=setup.STOPWORDS, embedding_size=setup.EMBEDDING_SIZE)
@@ -69,7 +76,7 @@ class TextNetworkSetup:
 
     def setup_loaders(self, setup, dataset, q_network, args, text_loader):
         print("Setting up Dataloaders...")
-
+        idx2word = []
         # MARGIN SAMPLING:
         if setup.CMS:
             train_loader = torch.utils.data.DataLoader(
@@ -80,6 +87,10 @@ class TextNetworkSetup:
 
         # NO MARGIN:
         else:
+            text_class = TEXT(dataset, train=True, download=True, data_loader=text_loader,
+                              classes=args.class_vector_size, episode_size=args.episode_size,
+                              tensor_length=setup.NUMBER_OF_SENTENCES, sentence_length=setup.SENTENCE_LENGTH)
+            idx2word = text_class.dictionary.dictionary.idx2word
             train_loader = torch.utils.data.DataLoader(
                 TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
                      episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
@@ -89,6 +100,7 @@ class TextNetworkSetup:
         test_loader = torch.utils.data.DataLoader(
             TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size,
                  episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                 sentence_length=setup.SENTENCE_LENGTH), batch_size=args.test_batch_size, shuffle=True)
+                 sentence_length=setup.SENTENCE_LENGTH),
+            batch_size=args.test_batch_size, shuffle=True)
 
-        return train_loader, test_loader
+        return train_loader, test_loader, idx2word

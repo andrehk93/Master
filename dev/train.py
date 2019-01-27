@@ -240,7 +240,8 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
             'total_prediction_accuracy': total_prediction_accuracy,
             'total_requests': total_requests,
             'total_accuracy': total_accuracy,
-            'total_reward': total_reward
+            'total_reward': total_reward,
+            'total_loss': total_loss
         },
         {
             'req_dict': request_dict,
