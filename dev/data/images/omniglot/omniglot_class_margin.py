@@ -27,13 +27,13 @@ class OMNIGLOT_MARGIN(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, margin_time=2, CMS=2, q_network=None):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, margin_time=2, MARGIN_SIZE=2, q_network=None):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.classes = classes
-        self.CMS = CMS
+        self.MARGIN_SIZE = MARGIN_SIZE
         self.big_diff = 0
         self.all_margins = []
         self.episode_size = episode_size
@@ -112,7 +112,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
             img_list, target_list = [], []
             if self.train:
                 # Train-dataset:
-                img_classes = np.random.choice(len(self.train_labels), int(self.classes*self.CMS), replace=False)
+                img_classes = np.random.choice(len(self.train_labels), int(self.classes*self.MARGIN_SIZE), replace=False)
 
                 ind = 0
                 for i in img_classes:
@@ -123,7 +123,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
             else:
                 # Test-dataset:
-                img_classes = np.random.choice(len(self.test_labels), int(self.classes*self.CMS), replace=False)
+                img_classes = np.random.choice(len(self.test_labels), int(self.classes*self.MARGIN_SIZE), replace=False)
                 ind = 0
                 for i in img_classes:
                     for j in self.test_data[i]:

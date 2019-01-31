@@ -63,7 +63,7 @@ When running either "main.py", be sure to also supply which model you want to tr
 
 python main.py --LSTM --margin-sampling --margin-size 3 --name "LSTM_margin_3"
 
-This will result in a LSTM network, with margin sampling of CMS=3, with the name "LSTM_margin_3" being trained. All commands are those below:
+This will result in a LSTM network, with margin sampling of MARGIN_SIZE=3, with the name "LSTM_margin_3" being trained. All commands are those below:
 
 ## main_image.py -h
 

@@ -8,7 +8,7 @@ from data.images.omniglot.omniglot import OMNIGLOT
 
 class ImageModelSetup:
 
-    def __init__(self, cms, margin_time):
+    def __init__(self, cms, margin_size, margin_time):
         self.IMAGE_SCALE = 20
         self.IMAGE_SIZE = self.IMAGE_SCALE * self.IMAGE_SCALE
 
@@ -22,6 +22,7 @@ class ImageModelSetup:
         ])
 
         self.CMS = cms
+        self.MARGIN_SIZE = margin_size
         self.MARGIN_TIME = margin_time
 
 
@@ -57,8 +58,9 @@ class ImageNetworkSetup:
             train_loader = torch.utils.data.DataLoader(
                 OMNIGLOT_MARGIN(dataset, train=True, transform=setup.train_transform, download=True,
                                 omniglot_loader=omniglot_loader, classes=args.class_vector_size,
-                                episode_size=args.episode_size, margin_time=setup.MARGIN_TIME, CMS=setup.CMS, 
-                                q_network=q_network), batch_size=args.mini_batch_size, shuffle=True)
+                                episode_size=args.episode_size, margin_time=setup.MARGIN_TIME,
+                                MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network),
+                batch_size=args.batch_size, shuffle=True)
         else:
             train_loader = torch.utils.data.DataLoader(
                 OMNIGLOT(dataset, train=True, transform=setup.test_transform, download=True,

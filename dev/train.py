@@ -8,7 +8,7 @@ GAMMA = 0.5
 def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner, episode,
           criterion, statistics, text_dataset, class_margin_sampler, margin):
 
-    # Set up CMS:
+    # Set up MARGIN_SIZE:
     q_network.eval()
 
     # Collect a random batch:

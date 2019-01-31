@@ -62,15 +62,15 @@ if __name__ == '__main__':
 
     # Collecting static image setup
     IMAGES = False
-    image_setup = ImageModelSetup(args.margin_sampling, args.margin_time)
+    image_setup = ImageModelSetup(args.margin_sampling, args.margin_size, args.margin_time)
 
     # Collecting static text setup
     TEXT = False
-    text_setup = TextModelSetup(args.margin_sampling, args.margin_time)
+    text_setup = TextModelSetup(args.margin_sampling, args.margin_size, args.margin_time)
 
     # Setting up Class Margin Sampler
     class_margin_sampler = ClassMarginSampler(args, image_setup.train_transform,
-                                              text_setup.NUMBER_OF_SENTENCES)
+                                              text_setup.SENTENCE_LENGTH)
 
     # Creating setup based on data-set
     if args.MNIST:

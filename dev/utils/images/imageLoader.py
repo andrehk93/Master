@@ -103,6 +103,7 @@ def read_image_file(path, training_set=None, test_set=None, label_start=0, parti
 					uniform_distr[label_dict[root]].append(image.astype(int).tolist())
 	return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition, shuffle=True, classes=classes)
 
+
 def create_datasets(image_dictionary, training_set=None, test_set=None, partition=0.8, shuffle=True, classes=False):
 	# Splitting the dataset into two parts with completely different EXAMPLES, but same CLASSES:
 	if not classes:

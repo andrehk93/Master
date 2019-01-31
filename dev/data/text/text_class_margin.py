@@ -26,7 +26,7 @@ class TextMargin(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, margin_time=4, CMS=2, q_network=None):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, margin_time=4, MARGIN_SIZE=2, q_network=None):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -36,13 +36,13 @@ class TextMargin(data.Dataset):
         self.classify = data_loader.classify
         self.scenario_size = scenario_size
         self.margin_time = margin_time
-        self.CMS = CMS
+        self.MARGIN_SIZE = MARGIN_SIZE
         self.print = True
         self.q_network = q_network
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
-        if (self.classify):
+        if self.classify:
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
@@ -73,12 +73,13 @@ class TextMargin(data.Dataset):
         
         if self.train:
             # Collect randomly drawn classes:
-            text_classes = np.random.choice(len(self.train_labels), self.classes*self.CMS, replace=False)
+            text_classes = np.random.choice(len(self.train_labels), self.classes*self.MARGIN_SIZE, replace=False)
                 
             # Give random class-slot in vector:
             ind = 0
             for i in text_classes:
-                text_samples = np.random.choice(len(self.train_data[i]), int(self.episode_size/self.classes), replace=False)
+                text_samples = np.random.choice(len(self.train_data[i]), int(self.episode_size/self.classes),
+                                                replace=False)
                 for j in text_samples:
                     text_list.append(self.train_data[i][j])
                     label_list.append(ind)
@@ -93,17 +94,15 @@ class TextMargin(data.Dataset):
 
             # Iterating over all SENTENCES:
             for j in range(tensor_length):
-                if (j >= len(text_list[i])):
+                if j >= len(text_list[i]):
                     break
                 episode_tensor[i][j] = text_list[i][j]
 
         return episode_tensor, torch.LongTensor(label_list)
 
+    # Need to fake this so the batch-collector doesn't collect to few batches
     def __len__(self):
-        if self.train:
-            return len(self.train_data)
-        else:
-            return len(self.test_data)
+        return 256
 
     def _check_exists(self):
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \

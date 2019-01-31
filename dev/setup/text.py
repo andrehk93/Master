@@ -9,13 +9,13 @@ from data.text.text_class_margin import TextMargin
 
 class TextModelSetup:
 
-    def __init__(self, margin_sampling, margin_time):
+    def __init__(self, margin_sampling, margin_size, margin_time):
         # PARAMETERS
         # TEXT AND MODEL DETAILS:
         self.EMBEDDING_SIZE = 200
 
         # Need to remake dataset if change ANY of these:
-        self.SENTENCE_LENGTH = 9
+        self.SENTENCE_LENGTH = 16
         self.NUMBER_OF_SENTENCES = 1
         self.DICTIONARY_MAX_SIZE = 200000
 
@@ -23,6 +23,7 @@ class TextModelSetup:
         self.STOPWORDS = False
 
         self.CMS = margin_sampling
+        self.MARGIN_SIZE = margin_size
         self.MARGIN_TIME = margin_time
 
 
@@ -45,6 +46,7 @@ class TextNetworkSetup:
         print("Setting up WordVectors...")
 
         if self.args.GLOVE:
+            print("GLOVE: ", setup.EMBEDDING_SIZE)
             data_loader = gloveLoader.GloveLoader("", setup.EMBEDDING_SIZE)
         else:
             data_loader = FastText("")
@@ -82,8 +84,9 @@ class TextNetworkSetup:
             train_loader = torch.utils.data.DataLoader(
                 TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
                            episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                           sentence_length=setup.SENTENCE_LENGTH, margin_time=setup.MARGIN_TIME, CMS=setup.CMS,
-                           q_network=q_network), batch_size=args.batch_size, shuffle=False)
+                           sentence_length=setup.SENTENCE_LENGTH, margin_time=setup.MARGIN_TIME,
+                           MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network),
+                batch_size=args.batch_size, shuffle=False)
 
         # NO MARGIN:
         else:
