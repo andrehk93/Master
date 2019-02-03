@@ -78,7 +78,6 @@ class Corpus(object):
                         word_counts[word] += 1
 
         print("Average length of sentences: ", (lenghts/i))
-        input("OK")
         # Keeping the MAX_LENGTH most words:
         sorted_counts = sorted(word_counts.items(), key=operator.itemgetter(1))
         sorted_counts.reverse()

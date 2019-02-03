@@ -13,10 +13,10 @@ from utils import transforms
 class TEXT(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
-    training_file = 'training.pt'
-    test_file = 'test.pt'
-    dictionary_file = 'dictionary.pt'
-    word_vector_file = 'word_vectors.pt'
+    training_file = 'training'
+    test_file = 'test'
+    dictionary_file = 'dictionary'
+    word_vector_file = 'word_vectors'
 
     '''
     The items are (filename,category). The index of all the categories can be found in self.idx_classes
@@ -28,7 +28,7 @@ class TEXT(data.Dataset):
     '''
     def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30,
                  tensor_length=18, sentence_length=50, cuda=False, scenario=False,
-                 scenario_size=5, scenario_type=0, class_choice=0, idx2word=[]):
+                 scenario_size=5, scenario_type=0, class_choice=0, idx2word=[], glove=False):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -43,9 +43,16 @@ class TEXT(data.Dataset):
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
-        if (self.classify):
-            self.training_file = "classify_" + self.training_file
-            self.test_file = "classify_" + self.test_file
+        self.pretrained_vectors = "fast"
+        if glove:
+            self.pretrained_vectors = "glove"
+
+        # Saving different versions so we can experiment with different setups simultaneously
+        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.dictionary_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+
         self.partition = partition
 
         if download and not self._check_exists():
@@ -186,7 +193,6 @@ class TEXT(data.Dataset):
                     for txt in appended_texts:
                         texts.append(txt)
 
-
             episode_texts, episode_labels = [], []
             tensor_length = self.tensor_length
             for index in range(len(texts)):
@@ -194,14 +200,11 @@ class TEXT(data.Dataset):
                 episode_texts.append(txt)
                 episode_labels.append(lbl)
 
-            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor) for i in range(tensor_length)])) for j in range(len(texts))]))
-            episode_tensor = zero_tensor.view(len(texts), tensor_length, self.sentence_length)
+            zero_tensor = torch.LongTensor(torch.cat([torch.LongTensor(torch.cat([torch.zeros(self.sentence_length).type(torch.LongTensor)])) for j in range(len(texts))]))
+            episode_tensor = zero_tensor.view(len(texts), 1, self.sentence_length)
 
             for i in range(len(episode_texts)):
-                for j in range(tensor_length):
-                    if (j >= len(episode_texts[i])):
-                        break
-                    episode_tensor[i][j] = episode_texts[i][j]
+                episode_tensor[i][0] = episode_texts[i][0]
 
             return episode_tensor, torch.LongTensor(episode_labels)
 
@@ -240,7 +243,7 @@ class TEXT(data.Dataset):
                 episode_labels.append(label_list[index])
 
             # Create empty tensor of desired size (including batch):
-            episode_tensor = torch.zeros(self.episode_size, self.tensor_length, self.sentence_length).type(torch.LongTensor)
+            episode_tensor = torch.zeros(self.episode_size, 1, self.sentence_length).type(torch.LongTensor)
 
             # Zip and shuffle:
             episode_list = list(zip(episode_texts, episode_labels))
@@ -250,11 +253,7 @@ class TEXT(data.Dataset):
 
             # Insert all texts into final episode_tensor:
             for i in range(self.episode_size):
-                for j in range(self.tensor_length):
-                    # Cut all texts that are longer than we want:
-                    if j >= len(shuffled_text[i]):
-                        break
-                    episode_tensor[i][j] = shuffled_text[i][j]
+                episode_tensor[i][0] = shuffled_text[i][0]
             return episode_tensor, torch.LongTensor(shuffled_labels)
 
     def __len__(self):

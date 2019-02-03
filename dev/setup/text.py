@@ -15,9 +15,9 @@ class TextModelSetup:
         self.EMBEDDING_SIZE = 200
 
         # Need to remake dataset if change ANY of these:
-        self.SENTENCE_LENGTH = 16
+        self.SENTENCE_LENGTH = 8
         self.NUMBER_OF_SENTENCES = 1
-        self.DICTIONARY_MAX_SIZE = 200000
+        self.DICTIONARY_MAX_SIZE = 20000
 
         # TRUE = REMOVE self.STOPWORDS:
         self.STOPWORDS = False
@@ -46,7 +46,6 @@ class TextNetworkSetup:
         print("Setting up WordVectors...")
 
         if self.args.GLOVE:
-            print("GLOVE: ", setup.EMBEDDING_SIZE)
             data_loader = gloveLoader.GloveLoader("", setup.EMBEDDING_SIZE)
         else:
             data_loader = FastText("")
@@ -85,25 +84,24 @@ class TextNetworkSetup:
                 TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
                            episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
                            sentence_length=setup.SENTENCE_LENGTH, margin_time=setup.MARGIN_TIME,
-                           MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network),
+                           MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network, glove=self.args.GLOVE),
                 batch_size=args.batch_size, shuffle=False)
 
         # NO MARGIN:
         else:
             text_class = TEXT(dataset, train=True, download=True, data_loader=text_loader,
                               classes=args.class_vector_size, episode_size=args.episode_size,
-                              tensor_length=setup.NUMBER_OF_SENTENCES, sentence_length=setup.SENTENCE_LENGTH)
+                              tensor_length=setup.NUMBER_OF_SENTENCES, sentence_length=setup.SENTENCE_LENGTH,
+                              glove=self.args.GLOVE)
             idx2word = text_class.dictionary.dictionary.idx2word
             train_loader = torch.utils.data.DataLoader(
-                TEXT(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
-                     episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                     sentence_length=setup.SENTENCE_LENGTH),
+                text_class,
                 batch_size=args.batch_size, shuffle=True)
 
         test_loader = torch.utils.data.DataLoader(
             TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size,
                  episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                 sentence_length=setup.SENTENCE_LENGTH),
+                 sentence_length=setup.SENTENCE_LENGTH, glove=self.args.GLOVE),
             batch_size=args.test_batch_size, shuffle=True)
 
         return train_loader, test_loader, idx2word

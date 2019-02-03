@@ -1,22 +1,19 @@
 from __future__ import print_function
 import torch.utils.data as data
-from PIL import Image
-import random
 import os
 import os.path
 import errno
 import torch
 import numpy as np
-from utils import transforms
-
 
 
 class TextMargin(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
-    training_file = 'training.pt'
-    test_file = 'test.pt'
-    dictionary_file = 'dictionary.pt'
+    training_file = 'training'
+    test_file = 'test'
+    dictionary_file = 'dictionary'
+    word_vector_file = 'word_vectors'
 
     '''
     The items are (filename,category). The index of all the categories can be found in self.idx_classes
@@ -26,7 +23,9 @@ class TextMargin(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False, scenario_size=5, margin_time=4, MARGIN_SIZE=2, q_network=None):
+    def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3,
+                 episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False,
+                 scenario_size=5, margin_time=4, MARGIN_SIZE=2, q_network=None, glove=False):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -42,15 +41,23 @@ class TextMargin(data.Dataset):
         self.scenario = scenario
         self.all_margins = []
         self.cuda = cuda
-        if self.classify:
-            self.training_file = "classify_" + self.training_file
-            self.test_file = "classify_" + self.test_file
+        self.pretrained_vectors = "fast"
+        if glove:
+            self.pretrained_vectors = "glove"
+
+        # Saving different versions so we can experiment with different setups simultaneously
+        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.dictionary_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+
         self.partition = partition
 
         if download and not self._check_exists():
             self.training_set = data_loader.get_training_set()
             self.test_set = data_loader.get_test_set()
             self.dictionary = data_loader.get_dictionary()
+            self.weight_vector = data_loader.get_word_vectors()
             self.write_datasets()
 
         if not self._check_exists():
@@ -85,18 +92,11 @@ class TextMargin(data.Dataset):
                     label_list.append(ind)
                 ind += 1
 
-        tensor_length = self.tensor_length
-
-        episode_tensor = torch.zeros(len(text_list), tensor_length, self.sentence_length).type(torch.LongTensor)
+        episode_tensor = torch.zeros(len(text_list), 1, self.sentence_length).type(torch.LongTensor)
 
         # Iterating over all texts collected:
         for i in range(len(text_list)):
-
-            # Iterating over all SENTENCES:
-            for j in range(tensor_length):
-                if j >= len(text_list[i]):
-                    break
-                episode_tensor[i][j] = text_list[i][j]
+                episode_tensor[i][0] = text_list[i][0]
 
         return episode_tensor, torch.LongTensor(label_list)
 
@@ -127,5 +127,7 @@ class TextMargin(data.Dataset):
             torch.save(self.test_set, f)
         with open(os.path.join(self.root, self.processed_folder, self.dictionary_file), 'wb') as f:
             torch.save(self.dictionary, f)
+        with open(os.path.join(self.root, self.processed_folder, self.word_vector_file), 'wb') as f:
+            torch.save(self.weight_vector, f)
 
         print("Data successfully written...")
