@@ -34,8 +34,7 @@ class TextNetworkSetup:
         self.dataset = dataset
         self.args = args
 
-        self.glove_loader, self.text_loader = \
-            self.setup_utility_loaders(self.setup, self.dataset)
+        self.text_loader = self.setup_utility_loaders(self.setup, self.dataset)
 
         self.q_network = self.setup_network(self.setup, args)
 
@@ -53,10 +52,10 @@ class TextNetworkSetup:
 
         text_loader = loader.TextLoader(data_loader, dataset, classify=False, partition=0.8, classes=True,
                                         dictionary_max_size=setup.DICTIONARY_MAX_SIZE,
-                                        sentence_length=setup.SENTENCE_LENGTH,
-                                        stopwords=setup.STOPWORDS, embedding_size=setup.EMBEDDING_SIZE)
+                                        sentence_length=setup.SENTENCE_LENGTH, stopwords=setup.STOPWORDS,
+                                        embedding_size=setup.EMBEDDING_SIZE, glove=self.args.GLOVE)
 
-        return gloveLoader, text_loader
+        return text_loader
 
     def setup_network(self, setup, args):
         print("Setting up Q Network...")

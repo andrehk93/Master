@@ -54,6 +54,7 @@ class TextMargin(data.Dataset):
         self.partition = partition
 
         if download and not self._check_exists():
+            print("Loading pre-parsed dataset!")
             self.training_set = data_loader.get_training_set()
             self.test_set = data_loader.get_test_set()
             self.dictionary = data_loader.get_dictionary()

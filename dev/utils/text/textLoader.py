@@ -10,25 +10,31 @@ from utils.text import parser
 class TextLoader:
     raw_folder = 'raw'
     processed_folder = 'processed'
-    training_file = 'training.pt'
-    test_file = 'test.pt'
-    word_vector_file = 'word_vectors.pt'
+    training_file = 'training'
+    test_file = 'test'
+    word_vector_file = 'word_vectors'
 
     def __init__(self, data_loader, root, classify=True, partition=0.8, classes=False, dictionary_max_size=5000,
-                 sentence_length=16, stopwords=True, embedding_size=200):
+                 sentence_length=16, stopwords=True, embedding_size=200, glove=False):
         self.root = os.path.expanduser(root)
         self.classify = classify
         self.stopwords = stopwords
         self.embedding_size = embedding_size
-        if self.classify:
-            self.training_file = "classify_" + self.training_file
-            self.test_file = "classify_" + self.test_file
         self.partition = partition
         self.classes = classes
         self.dictionary_max_size = dictionary_max_size
         self.sentence_length = sentence_length
         self.data_loader = data_loader
         self.weights_matrix = []
+        self.pretrained_vectors = "fast"
+        if glove:
+            self.pretrained_vectors = "glove"
+
+        # Collecting the correct dataset in regards to parameters
+        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+
         self.load()
 
     def _check_exists(self):
