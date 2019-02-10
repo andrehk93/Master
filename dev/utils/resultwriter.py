@@ -25,21 +25,21 @@ def write_to_result_file(name, result_array):
 
 def to_result_array(stats):
     return [
-        stats['total_prediction_accuracy'][-1],
-        stats['total_accuracy'][-1],
-        stats['total_requests'][-1],
-        stats['total_loss'][-1],
-        stats['total_reward'][-1]
+        stats['prediction_accuracy'][-1],
+        stats['accuracy'][-1],
+        stats['requests'][-1],
+        stats['loss'][-1],
+        stats['reward'][-1]
     ]
 
 
 def to_array_result_array(stats):
     return [
-        stats['total_prediction_accuracy'],
-        stats['total_accuracy'],
-        stats['total_requests'],
-        stats['total_loss'],
-        stats['total_reward']
+        stats['prediction_accuracy'],
+        stats['accuracy'],
+        stats['requests'],
+        stats['loss'],
+        stats['reward']
     ]
 
 

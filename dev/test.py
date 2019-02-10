@@ -6,7 +6,7 @@ GAMMA = 0.5
 
 
 def validate(q_network, epoch, test_loader, args, reinforcement_learner,
-             statistics, text_dataset):
+             statistics, text_dataset, still_training=False, train_set=False):
     # Initialize training:
     q_network.eval()
 
@@ -140,20 +140,9 @@ def validate(q_network, epoch, test_loader, args, reinforcement_learner,
     print("Batch Average Reward = " + str(total_reward)[:5])
     print("+--------------------------------------------------+\n")
 
-    # Update statistics dictionary
-    statistics.update(
-        {
-            'total_test_prediction_accuracy': total_prediction_accuracy,
-            'total_test_requests': total_requests,
-            'total_test_accuracy': total_accuracy,
-            'total_test_reward': total_reward
-        },
-        {
-            'test_req_dict': request_dict,
-            'test_acc_dict': accuracy_dict,
-            'test_pred_dict': prediction_accuracy_dict,
-        }
-    )
+    # Save statistics
+    save_statistics(statistics, total_prediction_accuracy, total_requests, total_accuracy, total_reward,
+                    request_dict, accuracy_dict, prediction_accuracy_dict, still_training, train_set)
 
 
 def update_dicts(args, episode_labels, rewards, reinforcement_learner, label_dict, request_dict, accuracy_dict,
@@ -190,3 +179,46 @@ def update_dicts(args, episode_labels, rewards, reinforcement_learner, label_dic
                 prediction_accuracy_dict[label_dict[i][true_label]].append(0)
 
     return predict, correct, request
+
+
+def save_statistics(statistics, total_prediction_accuracy, total_requests, total_accuracy, total_reward,
+                    request_dict, accuracy_dict, prediction_accuracy_dict, still_training, train_set):
+    # Update statistics dictionary
+    if not still_training:
+        if train_set:
+            statistics.update(
+                {
+                    'test_train_prediction_accuracy': total_prediction_accuracy,
+                    'test_train_requests': total_requests,
+                    'test_train_accuracy': total_accuracy,
+                    'test_train_reward': total_reward
+                },
+                {
+                    'test_train_req_dict': request_dict,
+                    'test_train_acc_dict': accuracy_dict,
+                    'test_train_pred_dict': prediction_accuracy_dict,
+                }
+            )
+        else:
+            statistics.update(
+                {
+                    'test_prediction_accuracy': total_prediction_accuracy,
+                    'test_requests': total_requests,
+                    'test_accuracy': total_accuracy,
+                    'test_reward': total_reward
+                },
+                {
+                    'test_req_dict': request_dict,
+                    'test_acc_dict': accuracy_dict,
+                    'test_pred_dict': prediction_accuracy_dict,
+                }
+            )
+    else:
+        statistics.push_variables(
+            {
+                'training_test_prediction_accuracy': total_prediction_accuracy,
+                'training_test_requests': total_requests,
+                'training_test_accuracy': total_accuracy,
+                'training_test_reward': total_reward
+            }
+        )

@@ -28,6 +28,17 @@ def parse_arguments(parser):
                         help='Number of classes per episode')
 
     """
+    Text Specific Setup
+    """
+    # Embedding Size:
+    parser.add_argument('--embedding-size', type=int, default=200, metavar='N',
+                        help='size of embedding layer')
+
+    # Number of words in sentences:
+    parser.add_argument('--sentence-length', type=int, default=200, metavar='N',
+                        help='Number of words in each sentence')
+
+    """
     PyTorch specific parameters:
     """
     # CUDA:
@@ -47,7 +58,11 @@ def parse_arguments(parser):
 
     # Network Name:
     parser.add_argument('--name', default='name', type=str,
-                        help='Name of file')
+                        help='Name of file (Will be overwritten!)')
+
+    # Network Name:
+    parser.add_argument('--name-postfix', default='', type=str,
+                        help='Custom name to append to the end of generated name (if duplicate model structures)')
 
     """
     Class Margin Sampling parameters:

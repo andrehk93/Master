@@ -29,7 +29,7 @@ class ClassMarginSampler:
         self.low_margins = []
         self.all_choices = []
 
-    def sample_images(self, image_batch, label_batch, q_network, batch_size, image_size=20):
+    def sample_images(self, image_batch, label_batch, q_network, batch_size, statistics):
 
         # Size should be: (episode_size, batch_size, PIXEL_X, PIXEL_Y)
         state = []
@@ -99,9 +99,10 @@ class ClassMarginSampler:
         margin_class_batch = self.compare_margins(margins)
 
         # Storing the max margin:
-        self.all_margins.append(torch.mean(margins.t().max(1)[0]))
-        self.low_margins.append(torch.mean(margins.t().min(1)[0]))
-        self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
+        statistics.push_variables({'all_margins': torch.mean(margins.t().max(1)[0]).item(),
+                                   'low_margins': torch.mean(margins.t().min(1)[0]).item(),
+                                   'all_choices': np.array([float(c/batch_size) for c in choices])
+                                   })
 
         episode_batch_final = torch.FloatTensor(int(self.nof_classes*10), batch_size, 20, 20)
         label_batch_final = torch.LongTensor(int(self.nof_classes*10), batch_size)
@@ -140,7 +141,7 @@ class ClassMarginSampler:
 
         return episode_batch_final, label_batch_final
 
-    def sample_text(self, text_batch, label_batch, q_network, batch_size):
+    def sample_text(self, text_batch, label_batch, q_network, batch_size, statistics):
         # Size should be: (episode_size, Batch_size, SEN_LEN, WORDS)
         state = []
         for b in range(batch_size):
@@ -202,9 +203,10 @@ class ClassMarginSampler:
         margin_class_batch = self.compare_margins(margins)
 
         # Storing the max margin:
-        self.all_margins.append(torch.mean(margins.t().max(1)[0]))
-        self.low_margins.append(torch.mean(margins.t().min(1)[0]))
-        self.all_choices.append(np.array([float(c/batch_size) for c in choices]))
+        statistics.push_variables({'all_margins': torch.mean(margins.t().max(1)[0]).item(),
+                                   'low_margins': torch.mean(margins.t().min(1)[0]).item(),
+                                   'all_choices': np.array([float(c / batch_size) for c in choices])
+                                   })
 
         episode_batch_final = torch.zeros(batch_size, int(self.nof_classes * 10), 1,
                                           self.sentence_length).type(torch.LongTensor)

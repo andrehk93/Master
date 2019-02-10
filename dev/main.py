@@ -12,7 +12,7 @@ import torch.optim as optimizers
 from utils import tablewriter, resultwriter
 from utils.checkpoint import save_checkpoint, load_checkpoint
 from utils.arguments import parse_arguments
-from utils.status import print_best_stats, StatusHandler
+from utils.status import print_best_stats, StatusHandler, generate_name_from_args
 from utils.plot_handler import PlotHandler
 
 # ML
@@ -30,7 +30,7 @@ from reinforcement_utils.class_margin_sampling import ClassMarginSampler
 
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch Reinforcement Learning NTM',
+parser = argparse.ArgumentParser(description='One-shot Learning',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parse_arguments(parser)
 
@@ -66,7 +66,8 @@ if __name__ == '__main__':
 
     # Collecting static text setup
     TEXT = False
-    text_setup = TextModelSetup(args.margin_sampling, args.margin_size, args.margin_time)
+    text_setup = TextModelSetup(args.margin_sampling, args.margin_size, args.margin_time,
+                                args.embedding_size, args.sentence_length)
 
     # Setting up Class Margin Sampler
     class_margin_sampler = ClassMarginSampler(args, image_setup.train_transform,
@@ -88,6 +89,8 @@ if __name__ == '__main__':
     else:
         dataset += '/text/questions'
         TEXT = True
+
+    args.name = generate_name_from_args(args, TEXT)
 
     if TEXT:
         setup = TextNetworkSetup(text_setup, dataset, args)
@@ -134,11 +137,11 @@ if __name__ == '__main__':
 
         # Test for one epoch
         if epoch % 10 == 0:
-            print(args)
+            # Don't want to save all test-stats
             test.validate(q_network, epoch, test_loader, args,
-                          ReinforcementLearning, statistics, TEXT)
+                          ReinforcementLearning, statistics, TEXT, still_training=True)
             # Save best checkpoint
-            if training_status_handler.update_best(statistics.statistics['total_test_reward']):
+            if training_status_handler.update_best(statistics.statistics['training_test_reward']):
                 statistics.update_state(q_network.state_dict())
                 save_checkpoint(statistics.statistics, args.name, filename="best.pth.tar")
 
@@ -180,22 +183,27 @@ if __name__ == '__main__':
 
     # Load previous validation
     elif choice == "2":
-        _, statistics = load_checkpoint(q_network, args, best=True)
+        _, statistics = load_checkpoint(q_network, args, test=True)
 
     if choice == "1" or choice == "2":
         # Scatter-plots
         plot_handler.scatter_plot(statistics.statistics)
 
         # Write result in tables
-        tablewriter.write_stats(statistics.statistics['total_requests'],
-                                statistics.statistics['total_prediction_accuracy'],
+        tablewriter.write_stats(statistics.statistics['test_train_requests'],
+                                statistics.statistics['test_train_prediction_accuracy'],
                                 ReinforcementLearning.prediction_penalty, args.name + "/")
-        tablewriter.write_stats(statistics.statistics['total_test_requests'],
-                                statistics.statistics['total_test_prediction_accuracy'],
+        tablewriter.write_stats(statistics.statistics['test_requests'],
+                                statistics.statistics['test_prediction_accuracy'],
                                 ReinforcementLearning.prediction_penalty, args.name + "/", test=True)
 
-        # Write K-shot tables:
+        # Write K-shot tables for test-set testing
         tablewriter.print_k_shot_tables(statistics.statistics['test_pred_dict'],
                                         statistics.statistics['test_acc_dict'],
                                         statistics.statistics['test_req_dict'],
                                         "test", args.name + "/")
+        # Write K-shot tables for train-set testing
+        tablewriter.print_k_shot_tables(statistics.statistics['test_train_pred_dict'],
+                                        statistics.statistics['test_train_acc_dict'],
+                                        statistics.statistics['test_train_req_dict'],
+                                        "train", args.name + "/")

@@ -25,7 +25,7 @@ class TextMargin(data.Dataset):
     '''
     def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3,
                  episode_size=30, tensor_length=18, sentence_length=50, cuda=False, scenario=False,
-                 scenario_size=5, margin_time=4, MARGIN_SIZE=2, q_network=None, glove=False):
+                 scenario_size=5, embedding_size=200, margin_time=4, MARGIN_SIZE=2, q_network=None, glove=False):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
         self.sentence_length = sentence_length
@@ -46,10 +46,14 @@ class TextMargin(data.Dataset):
             self.pretrained_vectors = "glove"
 
         # Saving different versions so we can experiment with different setups simultaneously
-        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.dictionary_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.training_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                              + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                          + "_" + str(self.pretrained_vectors) + ".pt"
+        self.dictionary_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                                + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                                 + "_" + str(self.pretrained_vectors) + ".pt"
 
         self.partition = partition
 

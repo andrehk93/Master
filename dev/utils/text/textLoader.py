@@ -31,9 +31,12 @@ class TextLoader:
             self.pretrained_vectors = "glove"
 
         # Collecting the correct dataset in regards to parameters
-        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.training_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                              + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                          + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(embedding_size)\
+                                 + "_" + str(self.pretrained_vectors) + ".pt"
 
         self.load()
 

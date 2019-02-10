@@ -30,4 +30,4 @@ def validate_model(args, statistics, q_network, test_loader, train_loader,
 
         # Validating on train-set
         test.validate(q_network, epoch, train_loader, args,
-                      reinforcement_module, statistics, text_dataset)
+                      reinforcement_module, statistics, text_dataset, train_set=True)

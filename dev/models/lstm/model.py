@@ -5,7 +5,8 @@ import os
 
 
 class ReinforcedLSTM(nn.Module):
-    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, weights_matrix=None, EMBEDDING=False, DICT_SIZE=5000, NON_RL=False):
+    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, weights_matrix=None,
+                 EMBEDDING=False, DICT_SIZE=5000, NON_RL=False):
         super(ReinforcedLSTM, self).__init__()
 
         # Parameters

@@ -18,10 +18,10 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     if margin:
         if text_dataset:
             sample_batch, label_batch = class_margin_sampler.sample_text(margin_batch, margin_label_batch,
-                                                                         q_network, args.batch_size)
+                                                                         q_network, args.batch_size, statistics)
         else:
             sample_batch, label_batch = class_margin_sampler.sample_images(margin_batch, margin_label_batch,
-                                                                           q_network, args.batch_size)
+                                                                           q_network, args.batch_size, statistics)
     else:
         sample_batch = margin_batch
         label_batch = margin_label_batch
@@ -237,11 +237,11 @@ def train(q_network, epoch, optimizer, train_loader, args, reinforcement_learner
     # Update statistics dictionary
     statistics.update(
         {
-            'total_prediction_accuracy': total_prediction_accuracy,
-            'total_requests': total_requests,
-            'total_accuracy': total_accuracy,
-            'total_reward': total_reward,
-            'total_loss': total_loss
+            'prediction_accuracy': total_prediction_accuracy,
+            'requests': total_requests,
+            'accuracy': total_accuracy,
+            'reward': total_reward,
+            'loss': total_loss
         },
         {
             'req_dict': request_dict,

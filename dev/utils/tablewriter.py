@@ -1,29 +1,25 @@
 import os
-import shutil
 
 
 # Writes a table to file:
 def write_stats(requests, accuracy, penalty, folder, test=False):
-    if (test):
+    if test:
         filename = "./results/plots/" + str(folder) + "test_table_file.txt"
     else:
         filename = "./results/plots/" + str(folder) + "table_file.txt"
     dimensions = [55, 31, 31]
     headers = ["Method", "Accuracy (%)", "Requests (%)"]
-    method = "ReinforcementLearning Prediction"
-    if penalty == 0:
-        method = "Supervised"
+    method = "RL Prediction"
+    if test:
+        method += "(Rinc = " + str(penalty) + ") - Test"
     else:
-        if test:
-            method += "(Rinc = " + str(penalty) + ") - Test"
-        else:
-            method += "(Rinc = " + str(penalty) + ") - Training"
+        method += "(Rinc = " + str(penalty) + ") - Training"
     specs = [accuracy, requests]
 
     stat_list = []
     j = 0
     for s in specs:
-        if (j == 0):
+        if j == 0:
             stat_list.append(method)
         average = float(sum(s)/len(s))
         stat_list.append(average)
@@ -42,7 +38,7 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
     table += line
     header = "|"
     for i, d in enumerate(dimensions):
-        if (i == 0):
+        if i == 0:
             header += "\t\t\t" + headers[i] + "\t\t\t\t" + "|"
         else:
             header += "\t" + headers[i] + "\t\t" + "|"
@@ -53,7 +49,7 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
     for stat in range(0, len(stat_list), 3):
         table += "|"
         for i in range(3):
-            if (i == 0):
+            if i == 0:
                 table +=  "\t" + str(stat_list[stat + i]) + "\t\t" + "|"
             else:
                 table +=  "\t\t" + str(stat_list[stat + i])[0:5] + "\t\t" + "|"
@@ -66,15 +62,16 @@ def write_stats(requests, accuracy, penalty, folder, test=False):
     print("Table successfully written!")
     file.close()
 
-    # Writes a table to file:
-def write_baseline_stats(accuracy, folder, test=False):
+
+# Writes a table to file:
+def write_baseline_stats(accuracy, folder):
     filename = "./results/plots/" + str(folder) + "table_file.txt"
     stat_filename = "./results/plots/" + str(folder) + "stat_file.txt"
     dimensions = [50, 20, 20]
     headers = ["Method", "Accuracy (%)"]
     method = "Supervised"
     specs = [accuracy]
-    if (os.path.isfile(stat_filename)):
+    if os.path.isfile(stat_filename):
         stat_file = open(stat_filename, "a")
     else:
         stat_file = open(stat_filename, "w")
@@ -93,14 +90,14 @@ def write_baseline_stats(accuracy, folder, test=False):
         i = 0
         current_key = ""
         for line in statistics:
-            if (i == 0):
-                if (line.rstrip() not in stats):
+            if i == 0:
+                if line.rstrip() not in stats:
                     stats[line.rstrip()] = [[], []]
                 current_key = line.rstrip()
-            elif (i < length):
+            elif i < length:
                 stats[current_key][i-1].append(float(line.rstrip()))
             i += 1
-            if (i == length):
+            if i == length:
                 i = 0
 
     stat_list = []
@@ -120,7 +117,7 @@ def write_baseline_stats(accuracy, folder, test=False):
         line += "-"*d + "+"
     line += "\n"
 
-    if (os.path.isfile(filename)):
+    if os.path.isfile(filename):
         file = open(filename, "a")
 
     else:
@@ -142,32 +139,31 @@ def write_baseline_stats(accuracy, folder, test=False):
         # END
         table += line
 
-    
     print(table)
     file.write(table)
     print("Table successfully written!")
     file.close()
 
 
-
-def print_k_shot_tables(prediction_accuracies, accuracies, requests, dataset, folder):
-    filename = "results/plots/" + str(folder) + "k_shot_table_" + dataset + ".txt"
+def print_k_shot_tables(prediction_accuracies, accuracies, requests, data_set, folder):
+    filename = "results/plots/" + str(folder) + "k_shot_table_" + data_set + ".txt"
     for key in accuracies.keys():
         prediction_accuracies[key] = 100.0 * float(sum(prediction_accuracies[key])/max(len(prediction_accuracies[key]), 1))
         accuracies[key] = 100.0 * float(sum(accuracies[key])/max(len(accuracies[key]), 1))
         requests[key] = 100.0 * float(sum(requests[key])/max(len(requests[key]), 1))
     with open(filename, "w") as table:
-        table.write("\n\n--- K-shot predictions for " + dataset + "-set ---\n")
+        table.write("\n\n--- K-shot predictions for " + data_set + "-set ---\n")
         table.write("Instance:\tPred. Acc:\tAccuracy:\tRequests:\n")
         for key in accuracies.keys():
             table.write(str(key) + ":\t\t" + str(prediction_accuracies[key])[0:4] + " %\t\t" + str(accuracies[key])[0:4] + " %\t\t" + str(requests[key])[0:4] + " %\n")
 
-def print_k_shot_baseline_tables(accuracies, dataset, folder):
-    filename = "results/plots/" + str(folder) + "k_shot_table_" + dataset + ".txt"
+
+def print_k_shot_baseline_tables(accuracies, data_set, folder):
+    filename = "results/plots/" + str(folder) + "k_shot_table_" + data_set + ".txt"
     for key in accuracies.keys():
         accuracies[key] = 100.0 * float(sum(accuracies[key])/max(len(accuracies[key]), 1))
     with open(filename, "w") as table:
-        table.write("\n\n--- K-shot predictions for " + dataset + "-set ---\n")
+        table.write("\n\n--- K-shot predictions for " + data_set + "-set ---\n")
         table.write("Instance:\tAccuracy:\t")
         for key in accuracies.keys():
             table.write(str(key) + ":\t\t" + str(accuracies[key])[0:4] + " %\n")

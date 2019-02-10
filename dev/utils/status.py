@@ -9,23 +9,23 @@ def print_time(avg_time, eta):
     print("\nT/epoch = " + str(avg_time)[0:4] + " s")
 
     hour = eta // 3600
-    eta = eta - (3600 * (hour))
+    eta = eta - (3600 * hour)
 
     minute = eta // 60
-    eta = eta - (60 * (minute))
+    eta = eta - (60 * minute)
 
     seconds = eta
 
     # Stringify w/padding:
-    if (minute < 10):
+    if minute < 10:
         minute = "0" + str(minute)[0]
     else:
         minute = str(minute)[0:2]
-    if (hour < 10):
+    if hour < 10:
         hour = "0" + str(hour)[0]
     else:
         hour = str(hour)
-    if (seconds < 10):
+    if seconds < 10:
         seconds = "0" + str(seconds)[0]
     else:
         seconds = str(seconds)[0:4]
@@ -36,10 +36,10 @@ def print_time(avg_time, eta):
 
 # Prints the current best stats
 def print_best_stats(stats):
-    if len(stats['total_reward']) == 0:
+    if len(stats['reward']) == 0:
         return
     
-    best_index = np.argmax(stats['total_reward'])
+    best_index = np.argmax(stats['reward'])
 
     # Static strings:
     stat_string = "\n\t\tBest Training Stats"
@@ -52,10 +52,10 @@ def print_best_stats(stats):
     print(table_string)
     print("-"*str_length)
     print("|\t"
-          + str(stats['total_reward'][best_index])[0:4] + "\t|\t"
-          + str(stats['total_prediction_accuracy'][best_index])[0:4]+ " %\t\t|\t"
-          + str(stats['total_accuracy'][best_index])[0:4] + " % / "
-          + str(stats['total_requests'][best_index])[0:4] + " %\t\t|\t")
+          + str(stats['reward'][best_index])[0:4] + "\t|\t"
+          + str(stats['prediction_accuracy'][best_index])[0:4]+ " %\t\t|\t"
+          + str(stats['accuracy'][best_index])[0:4] + " % / "
+          + str(stats['requests'][best_index])[0:4] + " %\t\t|\t")
     print("-"*str_length + "\n\n")
 
 
@@ -67,7 +67,7 @@ def update_dicts(from_dict_1, from_dict_2, to_dict_1, to_dict_2):
 
 class StatusHandler:
     # Init train stuff:
-    epoch = 0
+    epoch = 1
     done = False
     start_time = time.time()
 
@@ -119,7 +119,7 @@ class StatusHandler:
             eta = (self.epochs + 1 - epoch) * avg_time
             print_time(avg_time, eta)
 
-        statistics.update_variables({'epoch': epoch})
+        statistics.set_variables({'epoch': epoch})
 
     def update_best(self, reward_array):
         best = np.argmax(reward_array)
@@ -145,4 +145,49 @@ class StatusHandler:
         print("Stats written successfully to file!")
 
 
+def generate_name_from_args(args, text):
+    model = "LRUA"
+    if args.LSTM:
+        model = "LSTM"
+    elif args.NTM:
+        model = "NTM"
 
+    # Data set
+    data_set = "_OMNIGLOT"
+    if args.INH:
+        data_set = "_INH"
+    elif args.QA:
+        data_set = "_QA"
+    elif args.REUTERS:
+        data_set = "_REUTERS"
+
+    # CMS
+    cms = ""
+    if args.margin_sampling:
+        cms = "_CMS_(size_" + str(args.margin_size) + "_time_" + str(args.margin_time) + ")"
+
+    # Batch_size
+    batch_size = "_bsize_" + str(args.batch_size)
+
+    # class_vector_size
+    c_size = "_c_" + str(args.class_vector_size)
+
+    # Text
+    text_string = ""
+    if text:
+        # Pre trained model
+        vectors = "_GLOVE"
+        if args.FAST:
+            vectors = "_FAST"
+
+        # Embedding Size
+        embedding = "_" + str(args.embedding_size)
+
+        # Sentence Length
+        s_length = "_" + str(args.sentence_length)
+
+        text_string = vectors + embedding + s_length
+
+    postfix = args.name_postfix
+
+    return model + data_set + cms + batch_size + c_size + text_string + postfix

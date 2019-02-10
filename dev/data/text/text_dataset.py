@@ -27,7 +27,7 @@ class TEXT(data.Dataset):
     - download: need to download the dataset
     '''
     def __init__(self, root, train=True, download=False, partition=0.8, data_loader=None, classes=3, episode_size=30,
-                 tensor_length=18, sentence_length=50, cuda=False, scenario=False,
+                 tensor_length=18, sentence_length=50, cuda=False, scenario=False, embedding_size=200,
                  scenario_size=5, scenario_type=0, class_choice=0, idx2word=[], glove=False):
         self.root = os.path.expanduser(root)
         self.tensor_length = tensor_length
@@ -48,10 +48,10 @@ class TEXT(data.Dataset):
             self.pretrained_vectors = "glove"
 
         # Saving different versions so we can experiment with different setups simultaneously
-        self.training_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.test_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.dictionary_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
-        self.word_vector_file += "_" + str(sentence_length) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.training_file += "_" + str(sentence_length) + "_" + str(embedding_size) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.test_file += "_" + str(sentence_length) + "_" + str(embedding_size) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.dictionary_file += "_" + str(sentence_length) + "_" + str(embedding_size) + "_" + str(self.pretrained_vectors) + ".pt"
+        self.word_vector_file += "_" + str(sentence_length) + "_" + str(embedding_size) + "_" + str(self.pretrained_vectors) + ".pt"
 
         self.partition = partition
 
