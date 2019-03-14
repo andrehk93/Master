@@ -1,8 +1,8 @@
 # Development for Masters Project 2018
 
-## Server Support + API
+## Server Support + API (Not necessary, only to visually help track progress)
 ### Server
-The project now includes a server that can be started from dev/server/server.py. This is a FLASK server, written in Python. It only returns results from files written by the main_image.py algorithm (support for main_text.py coming).
+The project now includes a server that can be started from dev/server/server.py. This is a FLASK server, written in Python. It only returns results from files written by the main.py script. This is simply to enable graphical surveillance of the training, as it often use a lot of time, and it can be difficult to track progress. 
 
 #### Requirements
 ```
@@ -32,17 +32,27 @@ Go to http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz, an
 ## Word Vectors
 Each model can use three different types of word vectors. 
 
-1. Non pre-trained
-2. GloVe
-3. fastText (current default)
+1. Non pre-trained (Not recommended)
+2. GloVe (current default)
+3. fastText 
 
 In order to be able to use the pre-trained word vectors, they have to be downloaded and put in the correct directory.
 
 ### GloVe
-Download from (http://nlp.stanford.edu/data/glove.6B.zip). Put in the folder data/text/glove, and make sure the filenames in utils/text/glove.py are identical to what you call the downloaded .txt file.
+Download from (http://nlp.stanford.edu/data/glove.6B.zip). Put in the folder data/text/glove, and make sure the filenames in utils/text/glove.py are identical to what you call the downloaded .txt file. 
+
+#### Embedding size
+GloVe comes with a few different sizes of word embeddings, which also can be used as long as the proper naming convention is used. For example, if you want to use word embeddings of size 50 with an LSTM on the INH dataset, just add the corresponding GloVe file to the folder data/text/glove/ under the name provided underneath together with the command (Windows):
+
+```
+glove.6B.50d.txt
+
+python main.py --LSTM --INH --embedding-size 50
+```
+
 
 ### FastText
-Download from (https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip) and unzip to data/text/fast_text.
+Download from (https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip) and unzip to data/text/fast_text. Only supports the 300 dimension word embeddings.
 
 ## Models
 Both datasets can be trained on three different models:
@@ -59,34 +69,59 @@ Simply an augmented version of the NTM model, similar to the LRUA in http://proc
 # Training a model:
 First of all, any changes to the specific model architecture (LSTM size, NTM memory sizes, etc.) can be done in "models/reinforcement_models.py". Needless to say, changing architecture and then loading an earlier checkpoint of a model will not work.
 
-When running either "main.py", be sure to also supply which model you want to train. Each argument can be done like this:
+When running "main.py", be sure to also supply which model you want to train. Each argument can be done like this:
 
-python main.py --LSTM --margin-sampling --margin-size 3 --name "LSTM_margin_3"
+python main.py --LSTM --margin-sampling --margin-size 3 
 
-This will result in a LSTM network, with margin sampling of MARGIN_SIZE=3, with the name "LSTM_margin_3" being trained. All commands are those below:
+This will result in a LSTM network, with margin sampling of MARGIN_SIZE=3 being trained. All commands are those below:
 
-## main_image.py -h
+## Model names
+The naming scheme is automated based on the parameters of the model, but it's possible to both overwrite the name, and give it a postfix.
+
+```
+--name-postfix _something
+
+Results in:
+results/automated_name_based_on_parameters_something/
+
+--name _something
+
+Results in:
+results/_something/
+```
+
+## Function (w/parameters)
 
 usage: main.py [-h] [--batch-size N] [--test-batch-size N] [--episode-size N]
                [--epochs N] [--start-epoch N] [--class-vector-size N]
-               [--no-cuda] [--seed S] [--load-checkpoint LOAD_CHECKPOINT]
-               [--name NAME] [--margin-sampling] [--margin-size S]
-               [--margin-time S] [--LSTM] [--NTM] [--LRUA] [--MNIST]
-               [--OMNIGLOT] [--INH] [--REUTERS] [--QA] [--GLOVE] [--FAST]
+               [--embedding-size N] [--sentence-length N] [--no-cuda]
+               [--seed S] [--load-checkpoint LOAD_CHECKPOINT] [--name NAME]
+               [--name-postfix NAME_POSTFIX] [--margin-sampling]
+               [--margin-size S] [--margin-time S] [--LSTM] [--NTM] [--LRUA]
+               [--MNIST] [--OMNIGLOT] [--INH] [--REUTERS] [--QA] [--GLOVE]
+               [--FAST]
 
 ### PyTorch Reinforcement Learning For Images:
 ```
-  -h, --help            Show this help message and exit
+optional arguments:
+  -h, --help            show this help message and exit
   --batch-size N        Input batch size for training (default: 32)
   --test-batch-size N   Input batch size for testing (default: 32)
   --episode-size N      Input episode size for training (default: 30)
   --epochs N            Number of epochs to train (default: 100000)
   --start-epoch N       Starting epoch (default: 1)
-  --class-vector-size N Number of classes per episode (default: 3)
+  --class-vector-size N
+                        Number of classes per episode (default: 3)
+  --embedding-size N    size of embedding layer (default: 100)
+  --sentence-length N   Number of words in each sentence (default: 6)
   --no-cuda             Enables CUDA training (default: True)
   --seed S              random seed for predictable RNG behaviour (default: 1)
-  --load-checkpoint     Path to latest checkpoint (default: pretrained/name/)
-  --name NAME           Name of file (default: name)
+  --load-checkpoint LOAD_CHECKPOINT
+                        Path to latest checkpoint (default: pretrained/name/)
+  --name NAME           Name of file (Will be overwritten!) (default: name)
+  --name-postfix NAME_POSTFIX
+                        Custom name to append to the end of generated name (if
+                        duplicate model structures) (default: )
   --margin-sampling     Enables margin sampling for selecting clases to train
                         on (default: False)
   --margin-size S       Multiplier for number of classes in pool of classes
@@ -103,8 +138,8 @@ usage: main.py [-h] [--batch-size N] [--test-batch-size N] [--episode-size N]
   --QA                  Enables QA as chosen dataset (default: False)
   --GLOVE               Enables GloVe pre-trained word vectors (default:
                         False)
-  --FAST                Enables fastText pre-trained word vectors (default:
+  --FAST                Enables GloVe pre-trained word vectors (default:
                         False)
 ```
 
-For text models, fastText is the default choice of word vectors right now. This might get changed later.
+For text models, GloVE is the default choice of word vectors right now, even when no pretrained word embedding is supplied. This might get changed later.
