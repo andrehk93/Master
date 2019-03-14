@@ -20,7 +20,7 @@ class NTMHeadBase(nn.Module):
     """An NTM Read/Write Head."""
 
     def __init__(self, memory, controller_size):
-        """Initilize the read/write head.
+        """Initialize the read/write head.
         :param memory: The :class:`NTMMemory` to be addressed by the head.
         :param controller_size: The size of the internal representation.
         """
@@ -39,31 +39,35 @@ class NTMHeadBase(nn.Module):
     def is_read_head(self):
         return NotImplementedError
 
-    def _address_memory(self, k, β, g, s, γ, w_prev):
+    def _address_memory(self, k, g, n, w_prev, access):
         # Handle Activations
         k = k.clone()
-        β = F.softplus(β)
         g = F.sigmoid(g)
-        s = F.softmax(F.softplus(s), dim=0)
-        γ = 1 + F.softplus(γ)
+        gamma = 0.95
 
-        w = self.memory.address(k, β, g, s, γ, w_prev)
+        # READ:
+        if access == 1:
+            w_r = self.memory.lrua_address(k, g, n, gamma, w_prev, access)
+            return w_r
 
-        return w
+        # WRITE:
+        else:
+            w_u, w_r, w_w, w_lu = self.memory.lrua_address(k, g, n, gamma, w_prev, access)
+            return w_u, w_r, w_w, w_lu
 
 
 class NTMReadHead(NTMHeadBase):
     def __init__(self, memory, controller_size):
         super(NTMReadHead, self).__init__(memory, controller_size)
 
-        # Corresponding to k, β, g, s, γ sizes from the paper
-        self.read_lengths = [self.M, 1, 1, 3, 1]
+        # Corresponding to k, β, g sizes from the paper
+        self.read_lengths = [self.M, 1]
         self.fc_read = nn.Linear(controller_size, sum(self.read_lengths))
         self.reset_parameters()
 
     def create_new_state(self, batch_size):
-        # The state holds the previous time step address weightings
-        return Variable(torch.zeros(batch_size, self.N))
+        # The state holds the previous time step weightings (1):
+        return Variable(torch.zeros(batch_size, 1, self.N))
 
     def reset_parameters(self):
         # Initialize the linear layers
@@ -79,10 +83,10 @@ class NTMReadHead(NTMHeadBase):
         :param w_prev: previous step state
         """
         o = self.fc_read(embeddings)
-        k, β, g, s, γ = _split_cols(o, self.read_lengths)
+        k, g = _split_cols(o, self.read_lengths)
 
         # Read from memory
-        w_r = self._address_memory(k, β, g, s, γ, w_prev)
+        w_r = self._address_memory(k, g, n, w_prev, 1)
         r = self.memory.read(w_r)
 
         return r, w_r
@@ -92,13 +96,13 @@ class NTMWriteHead(NTMHeadBase):
     def __init__(self, memory, controller_size):
         super(NTMWriteHead, self).__init__(memory, controller_size)
 
-        # Corresponding to k, β, g, s, γ, e, a sizes from the paper
-        self.write_lengths = [self.M, 1, 1, 3, 1, self.M, self.M]
+        # Corresponding to k, β, g, w_r_prev, w_w_prev sizes from the paper
+        self.write_lengths = [self.M, 1]
         self.fc_write = nn.Linear(controller_size, sum(self.write_lengths))
         self.reset_parameters()
 
     def create_new_state(self, batch_size):
-        return Variable(torch.zeros(batch_size, self.N))
+        return Variable(torch.zeros(batch_size, 3, self.N))
 
     def reset_parameters(self):
         # Initialize the linear layers
@@ -114,13 +118,14 @@ class NTMWriteHead(NTMHeadBase):
         :param w_prev: previous step state
         """
         o = self.fc_write(embeddings)
-        k, β, g, s, γ, e, a = _split_cols(o, self.write_lengths)
+        k, g = _split_cols(o, self.write_lengths)
 
-        # e should be in [0, 1]
-        e = F.sigmoid(e)
+        # Address memory
+        w_u, w_r, w_w, w_lu = self._address_memory(k, g, n, w_prev, 0)
 
-        # Write to memory
-        w = self._address_memory(k, β, g, s, γ, w_prev)
-        self.memory.write(w, e, a)
+        # With LRUA we use the weight-vector w_w for writing to memory:
+        self.memory.lrua_write(w_w, k)
+
+        w = torch.cat((w_u, w_r, w_lu), dim=1).view(w_u.size()[0], 3, w_u.size()[1])
 
         return w

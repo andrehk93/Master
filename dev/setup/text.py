@@ -62,12 +62,15 @@ class TextNetworkSetup:
         if args.LSTM:
             q_network = reinforcement_models.ReinforcedRNN(args.batch_size, args.cuda, args.class_vector_size,
                                                            setup.EMBEDDING_SIZE,
-                                                           weights_matrix=self.text_loader.weights_matrix,
+                                                           embedding_weight_matrix=
+                                                           self.text_loader.embedding_weight_matrix,
                                                            embedding=True, dict_size=setup.DICTIONARY_MAX_SIZE)
         elif args.NTM:
             q_network = reinforcement_models.ReinforcedNTM(args.batch_size, args.cuda, args.class_vector_size,
-                                                           setup.EMBEDDING_SIZE, embedding=True,
-                                                           dict_size=setup.DICTIONARY_MAX_SIZE)
+                                                           setup.EMBEDDING_SIZE,
+                                                           embedding_weight_matrix=
+                                                           self.text_loader.embedding_weight_matrix,
+                                                           embedding=True, dict_size=setup.DICTIONARY_MAX_SIZE)
         else:
             q_network = reinforcement_models.ReinforcedLRUA(args.batch_size, args.cuda, args.class_vector_size,
                                                             setup.EMBEDDING_SIZE, embedding=True,

@@ -4,8 +4,6 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch import nn
 import numpy as np
-import matplotlib.pyplot as plt
-import os
 
 
 def _convolve(w, s):
@@ -24,6 +22,7 @@ class NTMMemory(nn.Module):
         Each batch has it's own memory matrix.
         :param N: Number of rows in the memory.
         :param M: Number of columns/features in the memory.
+        :param lrua: Enables LRUA addressing scheme
         """
         super(NTMMemory, self).__init__()
 
@@ -50,6 +49,7 @@ class NTMMemory(nn.Module):
         """Read from memory (according to section 3.1)."""
         return torch.matmul(w.unsqueeze(1), self.memory).squeeze(1)
 
+    # Standard NTM write procedure
     def write(self, w, e, a):
         """write to memory (according to section 3.2)."""
         self.prev_mem = self.memory
@@ -57,8 +57,16 @@ class NTMMemory(nn.Module):
         erase = torch.matmul(w.unsqueeze(-1), e.unsqueeze(1))
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         self.memory = self.prev_mem * (1 - erase) + add
-    
 
+    # LRUA write procedure
+    def lrua_write(self, w, k):
+        """ Write to memory using the Least Recently Used Addressing scheme, used in MANN"""
+        self.prev_mem = self.memory
+        self.memory = Variable(torch.Tensor(self.batch_size, self.N, self.M))
+        lrua = torch.matmul(w.unsqueeze(-1), k.unsqueeze(1))
+        self.memory = self.prev_mem + lrua
+
+    # Standard NTM addressing
     def address(self, k, β, g, s, γ, w_prev):
         """NTM Addressing (according to section 3.3).
         Returns a softmax weighting over the rows of the memory matrix.
@@ -81,12 +89,57 @@ class NTMMemory(nn.Module):
 
         return w_t
 
+    # LRUA addressing
+    def lrua_address(self, k, g, n, gamma, w_prev, access):
+        """NTM Addressing (according to section 3.3).
+        Returns a softmax weighting over the rows of the memory matrix.
+        :param k: The key vector.
+        :param β: The key strength (focus).
+        :param g: Scalar interpolation gate (with previous weighting).
+        :param n: Amount of reads to memory
+        """
+
+        # Get the cosine similarity probability:
+        w_r = self._similarity_mann(k)
+
+        # Need only read weights for reading:
+        if access == 1:
+            return w_r
+
+        # Unpacking previous weights:
+        w_u_prev = w_prev[:, 0]
+        w_r_prev = w_prev[:, 1]
+        w_lu_prev = w_prev[:, 2]
+
+        # Calc. the write weights:
+        w_w = self._interpolate(w_lu_prev, w_r_prev, g)
+
+        # Calc. the usage weights:
+        w_u = gamma*w_u_prev + w_r + w_w
+
+        # Creating the Least Recently Used Vector, by Equation (6) from MANN:
+        n_smallest_matrix = np.partition(np.array(w_u.data), n-1)[:, n-1]
+        w_lu = Variable(torch.FloatTensor(((np.array(w_u.data).transpose() <= n_smallest_matrix).astype(int)).transpose()))
+
+        # Zero out all least-used slots (from previous step):
+        erase_vector = Variable(torch.ones(w_lu_prev.size()[:]).type(torch.LongTensor)) - w_lu_prev.type(torch.LongTensor)
+        zeroed_memory = self.memory.data.clone()
+        for b in range(len(erase_vector)):
+            for m in range(len(erase_vector[b])):
+                if erase_vector.data[b][m] == 0:
+                    zeroed_memory[b][m] = torch.zeros(self.M)
+
+        self.memory = Variable(zeroed_memory)
+
+        return w_u, w_r, w_w, w_lu
+
+    # Utility functions
     def _similarity(self, k, β):
         k = k.view(self.batch_size, 1, -1)
         w = F.softmax(β * F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
         return w
 
-    def _similarityMann(self, k):
+    def _similarity_mann(self, k):
         k = k.view(self.batch_size, 1, -1)
         w = F.softmax(F.cosine_similarity(self.memory + 1e-16, k + 1e-16, dim=-1), dim=1)
         return w

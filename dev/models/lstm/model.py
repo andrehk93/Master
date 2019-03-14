@@ -5,8 +5,8 @@ import os
 
 
 class ReinforcedLSTM(nn.Module):
-    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, weights_matrix=None,
-                 EMBEDDING=False, DICT_SIZE=5000, NON_RL=False):
+    def __init__(self, INPUT_SIZE, HIDDEN_NODES, HIDDEN_LAYERS, INPUT_CLASSES, BATCH_SIZE, CUDA, embedding_weight_matrix=None,
+                 EMBEDDING=False, DICT_SIZE=5000):
         super(ReinforcedLSTM, self).__init__()
 
         # Parameters
@@ -18,7 +18,7 @@ class ReinforcedLSTM(nn.Module):
         self.input_classes = INPUT_CLASSES
         self.gpu = CUDA
         if EMBEDDING:
-            self.weights_matrix = torch.Tensor(weights_matrix)
+            self.embedding_weight_matrix = torch.Tensor(embedding_weight_matrix)
 
         print("Model Input Size: ", str(self.input_size + self.input_classes))
         print("Model Output Size: ", str(self.input_classes + 1))
@@ -31,18 +31,18 @@ class ReinforcedLSTM(nn.Module):
         self.hidden2probs = nn.Linear(self.hidden_nodes, self.input_classes + 1)
 
     def create_embedding_layer(self, with_grad=False):
-        num_embeddings, embedding_dim = self.weights_matrix.size()
-        emb_layer = nn.Embedding.from_pretrained(self.weights_matrix, freeze=not with_grad)
+        num_embeddings, embedding_dim = self.embedding_weight_matrix.size()
+        emb_layer = nn.Embedding.from_pretrained(self.embedding_weight_matrix, freeze=not with_grad)
         return emb_layer, num_embeddings, embedding_dim
 
     def init_hidden(self, batch_size):
-        if (self.gpu):
+        if self.gpu:
             h0 = autograd.Variable(torch.zeros(self.hidden_layers, batch_size, self.hidden_nodes)).cuda()
             c0 = autograd.Variable(torch.zeros(self.hidden_layers, batch_size, self.hidden_nodes)).cuda()
         else:
             h0 = autograd.Variable(torch.zeros(self.hidden_layers, batch_size, self.hidden_nodes))
             c0 = autograd.Variable(torch.zeros(self.hidden_layers, batch_size, self.hidden_nodes))
-        return (h0, c0)
+        return h0, c0
 
     # Not sure if necessary:
     def reset_hidden(self, batch_size):

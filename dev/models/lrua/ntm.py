@@ -71,12 +71,12 @@ class NTM(nn.Module):
 
         # Use the controller to get an embedding, needs to be done in the controller IF text:
         # Concat: [(785x1)] + (1x50)
-        if (self.embedding):
-            controller_outp, controller_state = self.controller(x, prev_controller_state, prev_reads=prev_reads, class_vector=class_vector, seq=x.size()[1])
+        if self.embedding:
+            controller_outp, controller_state = self.controller(x, prev_controller_state, prev_reads=prev_reads,
+                                                                class_vector=class_vector, seq=x.size()[1])
         else:
             inp = torch.cat([x] + prev_reads, dim=1)
             controller_outp, controller_state = self.controller(inp, prev_controller_state)
-            
 
         # Read/Write from the list of heads
         reads = []
@@ -89,11 +89,10 @@ class NTM(nn.Module):
 
             else:
                 # When getting future Q-values, we need only read, NOT WRITE:
-                if (not read_only):
+                if not read_only:
                     head_state = head(controller_outp, prev_head_state, self.num_read_heads)
                     write_head_nr += 1
             heads_states += [head_state]
-
 
         # Generate Output and collect predictions:
         ntm_out = torch.cat([controller_outp] + reads, dim=1)

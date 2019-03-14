@@ -6,13 +6,15 @@ from torch.autograd import Variable
 from .ntm import NTM
 from .controller import LSTMController
 from .head import NTMReadHead, NTMWriteHead
+from .lrua_head import NTMReadHead as LRUAReadHead, NTMWriteHead as LRUAWriteHead
 from .memory import NTMMemory
 
 
 class EncapsulatedNTM(nn.Module):
 
-    def __init__(self, num_inputs, num_outputs, num_classes,
-                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M, embedding=False, dict_size=5000, embedding_size=128):
+    def __init__(self, num_inputs, num_outputs, num_classes, lrua,
+                 controller_size, controller_layers, num_read_heads, num_write_heads, N, M,
+                 embedding_weight_matrix=None, embedding=False, dict_size=5000, embedding_size=128):
         """Initialize an EncapsulatedNTM.
         :param num_inputs: External number of inputs.
         :param num_outputs: External number of outputs.
@@ -28,6 +30,7 @@ class EncapsulatedNTM(nn.Module):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.num_classes = num_classes
+        self.lrua = lrua
         self.controller_size = controller_size
         self.controller_layers = controller_layers
         self.num_heads = num_read_heads + num_write_heads
@@ -40,16 +43,28 @@ class EncapsulatedNTM(nn.Module):
 
         # Create the NTM components
         memory = NTMMemory(N, M)
-        controller = LSTMController(num_inputs + M*num_read_heads, controller_size, controller_layers, num_classes, embedding=embedding, dict_size=dict_size, embedding_size=embedding_size)
+        controller = LSTMController(num_inputs + M*num_read_heads, controller_size, controller_layers, num_classes,
+                                    embedding_weight_matrix=embedding_weight_matrix, embedding=embedding,
+                                    dict_size=dict_size, embedding_size=embedding_size)
         heads = nn.ModuleList([])
         for i in range(num_read_heads):
-            heads += [
-                NTMReadHead(memory, controller_size),
-            ]
+            if self.lrua:
+                heads += [
+                    LRUAReadHead(memory, controller_size),
+                ]
+            else:
+                heads += [
+                    NTMReadHead(memory, controller_size),
+                ]
         for i in range(num_write_heads):
-            heads += [
-                NTMWriteHead(memory, controller_size)
-            ]
+            if self.lrua:
+                heads += [
+                    LRUAWriteHead(memory, controller_size),
+                ]
+            else:
+                heads += [
+                    NTMWriteHead(memory, controller_size),
+                ]
         self.ntm = NTM(num_inputs, num_outputs, controller, memory, heads, embedding=embedding)
         self.memory = memory
 
@@ -66,7 +81,7 @@ class EncapsulatedNTM(nn.Module):
             x = Variable(torch.zeros(self.batch_size, self.num_inputs))
 
         # For ReinforcementLearning:
-        if (previous_state == None):
+        if previous_state is None:
             o, self.previous_state = self.ntm(x, self.previous_state, class_vector=class_vector, read_only=read_only)
             return o, self.previous_state
         else:

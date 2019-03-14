@@ -25,7 +25,7 @@ class TextLoader:
         self.dictionary_max_size = dictionary_max_size
         self.sentence_length = sentence_length
         self.data_loader = data_loader
-        self.weights_matrix = []
+        self.embedding_weight_matrix = []
         self.pretrained_vectors = "fast"
         if glove:
             self.pretrained_vectors = "glove"
@@ -47,7 +47,7 @@ class TextLoader:
     def load(self):
 
         if self._check_exists():
-            self.weights_matrix = torch.load(os.path.join(self.root, self.processed_folder, self.word_vector_file))
+            self.embedding_weight_matrix = torch.load(os.path.join(self.root, self.processed_folder, self.word_vector_file))
             print("Loaded weight_vector...")
             return
 
@@ -62,7 +62,7 @@ class TextLoader:
 
         # process and save as torch files
         print('Processing raw dataset...')
-        (training_set, test_set, label_stop), word_dictionary, weights_matrix = \
+        (training_set, test_set, label_stop), word_dictionary, embedding_weight_matrix = \
             read_text_file(self.data_loader, os.path.join(self.root, self.raw_folder),
                            label_start=0, partition=self.partition, classes=self.classes,
                            dict_max_size=self.dictionary_max_size, sentence_length=self.sentence_length,
@@ -78,7 +78,7 @@ class TextLoader:
         )
         self.dictionary = word_dictionary
 
-        self.weights_matrix = weights_matrix
+        self.embedding_weight_matrix = embedding_weight_matrix
 
         print('Done!')
 
@@ -92,7 +92,7 @@ class TextLoader:
         return self.dictionary
 
     def get_word_vectors(self):
-        return self.weights_matrix
+        return self.embedding_weight_matrix
 
 
 # Need to ensure a uniformly distributed training/test-set:
@@ -104,18 +104,18 @@ def read_text_file(data_loader, path, training_set=None, test_set=None, label_st
 
     # + 2 because (0 => padding (in case sentence not containing enough words), max + 1 => OOV token:
     matrix_len = len(word_dictionary.dictionary.idx2word) + 2
-    weights_matrix = np.zeros((matrix_len, embedding_size))
+    embedding_weight_matrix = np.zeros((matrix_len, embedding_size))
     words_found = 0
 
-    weights_matrix[0] = np.random.normal(scale=0.0, size=(embedding_size,))
-    weights_matrix[-1] = np.random.normal(scale=0.6, size=(embedding_size,))
+    embedding_weight_matrix[0] = np.random.normal(scale=0.0, size=(embedding_size,))
+    embedding_weight_matrix[-1] = np.random.normal(scale=0.6, size=(embedding_size,))
     for i, word in enumerate(word_dictionary.dictionary.idx2word):
         if word in pretrained_word_vectors:
-            weights_matrix[i + 1] = pretrained_word_vectors[word]
+            embedding_weight_matrix[i + 1] = pretrained_word_vectors[word]
             words_found += 1
 
-    print("Created dictionary of size: ", len(weights_matrix))
-    print("Percentage words found in Pretrained Vectors: ", (100.0 * words_found) / len(weights_matrix))
+    print("Created dictionary of size: ", len(embedding_weight_matrix))
+    print("Percentage words found in Pretrained Vectors: ", (100.0 * words_found) / len(embedding_weight_matrix))
 
     # Create the dataset-vectors based on this dictionary:
     uniform_distr = {}
@@ -149,7 +149,7 @@ def read_text_file(data_loader, path, training_set=None, test_set=None, label_st
                 progress += 1
 
     return create_datasets(uniform_distr, training_set=training_set, test_set=test_set, partition=partition,
-                           shuffle=True, classes=classes), word_dictionary, weights_matrix
+                           shuffle=True, classes=classes), word_dictionary, embedding_weight_matrix
 
 
 def create_datasets(text_dictionary, training_set=None, test_set=None, partition=0.8, shuffle=True, classes=False):

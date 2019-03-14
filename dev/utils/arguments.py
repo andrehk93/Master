@@ -31,11 +31,11 @@ def parse_arguments(parser):
     Text Specific Setup
     """
     # Embedding Size:
-    parser.add_argument('--embedding-size', type=int, default=200, metavar='N',
+    parser.add_argument('--embedding-size', type=int, default=100, metavar='N',
                         help='size of embedding layer')
 
     # Number of words in sentences:
-    parser.add_argument('--sentence-length', type=int, default=200, metavar='N',
+    parser.add_argument('--sentence-length', type=int, default=6, metavar='N',
                         help='Number of words in each sentence')
 
     """

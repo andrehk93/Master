@@ -1,13 +1,10 @@
 """An NTM's memory implementation."""
 import torch
-import time
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import init
 import numpy as np
-import numpy
-import os
+
 
 def _convolve(w, s):
     """Circular convolution implementation."""
@@ -42,7 +39,6 @@ class NTMMemory(nn.Module):
     def reset(self, batch_size):
         """Initialize memory from bias, for start-of-sequence."""
         self.batch_size = batch_size
-
         self.memory = Variable(self.mem_bias.clone().repeat(batch_size, 1, 1))
 
     def size(self):
@@ -75,7 +71,7 @@ class NTMMemory(nn.Module):
         w_r = self._similarity(k)
 
         # Need only read weights for reading:
-        if (access == 1):
+        if access == 1:
             return w_r
 
         # Unpacking previous weights:
@@ -98,7 +94,7 @@ class NTMMemory(nn.Module):
         zeroed_memory = self.memory.data.clone()
         for b in range(len(erase_vector)):
             for m in range(len(erase_vector[b])):
-                if (erase_vector.data[b][m] == 0):
+                if erase_vector.data[b][m] == 0:
                     zeroed_memory[b][m] = torch.zeros(self.M)
 
         self.memory = Variable(zeroed_memory)
