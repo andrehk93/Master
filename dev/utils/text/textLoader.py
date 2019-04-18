@@ -41,6 +41,7 @@ class TextLoader:
         self.load()
 
     def _check_exists(self):
+        print(os.path.join(self.root, self.processed_folder, self.training_file))
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \
                os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
 

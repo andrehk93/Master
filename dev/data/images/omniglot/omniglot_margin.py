@@ -42,7 +42,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
         self.classify = omniglot_loader.classify
         self.q_network = q_network
         self.margin_time = margin_time
-        if (self.classify):
+        if self.classify:
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
@@ -66,11 +66,11 @@ class OMNIGLOT_MARGIN(data.Dataset):
     def __getitem__(self, index):
         if self.scenario:
             images = []
-            if (self.train):
+            if self.train:
                 img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.train_data[i][j], ind))
                     else:
@@ -80,7 +80,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.test_data[i][j], ind))
                     else:
@@ -98,7 +98,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 # Normalizing (pixels are binary):
                 for row in range(len(img[0])):
                     for i in range(len(img[0][row])):
-                        if (img[0][row][i] > 0):
+                        if img[0][row][i] > 0:
                             img[0][row][i] = 0.0
                         else:
                             img[0][row][i] = 1.0
@@ -151,7 +151,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
             for i in range(len(images)):
 
                 # So we dont have to transform ALL images (AKA also the ones were not gonna use):
-                if (next_class == True and current_class == images[i][1]):
+                if next_class == True and current_class == images[i][1]:
                     continue
                 else:
                     next_class = False
@@ -161,13 +161,13 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
-                    if (self.train):
+                    if self.train:
                         # Applying class specific rotations:
-                        if (image_rotations[label] == 90):
+                        if image_rotations[label] == 90:
                             img = transforms.vflip(img)
-                        elif (image_rotations[label] == 180):
+                        elif image_rotations[label] == 180:
                             img = transforms.hflip(img)
-                        elif (image_rotations[label] == 270):
+                        elif image_rotations[label] == 270:
                             img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
                 if self.target_transform is not None:
@@ -178,7 +178,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img = (img == threshold).float() * 1
 
                 # Add transformed image to intermediary list:
-                if (label not in margin_images):
+                if label not in margin_images:
                     margin_images[label] = [{rel_label: img}]
                 else:
                     margin_images[label].append({rel_label: img})
@@ -189,11 +189,11 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 state = torch.FloatTensor([1 if j == rand_label else 0 for j in range(self.classes)])
                 
                 # First time new class:
-                if (label not in margins):
+                if label not in margins:
                     margins[label] = [abs(margin.data.max(1)[0][0])]
 
                 # Margin-time > n > 1 sees a class:
-                elif (len(margins[label]) < self.margin_time):
+                elif len(margins[label]) < self.margin_time:
                     margins[label].append(abs(margin.data.max(1)[0][0]))
                 
                 # n >= margin-time:
@@ -208,9 +208,9 @@ class OMNIGLOT_MARGIN(data.Dataset):
             smallest = 10000
             for key in margins.keys():
                 margins[key] = sum(margins[key])
-                if (margins[key] > largest):
+                if margins[key] > largest:
                     largest = margins[key]
-                if (margins[key] < smallest):
+                if margins[key] < smallest:
                     smallest = margins[key]
 
             diff = largest - smallest
@@ -219,7 +219,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
             sorted_margins = sorted(margins.items(), key=operator.itemgetter(1))
 
-            if (diff > self.big_diff):
+            if diff > self.big_diff:
                 print("Largest Margin Diff: ", diff)
                 self.big_diff = diff
 
@@ -239,12 +239,12 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img, label, this_rel_label = images[i]
                 
                 # Check if "valid" class:
-                if (label in margin_labels):
+                if label in margin_labels:
                     dict_list = margin_images[label]
 
                     # Check if Image already been transformed:
-                    if (rel_label in dict_list):
-                        if (label not in ind_dict):
+                    if rel_label in dict_list:
+                        if label not in ind_dict:
                             ind_dict[label] = ind
                             ind += 1
                         img_list.append(dict_list[rel_label])
@@ -252,7 +252,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
 
                     # If the image hasn'y been transformed yet:
                     else:
-                        if (label not in ind_dict):
+                        if label not in ind_dict:
                             ind_dict[label] = ind
                             ind += 1
                         imgs_to_transform.append((img, ind_dict[label], label))
@@ -268,13 +268,13 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
-                    if (self.train):
+                    if self.train:
                         # Applying class specific rotations:
-                        if (image_rotations[rot_label] == 90):
+                        if image_rotations[rot_label] == 90:
                             img = transforms.vflip(img)
-                        elif (image_rotations[rot_label] == 180):
+                        elif image_rotations[rot_label] == 180:
                             img = transforms.hflip(img)
-                        elif (image_rotations[rot_label] == 270):
+                        elif image_rotations[rot_label] == 270:
                             img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
 

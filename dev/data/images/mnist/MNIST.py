@@ -60,14 +60,14 @@ class MNIST(data.Dataset):
                 os.path.join(self.root, self.processed_folder, self.test_file))
 
     def __getitem__(self, index):
-        if (self.scenario):
+        if self.scenario:
             images = []
             # As in Active One-Shot Learning:
-            if (self.scenario_type == 0):
+            if self.scenario_type == 0:
                 img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.test_data[i][j], ind))
                     else:
@@ -75,18 +75,18 @@ class MNIST(data.Dataset):
                     ind += 1
 
             # My own:
-            elif (self.scenario_type == 1):
+            elif self.scenario_type == 1:
                 img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.test_data[i][j], ind))
                     else:
                         images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
                     ind += 1
 
-            elif (self.scenario_type == 2):
+            elif self.scenario_type == 2:
                 img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
                 ind = 0
                 for i in img_classes:
@@ -95,19 +95,19 @@ class MNIST(data.Dataset):
                         images.append((self.test_data[i][j], ind))
                     ind += 1
 
-            elif (self.scenario_type == 3):
+            elif self.scenario_type == 3:
                 img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
                 appended_images = []
                 ind = 0
                 k = 0
                 for i in img_classes:
-                    if (ind == self.class_choice):
+                    if ind == self.class_choice:
                         img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
                     else:
                         img_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
                     for j in img_samples:
-                        if (ind == self.class_choice):
-                            if (k == 0):
+                        if ind == self.class_choice:
+                            if k == 0:
                                 images.append((self.test_data[i][j], ind))
                             else:
                                 appended_images.append((self.test_data[i][j], ind))
@@ -371,7 +371,7 @@ def create_dataset(training_set, test_set):
     labels = []
 
     for l in training_set[1]:
-        if (l not in labels):
+        if l not in labels:
             labels.append(l)
     labels.sort()
     print(labels)

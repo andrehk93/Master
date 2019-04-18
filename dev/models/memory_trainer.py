@@ -175,7 +175,7 @@ def evaluate(model, test_loader, criterion, params, args, iterations):
                 initial_state.append([1 if c == true_label else 0 for c in range(params.classes)])
 
                 # Logging statistics:
-                if (true_label not in label_dict[b]):
+                if true_label not in label_dict[b]:
                     label_dict[b][true_label] = 1
                 else:
                     label_dict[b][true_label] += 1
@@ -186,8 +186,8 @@ def evaluate(model, test_loader, criterion, params, args, iterations):
                 true_label = true_labels.data[b]
                 prediction = predicted_indexes[b]
 
-                if (label_dict[b][true_label] in test_accuracy_dict):
-                    if (true_label == prediction):
+                if label_dict[b][true_label] in test_accuracy_dict:
+                    if true_label == prediction:
                         test_accuracy_dict[label_dict[b][true_label]][-1].append(1)
                     else:
                         test_accuracy_dict[label_dict[b][true_label]][-1].append(0)
@@ -283,7 +283,7 @@ def train_model(model, params, train_loader, criterion, optimizer, args, accurac
                 initial_state.append([1 if c == true_label else 0 for c in range(params.classes)])
 
                 # Logging statistics:
-                if (true_label not in label_dict[b]):
+                if true_label not in label_dict[b]:
                     label_dict[b][true_label] = 1
                 else:
                     label_dict[b][true_label] += 1
@@ -294,8 +294,8 @@ def train_model(model, params, train_loader, criterion, optimizer, args, accurac
                 true_label = true_labels.data[b]
                 prediction = predicted_indexes[b]
 
-                if (label_dict[b][true_label] in accuracy_dict):
-                    if (true_label == prediction):
+                if label_dict[b][true_label] in accuracy_dict:
+                    if true_label == prediction:
                         accuracy_dict[label_dict[b][true_label]][-1].append(1)
                     else:
                         accuracy_dict[label_dict[b][true_label]][-1].append(0)

@@ -17,7 +17,7 @@ def read_from_memory():
     file = open("./store/memory.txt", "r")
     lines = file.read()
     file.close()
-    if (len(lines) > 0):
+    if len(lines) > 0:
         return int(lines.strip())
     else:
         return 0

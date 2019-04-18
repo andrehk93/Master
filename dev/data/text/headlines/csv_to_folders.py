@@ -5,7 +5,7 @@ print("Reading .csv file...")
 
 folder = 'raw'
 
-if (not os.path.exists(folder)):
+if not os.path.exists(folder):
 	os.makedirs(folder)
 
 with open('india-news-headlines.csv', 'r') as csvfile:
@@ -20,7 +20,7 @@ with open('india-news-headlines.csv', 'r') as csvfile:
 	while not done:
 		try:
 			row = reader.__next__()
-			if (len(row) == 0):
+			if len(row) == 0:
 				done = True
 			id_tag, category, headline = row
 

@@ -28,13 +28,17 @@ class ImageModelSetup:
 
 class ImageNetworkSetup:
 
-    def __init__(self, setup, dataset, args):
+    def __init__(self, setup, dataset, args, scenario=False, scenario_setup=[5, 0, 0, 3]):
         self.setup = setup
         self.dataset = dataset
+        self.scenario = scenario
+        self.scenario_setup = scenario_setup
 
         self.q_network = self.setup_network(self.setup, args)
-
-        self.train_loader, self.test_loader = self.setup_loaders(self.setup, self.dataset, self.q_network, args)
+        if self.scenario:
+            self.scenario_loader = self.setup_loaders(self.setup, self.dataset, self.q_network, args)
+        else:
+            self.train_loader, self.test_loader = self.setup_loaders(self.setup, self.dataset, self.q_network, args)
 
     def setup_network(self, setup, args):
         print("Setting up Q Network...")
@@ -52,25 +56,33 @@ class ImageNetworkSetup:
 
     def setup_loaders(self, setup, dataset, q_network, args):
         print("Setting up Dataloaders...")
-
         omniglot_loader = loader.OmniglotLoader(dataset, classify=False, partition=0.8, classes=True)
-        if setup.CMS:
-            train_loader = torch.utils.data.DataLoader(
-                OMNIGLOT_MARGIN(dataset, train=True, transform=setup.train_transform, download=True,
-                                omniglot_loader=omniglot_loader, classes=args.class_vector_size,
-                                episode_size=args.episode_size, margin_time=setup.MARGIN_TIME,
-                                MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network),
+        if self.scenario:
+            scenario_loader = torch.utils.data.DataLoader(
+                OMNIGLOT(dataset, train=False, transform=setup.test_transform, omniglot_loader=omniglot_loader,
+                         classes=args.class_vector_size, episode_size=args.episode_size, test=not args.train,
+                         scenario=True, scenario_size=self.scenario_setup[0], scenario_type=self.scenario_setup[1],
+                         class_choice=self.scenario_setup[2], scenario_classes=self.scenario_setup[3]),
                 batch_size=args.batch_size, shuffle=True)
+            return scenario_loader
         else:
-            train_loader = torch.utils.data.DataLoader(
-                OMNIGLOT(dataset, train=True, transform=setup.test_transform, download=True,
-                         omniglot_loader=omniglot_loader, classes=args.class_vector_size,
-                         episode_size=args.episode_size), batch_size=args.batch_size, shuffle=True)
+            if setup.CMS:
+                train_loader = torch.utils.data.DataLoader(
+                    OMNIGLOT_MARGIN(dataset, train=True, transform=setup.train_transform, download=True,
+                                    omniglot_loader=omniglot_loader, classes=args.class_vector_size,
+                                    episode_size=args.episode_size, margin_time=setup.MARGIN_TIME,
+                                    MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network),
+                    batch_size=args.batch_size, shuffle=True)
+            else:
+                train_loader = torch.utils.data.DataLoader(
+                    OMNIGLOT(dataset, train=True, transform=setup.test_transform, download=True,
+                             omniglot_loader=omniglot_loader, classes=args.class_vector_size,
+                             episode_size=args.episode_size), batch_size=args.batch_size, shuffle=True)
 
-        print("Loading testset...")
-        test_loader = torch.utils.data.DataLoader(
-            OMNIGLOT(dataset, train=False, transform=setup.test_transform, omniglot_loader=omniglot_loader,
-                     classes=args.class_vector_size, episode_size=args.episode_size, test=True),
-            batch_size=args.test_batch_size, shuffle=True)
+            print("Loading testset...")
+            test_loader = torch.utils.data.DataLoader(
+                OMNIGLOT(dataset, train=False, transform=setup.test_transform, omniglot_loader=omniglot_loader,
+                         classes=args.class_vector_size, episode_size=args.episode_size, test=True),
+                batch_size=args.test_batch_size, shuffle=True)
 
         return train_loader, test_loader

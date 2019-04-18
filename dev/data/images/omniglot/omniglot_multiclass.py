@@ -33,7 +33,7 @@ class OMNIGLOT(data.Dataset):
         self.classes = classes
         self.episode_size = episode_size
         self.classify = omniglot_loader.classify
-        if (self.classify):
+        if self.classify:
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
@@ -106,11 +106,11 @@ class OMNIGLOT(data.Dataset):
             if self.transform is not None:
 
                 # Applying class specific rotations:
-                if (image_rotations[label] == 90):
+                if image_rotations[label] == 90:
                     img = transforms.vflip(img)
-                elif (image_rotations[label] == 180):
+                elif image_rotations[label] == 180:
                     img = transforms.hflip(img)
-                elif (image_rotations[label] == 270):
+                elif image_rotations[label] == 270:
                     img = transforms.hflip(transforms.vflip(img))
                 img = self.transform(img)
             if self.target_transform is not None:
@@ -121,7 +121,7 @@ class OMNIGLOT(data.Dataset):
                 print(img[0][row])
                 input("Need norm?")
                 for i in range(len(img[0][row])):
-                    if (img[0][row][i] > 0):
+                    if img[0][row][i] > 0:
                         img[0][row][i] = 0.0
                     else:
                         img[0][row][i] = 1.0

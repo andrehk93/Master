@@ -42,7 +42,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
         self.classify = omniglot_loader.classify
         self.q_network = q_network
         self.margin_time = margin_time
-        if (self.classify):
+        if self.classify:
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
@@ -66,11 +66,11 @@ class OMNIGLOT_MARGIN(data.Dataset):
     def __getitem__(self, index):
         if self.scenario:
             images = []
-            if (self.train):
+            if self.train:
                 img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.train_data[i][j], ind))
                     else:
@@ -80,7 +80,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
                 ind = 0
                 for i in img_classes:
-                    if (ind == 0):
+                    if ind == 0:
                         for j in range(self.scenario_size):
                             images.append((self.test_data[i][j], ind))
                     else:
@@ -98,7 +98,7 @@ class OMNIGLOT_MARGIN(data.Dataset):
                 # Normalizing (pixels are binary):
                 for row in range(len(img[0])):
                     for i in range(len(img[0][row])):
-                        if (img[0][row][i] > 0):
+                        if img[0][row][i] > 0:
                             img[0][row][i] = 0.0
                         else:
                             img[0][row][i] = 1.0

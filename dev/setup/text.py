@@ -29,17 +29,23 @@ class TextModelSetup:
 
 class TextNetworkSetup:
 
-    def __init__(self, setup, dataset, args):
+    def __init__(self, setup, dataset, args, scenario=False, scenario_setup=[5, 0, 0]):
         self.setup = setup
         self.dataset = dataset
         self.args = args
+        self.scenario = scenario
+        self.scenario_setup = scenario_setup
 
         self.text_loader = self.setup_utility_loaders(self.setup, self.dataset)
 
         self.q_network = self.setup_network(self.setup, args)
 
-        self.train_loader, self.test_loader, self.idx2word = \
-            self.setup_loaders(self.setup, self.dataset, self.q_network, args, self.text_loader)
+        if self.scenario:
+            self.scenario_loader = \
+                self.setup_loaders(self.setup, self.dataset, self.q_network, args, self.text_loader, scenario=True)
+        else:
+            self.train_loader, self.test_loader, self.idx2word = \
+                self.setup_loaders(self.setup, self.dataset, self.q_network, args, self.text_loader)
 
     def setup_utility_loaders(self, setup, dataset):
         print("Setting up WordVectors...")
@@ -79,33 +85,45 @@ class TextNetworkSetup:
                                                             embedding=True, dict_size=setup.DICTIONARY_MAX_SIZE)
         return q_network
 
-    def setup_loaders(self, setup, dataset, q_network, args, text_loader):
+    def setup_loaders(self, setup, dataset, q_network, args, text_loader, scenario=False):
         print("Setting up Dataloaders...")
         idx2word = []
-        # MARGIN SAMPLING:
-        if setup.CMS:
-            train_loader = torch.utils.data.DataLoader(
-                TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
-                           episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                           sentence_length=setup.SENTENCE_LENGTH, embedding_size=setup.EMBEDDING_SIZE, margin_time=setup.MARGIN_TIME,
-                           MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network, glove=self.args.GLOVE),
-                batch_size=args.batch_size, shuffle=False)
+        if scenario:
+            scenario_loader = torch.utils.data.DataLoader(
+                TEXT(dataset, train=args.train, data_loader=text_loader, classes=args.class_vector_size,
+                     episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
+                     sentence_length=setup.SENTENCE_LENGTH, scenario=True, embedding_size=setup.EMBEDDING_SIZE,
+                     scenario_size=self.scenario_setup[0], scenario_type=self.scenario_setup[1],
+                     class_choice=self.scenario_setup[2], scenario_classes=self.scenario_setup[3],
+                     glove=args.GLOVE),
+                batch_size=args.scenario_batch_size, shuffle=True)
 
-        # NO MARGIN:
+            return scenario_loader
         else:
-            text_class = TEXT(dataset, train=True, download=True, data_loader=text_loader,
-                              classes=args.class_vector_size, episode_size=args.episode_size,
-                              tensor_length=setup.NUMBER_OF_SENTENCES, sentence_length=setup.SENTENCE_LENGTH,
-                              embedding_size=setup.EMBEDDING_SIZE, glove=self.args.GLOVE)
-            idx2word = text_class.dictionary.dictionary.idx2word
-            train_loader = torch.utils.data.DataLoader(
-                text_class,
-                batch_size=args.batch_size, shuffle=True)
+            # MARGIN SAMPLING:
+            if setup.CMS:
+                train_loader = torch.utils.data.DataLoader(
+                    TextMargin(dataset, train=True, download=True, data_loader=text_loader, classes=args.class_vector_size,
+                               episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
+                               sentence_length=setup.SENTENCE_LENGTH, embedding_size=setup.EMBEDDING_SIZE, margin_time=setup.MARGIN_TIME,
+                               MARGIN_SIZE=setup.MARGIN_SIZE, q_network=q_network, glove=self.args.GLOVE),
+                    batch_size=args.batch_size, shuffle=False)
 
-        test_loader = torch.utils.data.DataLoader(
-            TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size,
-                 episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
-                 sentence_length=setup.SENTENCE_LENGTH, embedding_size=setup.EMBEDDING_SIZE, glove=self.args.GLOVE),
-            batch_size=args.test_batch_size, shuffle=True)
+            # NO MARGIN:
+            else:
+                text_class = TEXT(dataset, train=True, download=True, data_loader=text_loader,
+                                  classes=args.class_vector_size, episode_size=args.episode_size,
+                                  tensor_length=setup.NUMBER_OF_SENTENCES, sentence_length=setup.SENTENCE_LENGTH,
+                                  embedding_size=setup.EMBEDDING_SIZE, glove=self.args.GLOVE)
+                idx2word = text_class.dictionary.dictionary.idx2word
+                train_loader = torch.utils.data.DataLoader(
+                    text_class,
+                    batch_size=args.batch_size, shuffle=True)
 
-        return train_loader, test_loader, idx2word
+            test_loader = torch.utils.data.DataLoader(
+                TEXT(dataset, train=False, data_loader=text_loader, classes=args.class_vector_size,
+                     episode_size=args.episode_size, tensor_length=setup.NUMBER_OF_SENTENCES,
+                     sentence_length=setup.SENTENCE_LENGTH, embedding_size=setup.EMBEDDING_SIZE, glove=self.args.GLOVE),
+                batch_size=args.test_batch_size, shuffle=True)
+
+            return train_loader, test_loader, idx2word

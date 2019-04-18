@@ -54,11 +54,11 @@ class Corpus(object):
                 print("Reading [" + str(f) + "/" + str(len(files)) + "] files...")
             file = files[f]
             for line in file.split("\n"):
-                if (len(line) <= 1):
+                if len(line) <= 1:
                     continue
                 words = parse(line, self.stopwords)
                 for word in words:
-                    if (word not in word_counts):
+                    if word not in word_counts:
                         word_counts[word] = 1
                     else:
                         word_counts[word] += 1
@@ -80,7 +80,7 @@ def parse(sentence, stopwords):
     ### REMOVE PUNCTUATION ###
     result = re.sub("[^\w\s]", " ", result)
     ### REMOVE STOPWORDS AND STEMMING ###
-    if (stopwords):
+    if stopwords:
         result = [porter.stem(i.lower()) for i in wordpunct_tokenize(result)
         if i.lower() not in stop]
     else:
@@ -117,7 +117,7 @@ def create_word_vectors(words, sen_len, corpus):
                 count = 0
             sentence[count] = corpus.dictionary.word2idx[word]
             count += 1
-    if (len(text) == 0):
+    if len(text) == 0:
         text.append(sentence)
     return text
 

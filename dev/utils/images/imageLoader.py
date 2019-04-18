@@ -19,7 +19,7 @@ class OmniglotLoader():
 	def __init__(self, root, classify=False, partition=0.8, classes=False):
 		self.root = os.path.expanduser(root)
 		self.classify = classify
-		if (self.classify):
+		if self.classify:
 			self.training_file = "classify_" + self.training_file
 			self.test_file = "classify_" + self.test_file
 		self.partition = partition
@@ -86,18 +86,18 @@ def read_image_file(path, training_set=None, test_set=None, label_start=0, parti
 		for f in files:
 			if (f.endswith(".png")):
 			# Reading image file:
-				if (len(files) < 20):
+				if len(files) < 20:
 					print("Length: ", len(files))
 					break
 				#image = imread(os.path.join(root, f), flatten=True)
 				image = np.array(Image.open(os.path.join(root, f)))
-				if (root not in label_dict):
+				if root not in label_dict:
 					label_dict[root] = label
 					label += 1
 	
 				assert(image.shape == (105, 105))
 
-				if (label_dict[root] not in uniform_distr):
+				if label_dict[root] not in uniform_distr:
 					uniform_distr[label_dict[root]] = [image.astype(int).tolist()]
 				else:
 					uniform_distr[label_dict[root]].append(image.astype(int).tolist())
@@ -107,7 +107,7 @@ def read_image_file(path, training_set=None, test_set=None, label_start=0, parti
 def create_datasets(image_dictionary, training_set=None, test_set=None, partition=0.8, shuffle=True, classes=False):
 	# Splitting the dataset into two parts with completely different EXAMPLES, but same CLASSES:
 	if not classes:
-		if (training_set == None):
+		if training_set == None:
 			training_labels = []
 			training_images = []
 			test_labels = []

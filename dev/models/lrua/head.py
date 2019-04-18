@@ -47,7 +47,7 @@ class NTMHeadBase(nn.Module):
         gamma = 0.95
 
         # READ:
-        if (access == 1):
+        if access == 1:
             w_r = self.memory.address(k, β, g, n, gamma, w_prev, access)
             return w_r
 

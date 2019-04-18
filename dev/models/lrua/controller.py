@@ -19,7 +19,7 @@ class LSTMController(nn.Module):
         self.dict_size = dict_size
         self.embedding = embedding
 
-        if (self.embedding):
+        if self.embedding:
             self.embedding_layer = nn.Embedding(self.dict_size, self.embedding_size)
         
 
@@ -39,7 +39,7 @@ class LSTMController(nn.Module):
         return self.num_inputs, self.num_outputs
 
     def forward(self, x, prev_state, prev_reads=None, class_vector=None, seq=1):
-        if (not self.embedding):
+        if not self.embedding:
             x = x.unsqueeze(0)
             outp, state = self.lstm(x, prev_state)
         else:

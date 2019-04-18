@@ -10,7 +10,6 @@ import numpy as np
 from utils import transforms
 
 
-
 class OMNIGLOT(data.Dataset):
     raw_folder = 'raw'
     processed_folder = 'processed'
@@ -25,7 +24,9 @@ class OMNIGLOT(data.Dataset):
     - target_transform: how to transform the target
     - download: need to download the dataset
     '''
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8, omniglot_loader=None, classes=3, episode_size=30, scenario=False, scenario_size=5, test=False, scenario_type=0, class_choice=0):
+    def __init__(self, root, train=True, transform=None, target_transform=None, download=False, partition=0.8,
+                 omniglot_loader=None, classes=3, episode_size=30, test=False, scenario=False, scenario_size=5,
+                 scenario_type=0, class_choice=0, scenario_classes=3):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
@@ -34,11 +35,12 @@ class OMNIGLOT(data.Dataset):
         self.episode_size = episode_size
         self.scenario_type = scenario_type
         self.class_choice = class_choice
+        self.scenario_classes = scenario_classes
         self.scenario = scenario
         self.test = test
         self.scenario_size = scenario_size
         self.classify = omniglot_loader.classify
-        if (self.classify):
+        if self.classify:
             self.training_file = "classify_" + self.training_file
             self.test_file = "classify_" + self.test_file
         self.partition = partition
@@ -63,22 +65,22 @@ class OMNIGLOT(data.Dataset):
         if self.scenario:
             images = []
             # As in Active One-Shot Learning:
-            if (self.scenario_type == 0):
-                if (self.train):
-                    img_classes = np.random.choice(len(self.train_labels), 2, replace=False)
+            if self.scenario_type == 0:
+                if self.train:
+                    img_classes = np.random.choice(len(self.train_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
-                        if (ind == 0):
+                        if ind == 0:
                             for j in range(self.scenario_size):
                                 images.append((self.train_data[i][j], ind))
                         else:
                             images.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
                         ind += 1
                 else:
-                    img_classes = np.random.choice(len(self.test_labels), 2, replace=False)
+                    img_classes = np.random.choice(len(self.test_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
-                        if (ind == 0):
+                        if ind == 0:
                             for j in range(self.scenario_size):
                                 images.append((self.test_data[i][j], ind))
                         else:
@@ -86,12 +88,12 @@ class OMNIGLOT(data.Dataset):
                         ind += 1
 
             # My own:
-            elif (self.scenario_type == 1):
-                if (self.train):
-                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+            elif self.scenario_type == 1:
+                if self.train:
+                    img_classes = np.random.choice(len(self.train_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
-                        if (ind == self.class_choice):
+                        if ind == self.class_choice:
                             img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
                             for j in img_samples:
                                 images.append((self.train_data[i][j], ind))
@@ -99,19 +101,19 @@ class OMNIGLOT(data.Dataset):
                             images.append((self.train_data[i][random.randint(0, len(self.train_data[i]) - 1)], ind))
                         ind += 1
                 else:
-                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    img_classes = np.random.choice(len(self.test_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
-                        if (ind == self.class_choice):
+                        if ind == self.class_choice:
                             img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
                             for j in img_samples:
                                 images.append((self.test_data[i][j], ind))
                         else:
                             images.append((self.test_data[i][random.randint(0, len(self.test_data[i]) - 1)], ind))
                         ind += 1
-            elif (self.scenario_type == 2):
-                if (self.train):
-                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+            elif self.scenario_type == 2:
+                if self.train:
+                    img_classes = np.random.choice(len(self.train_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
                         img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
@@ -119,7 +121,7 @@ class OMNIGLOT(data.Dataset):
                             images.append((self.train_data[i][j], ind))
                         ind += 1
                 else:
-                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    img_classes = np.random.choice(len(self.test_labels), self.scenario_classes, replace=False)
                     ind = 0
                     for i in img_classes:
                         img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
@@ -127,20 +129,20 @@ class OMNIGLOT(data.Dataset):
                             images.append((self.test_data[i][j], ind))
                         ind += 1
 
-            elif (self.scenario_type == 3):
-                if (self.train):
-                    img_classes = np.random.choice(len(self.train_labels), 3, replace=False)
+            elif self.scenario_type == 3:
+                if self.train:
+                    img_classes = np.random.choice(len(self.train_labels), self.scenario_classes, replace=False)
                     appended_images = []
                     ind = 0
                     k = 0
                     for i in img_classes:
-                        if (ind == self.class_choice):
+                        if ind == self.class_choice:
                             img_samples = np.random.choice(len(self.train_data[i]), self.scenario_size, replace=False)
                         else:
                             img_samples = np.random.choice(len(self.train_data[i]), 1, replace=False)
                         for j in img_samples:
-                            if (ind == self.class_choice):
-                                if (k == 0):
+                            if ind == self.class_choice:
+                                if k == 0:
                                     images.append((self.train_data[i][j], ind))
                                 else:
                                     appended_images.append((self.train_data[i][j], ind))
@@ -152,18 +154,18 @@ class OMNIGLOT(data.Dataset):
                     for img in appended_images:
                         images.append(img)
                 else:
-                    img_classes = np.random.choice(len(self.test_labels), 3, replace=False)
+                    img_classes = np.random.choice(len(self.test_labels), self.scenario_classes, replace=False)
                     appended_images = []
                     ind = 0
                     k = 0
                     for i in img_classes:
-                        if (ind == self.class_choice):
+                        if ind == self.class_choice:
                             img_samples = np.random.choice(len(self.test_data[i]), self.scenario_size, replace=False)
                         else:
                             img_samples = np.random.choice(len(self.test_data[i]), 1, replace=False)
                         for j in img_samples:
-                            if (ind == self.class_choice):
-                                if (k == 0):
+                            if ind == self.class_choice:
+                                if k == 0:
                                     images.append((self.test_data[i][j], ind))
                                 else:
                                     appended_images.append((self.test_data[i][j], ind))
@@ -200,11 +202,8 @@ class OMNIGLOT(data.Dataset):
                 img_classes = []
                 while len(img_classes) < self.classes:
                     r = random.randint(0, len(self.train_labels) - 1)
-                    if (r not in img_classes):
+                    if r not in img_classes:
                         img_classes.append(r)
-                #img_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-                #new_classes = np.random.choice(len(self.train_labels), self.classes, replace=False)
-                #print("Random classes 2 = ", new_classes)
                 ind = 0
                 for i in img_classes:
                     for j in self.train_data[i]:
@@ -218,7 +217,6 @@ class OMNIGLOT(data.Dataset):
                         images.append((j, ind))
                     ind += 1
 
-            #images_indexes = np.random.choice(len(images), self.episode_size, replace=False)
             images_indexes = []
             indexes = np.arange(len(images))
             while len(images_indexes) < self.episode_size:
@@ -236,13 +234,13 @@ class OMNIGLOT(data.Dataset):
                 img = Image.fromarray(img.numpy())
 
                 if self.transform is not None:
-                    if (self.train and not self.test):
+                    if self.train and not self.test:
                         # Applying class specific rotations:
-                        if (image_rotations[label] == 90):
+                        if image_rotations[label] == 90:
                             img = transforms.vflip(img)
-                        elif (image_rotations[label] == 180):
+                        elif image_rotations[label] == 180:
                             img = transforms.hflip(img)
-                        elif (image_rotations[label] == 270):
+                        elif image_rotations[label] == 270:
                             img = transforms.hflip(transforms.vflip(img))
                     img = self.transform(img)
                 if self.target_transform is not None:

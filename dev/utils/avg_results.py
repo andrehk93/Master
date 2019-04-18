@@ -43,7 +43,7 @@ for c_point in checkpoints:
     training_stats = checkpoint['training_stats']
     test_stats = checkpoint['test_stats']
 
-    if (len(total_training_stats) == 0):
+    if len(total_training_stats) == 0:
         total_training_stats = training_stats
         total_test_stats = test_stats
     else:
@@ -60,7 +60,7 @@ for c_point in checkpoints:
     req_dict = checkpoint['requests']
 
     for key in acc_dict.keys():
-        if (key not in total_acc_dict):
+        if key not in total_acc_dict:
             total_acc_dict[key] = acc_dict[key]
             total_req_dict[key] = req_dict[key]
         else:
@@ -80,7 +80,7 @@ for c_point in checkpoints:
     train_pred_dict = checkpoint['train_pred_dict']
 
     for key in test_acc_dict.keys():
-        if (key not in total_test_acc_dict):
+        if key not in total_test_acc_dict:
             total_test_acc_dict[key] = test_acc_dict[key]
             total_test_req_dict[key] = test_req_dict[key]
             total_test_pred_dict[key] = test_pred_dict[key]

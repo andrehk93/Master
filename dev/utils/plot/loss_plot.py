@@ -4,10 +4,10 @@ import os
 
 def plot(lists, labels, filename, folder, ylabel, avg=5, batch_size=0, episode_size=30):
 	avg_lists = []
-	if (batch_size == 0):
+	if batch_size == 0:
 		average = avg
 	else:
-		if (avg > 0):
+		if avg > 0:
 			average = avg*batch_size
 		else:
 			average = batch_size
