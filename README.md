@@ -1,33 +1,30 @@
-# Development for Masters Project 2018
+# Active One-Shot Learning with Memory Augmented Neural Networks
+This is the repository for my Masters-project "Active One-Shot Learning with Memory Augmented Neural Networks". 
+It features three different RNN models, an LSTM, a NTM and an LRUA. The goal of active one-shot learning is to be able
+to classify samples after only seeing them once, with a high accuracy. This particular project involves the use of reinforcement learning (RL)
+more specifically Q-learning to learn a strategy for stream-based sample classification (images & text).
 
-## Server Support + API (Not necessary, only to visually help track progress)
-### Server
-The project now includes a server that can be started from dev/server/server.py. This is a FLASK server, written in Python. It only returns results from files written by the main.py script. This is simply to enable graphical surveillance of the training, as it often use a lot of time, and it can be difficult to track progress. 
+# Prerequisites
 
-#### Requirements
 ```
-flask: pip install flask
-flask-cors: pip install flask-cors
-```
-#### Starting
-```
-python server.py
+Versions:
+Python      3.*
+PyTorch     0.4.1
+Numpy       1.14.3
+Matplotlib  2.2.2
 ```
 
-### API
-In order to get the updates from the server, either a custom API can be applied, or my own API from https://github.com/andrehk93/react-api can be used. See own instructions on how to use this.
+## Datasets
+### Training on the OMNIGLOT Dataset:
+Download the [OMNIGLOT](https://github.com/brendenlake/omniglot/tree/master/python) dataset (images_background.zip & images_evaluation.zip). Unzip both files and put BOTH folders in a folder you call "raw", which you put in data/omniglot/, and the scripts will do the rest.
 
-## Important
-### For Training on the OMNIGLOT Dataset:
-Go to https://github.com/brendenlake/omniglot/tree/master/python and download the OMNIGLOT dataset (images_background.zip & images_evaluation.zip). Unzip both files and put BOTH folders in a folder you call "raw", which you put in data/omniglot/, and the scripts will do the rest.
-
-### For Training on the INH Dataset:
-Go to https://www.kaggle.com/therohk/india-headlines-news-dataset, and download the dataset (You will need to sign in/sign up to Kaggle.com in order to do this). Unzip the file, and place the resulting .csv file called "india-news-headlines.csv" into "data/text/headlines/". Then run the script in the same folder called "csv_to_folders.py". This script will create folders for each headline category, and put each headline into it's corresponding category. This will take some time, as the dataset is over 2.7 million rows long. NOTE: The script may fail at the end, but this is due to some compromises made, and is not of concern, all files and folders have been made at this point!
+### Training on the INH Dataset:
+Download the [INH](https://www.kaggle.com/therohk/india-headlines-news-dataset) dataset (You will need to sign in/sign up to Kaggle.com in order to do this). Unzip the file, and place the resulting .csv file called "india-news-headlines.csv" into "data/text/headlines/". Then run the script in the same folder called "csv_to_folders.py". This script will create folders for each headline category, and put each headline into it's corresponding category. This will take some time, as the dataset is over 2.7 million rows long. NOTE: The script may fail at the end, but this is due to some compromises made, and is not of concern, all files and folders have been made at this point!
  
 NOTE: The first time you run main.py, the scripts will create word index vectors and store these for training. Thus, to not having to do this multiple times, be sure that the wanted sentence length, number of sentences and dictionary size are as you want them to be.
 
-### For Training on the Reuters Dataset:
-Go to http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz, and it will download the dataset immediately. Unzip the file, and from the unzipped folder, put bot the "test" and "training"-folders inside a folder called /raw inside data/reuters/. Run main_text.py and you should be good to go.
+### Training on the Reuters Dataset:
+Download the [Reuters](http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz) dataset. Unzip the file, and from the unzipped folder, put bot the "test" and "training"-folders inside a folder called /raw inside data/reuters/. Run main_text.py and you should be good to go.
 
 ## Word Vectors
 Each model can use three different types of word vectors. 
@@ -39,7 +36,7 @@ Each model can use three different types of word vectors.
 In order to be able to use the pre-trained word vectors, they have to be downloaded and put in the correct directory.
 
 ### GloVe
-Download from (http://nlp.stanford.edu/data/glove.6B.zip). Put in the folder data/text/glove, and make sure the filenames in utils/text/glove.py are identical to what you call the downloaded .txt file. 
+Download the [GLOVE](http://nlp.stanford.edu/data/glove.6B.zip) word-vectors. Put in the folder data/text/glove, and make sure the filenames in utils/text/glove.py are identical to what you call the downloaded .txt file. 
 
 #### Embedding size
 GloVe comes with a few different sizes of word embeddings, which also can be used as long as the proper naming convention is used. For example, if you want to use word embeddings of size 50 with an LSTM on the INH dataset, just add the corresponding GloVe file to the folder data/text/glove/ under the name provided underneath together with the command (Windows):
@@ -52,30 +49,32 @@ python main.py --LSTM --INH --embedding-size 50
 
 
 ### FastText
-Download from (https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip) and unzip to data/text/fast_text. Only supports the 300 dimension word embeddings.
+Download the [FastText](https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip) word-vectors and unzip to data/text/fast_text. Only supports the 300 dimension word embeddings.
 
 ## Models
 Both datasets can be trained on three different models:
 
 1. LSTM Baseline model:
-Implemented from "Active One-Shot Learning" (https://cs.stanford.edu/~woodward/papers/active_one_shot_learning_2016.pdf). This is used as a baseline for my experiments with different memory structures.
+Implemented from [Active One-Shot Learning](https://cs.stanford.edu/~woodward/papers/active_one_shot_learning_2016.pdf). This is used as a baseline for my experiments with different memory structures.
 
 2. NTM Model:
-Implemented partially from https://github.com/loudinthecloud/pytorch-ntm, with added functionality similar to "Active One-Shot Learning" and "Meta-Learning with Memory-Augmented Neural Networks" (http://proceedings.mlr.press/v48/santoro16.pdf). 
+Implemented partially from [pytorch-ntm](https://github.com/loudinthecloud/pytorch-ntm), with added functionality similar to "Active One-Shot Learning" and [Meta-Learning with Memory-Augmented Neural Networks](http://proceedings.mlr.press/v48/santoro16.pdf). 
 
 3. LRUA Model:
-Simply an augmented version of the NTM model, similar to the LRUA in http://proceedings.mlr.press/v48/santoro16.pdf. The only difference is that the number of read heads is identical to the number of write heads, and that every memory location is either written to the least used location, or simply the first location, in memory.
+Simply an augmented version of the NTM model, similar to the LRUA in [Meta-Learning with Memory-Augmented Neural Networks](http://proceedings.mlr.press/v48/santoro16.pdf). The only difference is that the number of read heads is identical to the number of write heads, and that every memory location is either written to the least used location, or simply the first location, in memory.
 
 # Training a model:
 First of all, any changes to the specific model architecture (LSTM size, NTM memory sizes, etc.) can be done in "models/reinforcement_models.py". Needless to say, changing architecture and then loading an earlier checkpoint of a model will not work.
 
 When running "main.py", be sure to also supply which model you want to train. Each argument can be done like this:
-
+```
 python main.py --LSTM --margin-sampling --margin-size 3 
+```
+This will result in a LSTM network, with margin sampling of MARGIN_SIZE=3 being trained. 
 
-This will result in a LSTM network, with margin sampling of MARGIN_SIZE=3 being trained. All commands are those below:
+All commands can be seen at the end of this readme.
 
-## Model names
+## Model names (File names)
 The naming scheme is automated based on the parameters of the model, but it's possible to both overwrite the name, and give it a postfix.
 
 ```
@@ -90,9 +89,15 @@ Results in:
 results/_something/
 ```
 
-## Function (w/parameters)
-
-usage: main.py [-h] [--batch-size N] [--test-batch-size N] [--episode-size N]
+## Running the Training Procedure
+To run the main training procedure, use the main.py file. It has only two mandatory parameters
+```
+Model: --LSTM | -- NTM | --LRUA
+Dataset: --MNIST | --OMNIGLOT | --INH | --REUTERS | --QA
+``` 
+All available parameters are as follows:
+```
+python main.py [-h] [--batch-size N] [--test-batch-size N] [--episode-size N]
                [--epochs N] [--start-epoch N] [--class-vector-size N]
                [--embedding-size N] [--sentence-length N] [--no-cuda]
                [--seed S] [--load-checkpoint LOAD_CHECKPOINT] [--name NAME]
@@ -100,8 +105,8 @@ usage: main.py [-h] [--batch-size N] [--test-batch-size N] [--episode-size N]
                [--margin-size S] [--margin-time S] [--LSTM] [--NTM] [--LRUA]
                [--MNIST] [--OMNIGLOT] [--INH] [--REUTERS] [--QA] [--GLOVE]
                [--FAST]
-
-### PyTorch Reinforcement Learning For Images:
+```
+### Detailed Explanation of Parameters
 ```
 optional arguments:
   -h, --help            show this help message and exit
