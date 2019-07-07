@@ -20,7 +20,7 @@ class TextModelSetup:
         self.DICTIONARY_MAX_SIZE = 20000
 
         # TRUE = REMOVE self.STOPWORDS:
-        self.STOPWORDS = False
+        self.STOPWORDS = True
 
         self.CMS = margin_sampling
         self.MARGIN_SIZE = margin_size

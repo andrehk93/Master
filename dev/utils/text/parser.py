@@ -3,7 +3,6 @@ import re
 import operator
 import torch
 import numpy as np
-from utils.text import pattern_repl as pr
 
 import nltk
 import ssl
@@ -87,28 +86,17 @@ class Corpus(object):
 
 # Parsing a sentence (removing punctuation --> stopwords --> stemming):
 def parse(sentence, stopwords):
-    """
-    # Replace patterns
-    replacer = pr.RegexpReplacer()
-    result = replacer.replace(sentence)
-    """
     # Remove unnecessary punctuation
     result = re.sub("[^\w\s]", "", sentence)
-    """
+
     # Remove Stopwords (optional)
     if stopwords:
-        print("Removing stopwords...")
-        result = [porter.stem(i.lower()) for i in wordpunct_tokenize(result)
-                  if i.lower() not in stop]
+        result = [porter.stem(i.lower()) for i in result.split(" ")
+                  if i.lower() not in stop and len(i) > 0]
     else:
         result = [porter.stem(i.lower()) for i in result.split(" ")
-                  if i.lower() not in stop]
-    """
-    res = []
-    for word in result.split(" "):
-        if len(word) > 0:
-            res.append(word.lower())
-    return res
+                  if len(i) > 0]
+    return result
 
 
 # Returns all data from a path
